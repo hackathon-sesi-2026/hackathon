@@ -1,0 +1,7 @@
+# Materiais pesados — ficam só localmente; usar as versões .md ao lado de cada arquivo
+*.pdf
+*.mp4
+*.pptx
+*.docx
+*.xlsx
+*.xlsm
