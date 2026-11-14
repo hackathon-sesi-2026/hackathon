@@ -47,7 +47,7 @@ São cinco superfícies. Cada uma tem um público, um aparelho e um limite de pr
 
 | Superfície | Quem usa | Onde | Para quê | Nunca mostra |
 |---|---|---|---|---|
-| **Celular do trabalhador** | Trabalhador | Celular pessoal: conversa no WhatsApp + página leve aberta por link, sem instalar nada | Confirmar ou remarcar em 1 toque, escolher horário que cabe no turno e no transporte, ver o plano como até 3 próximos passos, dizer "não consegui" e por quê | Linguagem técnica por padrão; dado clínico nas mensagens |
+| **Celular do trabalhador** | Trabalhador | Celular pessoal: conversa no WhatsApp + página leve aberta por link, sem instalar nada | Confirmar ou remarcar em 1 toque, escolher horário que cabe no turno e no transporte, ver o plano como até 3 próximos passos, ver os próprios exames explicados, dizer "não consegui" e por quê | Linguagem técnica por padrão; dado clínico nas mensagens |
 | **Totem na unidade** | Qualquer trabalhador, de passagem | Tela pública no chão de fábrica | Pulso anônimo de 3 perguntas (energia, dor, sono); com o crachá, ver o próprio próximo passo | Nada clínico; nada que identifique quem respondeu o pulso |
 | **Painel da APS** | Enfermeira que coordena o cuidado | Computador da unidade de saúde | Substituir a planilha: fila por prioridade, situação de cada pessoa, radar de risco de falta, enviar lembrete e plano, tratar dificuldades, registrar o desfecho do monitoramento | Diagnóstico e ficha clínica (ficam no S+) |
 | **Liderança do turno** | Supervisor ou líder de turno | Computador ou tablet | Organizar a cobertura para as liberações de saúde que caem no turno; meta coletiva do turno | O motivo da liberação, sempre; o nome, salvo se a própria pessoa autorizou |
@@ -57,7 +57,7 @@ A antiga "visão lado a lado" (painel e celular na mesma tela) foi **descartada*
 
 ## Regras que não se negociam
 
-1. **Dado clínico fica no S+.** O Selo Saúde usa só risco (1 a 4), datas e dados de participação. Nenhum diagnóstico, exame ou remédio entra no modelo de dados nem em mensagem.
+1. **Dado clínico fica no S+.** O Selo Saúde usa só risco (1 a 4), datas e dados de participação. Nenhum diagnóstico, exame ou remédio entra em mensagem nem em tela da equipe ou da empresa. A única exceção é "Meus exames": o trabalhador vê o próprio resultado, explicado em linguagem simples, e só ele. A enfermagem, neste sistema, vê apenas o andamento (pedido, coletado, resultado).
 2. **A empresa nunca vê o indivíduo.** RH e Direção veem agregados de grupos com 5 ou mais pessoas. A liderança vê horário de liberação, nunca o motivo.
 3. **Uso do canal não é adesão.** Abrir mensagem ou clicar não prova que a pessoa se cuidou; adesão é o que a equipe de saúde verifica. Não rotular métrica de uso como "adesão".
 4. **Sem culpa, medo, escassez falsa ou urgência artificial.** Sem ranking e sem comparação entre pessoas; reconhecimento é individual e privado, ou coletivo por turno.
@@ -99,6 +99,7 @@ Nova oferta de saúde ou serviço paralelo à APS; prontuário ou ficha clínica
 - **14/11:** os dados vêm de uma API em Python com FastAPI e Postgres, organizada como monólito modular. O S+ e o WhatsApp continuam simulados, atrás de portas na API.
 - **14/11:** tempo real por SSE, com o aviso passando pelo Postgres para a API poder rodar em várias instâncias.
 - **14/11:** a privacidade por público é garantida no servidor: cada público tem as suas rotas e recebe só o que pode ver.
+- **14/11:** "Meus exames" no celular do trabalhador, com andamento e resultado em linguagem simples. O aviso pelo WhatsApp não leva nenhum detalhe. No protótipo os resultados são fictícios e ficam no banco da API; no produto viriam do S+ sob demanda.
 
 A arquitetura e as convenções de código estão no `CLAUDE.md` da raiz.
 

@@ -159,3 +159,10 @@ def test_lembrete_cita_a_motivacao_da_pessoa_e_oferece_remarcar():
 
 def test_consulta_no_turno_avisa_que_a_lideranca_nunca_ve_o_motivo():
     assert "nunca o motivo" in textos.agendado(consulta(2, "confirmada", "no_turno")).texto
+
+
+def test_aviso_de_resultado_nao_leva_detalhe_nenhum():
+    """Resultado de exame só aparece na página pessoal. O WhatsApp avisa e aponta o caminho."""
+    texto = textos.resultado_liberado(trabalhador())
+    assert texto.acoes == ["exames"]
+    assert not any(termo in texto.texto for termo in ("mg/dL", "Colesterol", "Glicemia", "%"))

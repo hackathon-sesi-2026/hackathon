@@ -18,6 +18,7 @@ from selo_saude.modulos.cadastro.modelos import Trabalhador
 from selo_saude.modulos.cadastro.servico import TURNOS, DadosTrabalhador, Turno
 from selo_saude.modulos.comunicacao import textos
 from selo_saude.modulos.comunicacao.modelos import Mensagem
+from selo_saude.modulos.exames.modelos import Exame
 from selo_saude.modulos.indicadores.modelos import EmDiaPorTurno, ResumoUnidade
 from selo_saude.modulos.monitoramento.modelos import Acompanhamento, Registro
 from selo_saude.modulos.monitoramento.regras import PRAZO_EM_DIAS
@@ -28,6 +29,7 @@ from selo_saude.nucleo.relogio import em_dias
 
 TABELAS = [
     Mensagem,
+    Exame,
     Registro,
     Acompanhamento,
     Dificuldade,
@@ -144,6 +146,30 @@ PASSOS_RISCO_ALTO = [
      "Ajustar o que não está funcionando.", 30),
 ]  # fmt: skip
 
+# Resultados fictícios, com valores de referência simplificados. Cada item diz o que é, o que o número
+# quer dizer e o que ajuda. Nunca diagnóstico: quem explica é a médica no retorno.
+# (nome técnico, em linguagem simples, valor, referência, situação, explicação)
+RESULTADO_ATUAL = [
+    ("Glicemia em jejum", "Açúcar no sangue", "98 mg/dL", "70 a 99", "normal", "Dentro do esperado."),
+    ("Hemoglobina glicada (HbA1c)", "Média do açúcar nos últimos 3 meses", "5,6%", "abaixo de 5,7", "normal",
+     "Dentro do esperado, mas perto do limite. Vale manter a caminhada."),
+    ("Colesterol total", "Gordura no sangue", "228 mg/dL", "abaixo de 190", "atencao",
+     "Um pouco acima. Alimentação e caminhada ajudam; a nutricionista combina isso com você."),
+    ("Triglicerídeos", "Outro tipo de gordura no sangue", "190 mg/dL", "abaixo de 150", "atencao",
+     "Acima do esperado. Diminuir embutidos e bebida alcoólica costuma ajudar bastante."),
+    ("Hemograma completo", "Células do sangue", "Sem alterações", "—", "normal", "Tudo certo."),
+    ("Creatinina sérica", "Como os rins estão funcionando", "0,9 mg/dL", "0,7 a 1,3", "normal", "Dentro do esperado."),
+    ("25-hidroxivitamina D", "Vitamina D", "24 ng/mL", "20 a 60", "normal",
+     "Dentro do esperado. Tomar um pouco de sol fora do turno ajuda a manter."),
+]  # fmt: skip
+RESULTADO_DO_CHECKUP_ANTERIOR = [
+    ("Glicemia em jejum", "Açúcar no sangue", "95 mg/dL", "70 a 99", "normal", "Dentro do esperado."),
+    ("Colesterol total", "Gordura no sangue", "212 mg/dL", "abaixo de 190", "atencao",
+     "Um pouco acima. Foi conversado no retorno."),
+    ("Hemograma completo", "Células do sangue", "Sem alterações", "—", "normal", "Tudo certo."),
+]  # fmt: skip
+_CAMPOS_DO_ITEM = ("nome", "simples", "valor", "referencia", "situacao", "explicacao")
+
 UNIDADES = [
     ("Planta Camaçari", 420, (180, 131, 104, 79), 51, 76, 82, 64, (21, 17, 9, 4, 3, 5)),
     ("Planta Simões Filho", 260, (110, 70, 52, 33), 49, 63, 68, 55, (9, 14, 6, 2, 4, 2)),
@@ -258,6 +284,42 @@ def _registros_da_pessoa(i: int, p: Pessoa, hoje: datetime) -> list:
         for n, (categoria, titulo, detalhe, ganho, prazo) in enumerate(modelo)
     ]
 
+    # Exames: o check-up anterior, já com resultado, e os pedidos agora para quem tem esse passo no plano.
+    anterior = em_dias(hoje, -(p.ultimo + 300), 9)
+    exames = [
+        Exame(
+            id=f"{tid}-ex0",
+            trabalhador_id=tid,
+            titulo="Exames do último check-up",
+            pedido_por=trabalhador.medico_referencia,
+            data_pedido=anterior,
+            data_coleta=anterior,
+            data_resultado=anterior,
+            status="resultado",
+            passo_id=None,
+            resultado_visto=True,
+            itens=_itens(RESULTADO_DO_CHECKUP_ANTERIOR),
+        )  # fmt: skip
+    ]
+    passo_de_exames = next((x for x in passos if x.categoria == "exames"), None)
+    if passo_de_exames:
+        feito = passo_de_exames.feito
+        exames.append(
+            Exame(
+                id=f"{tid}-ex1",
+                trabalhador_id=tid,
+                titulo="Exames de sangue e urina",
+                pedido_por=trabalhador.medico_referencia,
+                data_pedido=trabalhador.ultima_consulta_medica,
+                data_coleta=em_dias(hoje, -(p.ultimo - 5), 7) if feito else None,
+                data_resultado=em_dias(hoje, -(p.ultimo - 8), 14) if feito else None,
+                status="resultado" if feito else "pedido",
+                passo_id=passo_de_exames.id,
+                resultado_visto=True,
+                itens=_itens(RESULTADO_ATUAL),
+            )  # fmt: skip
+        )
+
     mensagens: list[Mensagem] = []
     registros: list[Registro] = []
 
@@ -338,8 +400,12 @@ def _registros_da_pessoa(i: int, p: Pessoa, hoje: datetime) -> list:
         proximo_monitoramento=em_dias(hoje, PRAZO_EM_DIAS[p.risco] - p.ultimo),
         pediu_contato=p.pediu_contato,
     )
-    fixos = [trabalhador, plano, acompanhamento, *passos]
+    fixos = [trabalhador, plano, acompanhamento, *passos, *exames]
     return [*fixos, *([consulta] if consulta else []), *([dificuldade] if dificuldade else []), *mensagens, *registros]
+
+
+def _itens(resultado: list[tuple[str, ...]]) -> list[dict[str, str]]:
+    return [dict(zip(_CAMPOS_DO_ITEM, item, strict=True)) for item in resultado]
 
 
 def _unidades() -> list:

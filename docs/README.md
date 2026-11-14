@@ -9,6 +9,14 @@ Leia nesta ordem e pare assim que tiver o que precisa.
 | `pesquisa/gatilhos-mentais.md` | Quais gatilhos de engajamento têm evidência, o que evitar, e onde cada um está no protótipo | Ao escrever mensagem, lembrete, recompensa ou qualquer coisa que tente mudar comportamento |
 | `pesquisa/formulario-perfil-usuario.md` | Formulário de 6 perguntas que separa quem se afasta por barreira de quem se afasta por desinteresse | Ao tratar de personalização por perfil ou de validação com usuários |
 
+## Trabalho do time
+
+| Pasta | Conteúdo |
+|---|---|
+| `miro/` | Quadro do Miro preenchido (matriz CSD e demais etapas), em Markdown, HTML e imagens |
+| `anotacoes-manuais/` | Fotos de anotações feitas à mão durante o evento |
+| `referencias/` | Referência visual e painel de identidade visual do Selo Saúde |
+
 ## Materiais do SESI
 
 Em `materiais-sesi/`. São a fonte bruta, convertida dos originais. O essencial já está resumido nos arquivos acima; abra um destes só para conferir um detalhe ou citar a fonte.
@@ -32,4 +40,3 @@ Não estão no repositório: o documento do desafio (`.docx`), a planilha de dad
 
 - Decisão de produto nova entra em `produto.md`, na seção certa, e sai de "Decisões em aberto" quando for tomada.
 - Os arquivos de pesquisa e análise descrevem o mundo e a evidência; o estado do produto muda rápido, então a referência para "o que já existe" é o código.
-- A identidade visual de referência está em `referencias/referencia-visual.png`.

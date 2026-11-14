@@ -8,7 +8,7 @@ Projeto da equipe Café com Bugs no Hackathon+ SESI Saúde 2026. Todos os dados 
 
 | Endereço | Quem usa | Para quê |
 |---|---|---|
-| `/t/:token` | Trabalhador, no celular | Confirmar ou remarcar, escolher horário que cabe no turno, ver o plano em passos simples, dizer "não consegui" |
+| `/t/:token` | Trabalhador, no celular | Confirmar ou remarcar, escolher horário que cabe no turno, ver o plano em passos simples, ver os próprios exames explicados, dizer "não consegui" |
 | `/totem/:unidade` | Qualquer trabalhador, no chão de fábrica | Pulso anônimo de 3 perguntas; com o crachá, ver o próximo retorno |
 | `/painel/aps` | Enfermagem | Fila por prioridade, risco de falta, lembretes, dificuldades, desfecho do monitoramento |
 | `/painel/lideranca` | Liderança do turno | Organizar a cobertura das liberações, sem ver o motivo |
@@ -47,7 +47,7 @@ api/   FastAPI + SQLAlchemy assíncrono + Postgres
 docs/  contexto do produto, pesquisa e materiais do SESI
 ```
 
-A API é um monólito modular: sete módulos de negócio (`cadastro`, `agenda`, `plano`, `comunicacao`, `monitoramento`, `pulso`, `indicadores`) que conversam por eventos de domínio, com as integrações externas atrás de portas.
+A API é um monólito modular: oito módulos de negócio (`cadastro`, `agenda`, `plano`, `exames`, `comunicacao`, `monitoramento`, `pulso`, `indicadores`) que conversam por eventos de domínio, com as integrações externas atrás de portas.
 
 - **Privacidade no servidor.** As rotas são separadas por público, e cada uma devolve só o que aquele público pode ver. O RH recebe agregados já calculados, com grupos de menos de 5 pessoas omitidos. A liderança nunca recebe o motivo de uma liberação. O pulso do totem é gravado sem nenhum identificador de pessoa.
 - **Tempo real que escala.** As telas se atualizam por SSE. O aviso sai pelo `NOTIFY` do Postgres dentro da transação, então chega a todas as instâncias da API e só é entregue se a transação for efetivada. A API não guarda estado em memória.

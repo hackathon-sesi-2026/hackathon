@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from selo_saude.modulos.agenda import servico as agenda
 from selo_saude.modulos.agenda.servico import DadosLiberacao
 from selo_saude.modulos.comunicacao import servico as comunicacao
+from selo_saude.modulos.exames import servico as exames
 from selo_saude.modulos.indicadores import servico as indicadores
 from selo_saude.modulos.indicadores.servico import META_DO_TURNO, PainelDaEmpresa, UnidadeDaLideranca
 from selo_saude.modulos.monitoramento import servico as monitoramento
@@ -78,6 +79,13 @@ async def enviar_checkin_habito(trabalhador_id: str, sessao: Sessao) -> None:
 @transacional
 async def resolver_dificuldade(trabalhador_id: str, dificuldade_id: str, corpo: Resolucao, sessao: Sessao) -> None:
     await plano.resolver_dificuldade(sessao, trabalhador_id, dificuldade_id, corpo.nota)
+
+
+@aps.post("/trabalhadores/{trabalhador_id}/exames/{exame_id}/resultado", status_code=204)
+@transacional
+async def liberar_resultado(trabalhador_id: str, exame_id: str, sessao: Sessao) -> None:
+    """Na demonstração a enfermeira simula. No produto, o resultado chega do laboratório pelo S+."""
+    await exames.liberar_resultado(sessao, trabalhador_id, exame_id)
 
 
 @aps.post("/trabalhadores/{trabalhador_id}/monitoramentos", status_code=204)

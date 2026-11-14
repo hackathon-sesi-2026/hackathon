@@ -164,14 +164,16 @@ async def marcar_passo(sessao: AsyncSession, trabalhador_id: str, passo_id: str,
     passo = await _exigir_passo(sessao, trabalhador_id, passo_id)
     passo.feito = feito
     if feito:
-        await _publicar_com_cuidado(sessao, PassoFeito(trabalhador_id=trabalhador_id, titulo=passo.titulo))
+        await _publicar_com_cuidado(
+            sessao, PassoFeito(trabalhador_id=trabalhador_id, passo_id=passo_id, titulo=passo.titulo)
+        )
     else:
         await publicar(sessao, PassoDesfeito(trabalhador_id=trabalhador_id))
 
 
 async def responder_habito(sessao: AsyncSession, trabalhador_id: str, passo_id: str, fez: bool) -> None:
     """Resposta ao check-in de hábito. O "não" só registra: o motivo vem em seguida, em `relatar_dificuldade`."""
-    evento = HabitoRespondido(trabalhador_id=trabalhador_id, fez=fez)
+    evento = HabitoRespondido(trabalhador_id=trabalhador_id, passo_id=passo_id, fez=fez)
     if fez:
         (await _exigir_passo(sessao, trabalhador_id, passo_id)).feito = True
         await _publicar_com_cuidado(sessao, evento)

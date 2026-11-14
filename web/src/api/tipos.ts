@@ -62,10 +62,46 @@ export interface MetaDoTurno {
   meta: number
 }
 
+// ---------------------------------------------------------------- exames
+
+export type StatusExame = 'pedido' | 'coletado' | 'resultado'
+
+/** O que a enfermagem vê: a etapa e se a pessoa já abriu. O laudo com os valores fica no S+. */
+export interface AndamentoDoExame {
+  id: string
+  titulo: string
+  status: StatusExame
+  resultadoVisto: boolean
+}
+
+export interface ItemDoResultado {
+  /** Nome técnico, como no laudo. */
+  nome: string
+  /** O que é, em linguagem do dia a dia. */
+  simples: string
+  valor: string
+  referencia: string
+  /** atencao = vale conversar no retorno. Nunca "grave": isso é conversa com a médica. */
+  situacao: 'normal' | 'atencao'
+  explicacao: string
+}
+
+/** O que o próprio trabalhador vê, com o resultado explicado. */
+export interface Exame extends AndamentoDoExame {
+  pedidoPor: string
+  dataPedido: string
+  dataColeta: string | null
+  dataResultado: string | null
+  /** Passo do plano ligado a este exame: marcar o passo como feito registra a coleta. */
+  passoId: string | null
+  itens: ItemDoResultado[]
+}
+
 // ---------------------------------------------------------------- celular do trabalhador
 
 export type Acao =
   | 'confirmar'
+  | 'exames'
   | 'remarcar'
   | 'escolher_horario'
   | 'plano'
@@ -109,6 +145,10 @@ export interface MeuCuidado {
   dificuldades: MinhaDificuldade[]
   /** Opções da pergunta "qual é o seu primeiro passo?", enquanto ela estiver pendente. */
   checagem: string[] | null
+  /** Exames pedidos e resultados, do mais recente para o mais antigo. Só o próprio trabalhador vê os valores. */
+  exames: Exame[]
+  /** Há resultado novo que a pessoa ainda não abriu. */
+  resultadoNaoVisto: boolean
   mensagens: Mensagem[]
   metaDoTurno: MetaDoTurno | null
 }
@@ -218,6 +258,9 @@ export type TipoRegistro =
   | 'compromisso'
   | 'lembrete_auto'
   | 'selo'
+  | 'exame_coletado'
+  | 'resultado_liberado'
+  | 'resultado_visto'
 
 export interface RegistroHistorico {
   id: string
@@ -263,6 +306,7 @@ export interface LinhaDaFila {
   trabalhador: Trabalhador
   consulta: Consulta | null
   plano: PlanoDeCuidado
+  exames: AndamentoDoExame[]
   historico: RegistroHistorico[]
   ultimoContatoEnfermagem: string | null
   proximoMonitoramento: string

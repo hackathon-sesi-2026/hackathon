@@ -13,6 +13,8 @@ export function criarAcoes(enviar: Enviar) {
     enviarCheckinHabito: (id: string) => enviar('post', `${de(id)}/checkin-habito`),
     resolverDificuldade: (id: string, dificuldadeId: string, nota: string) =>
       enviar('post', `${de(id)}/dificuldades/${dificuldadeId}/resolucao`, { nota }),
+    /** Na demonstração a enfermeira simula; no produto, o resultado chega do laboratório pelo S+. */
+    liberarResultado: (id: string, exameId: string) => enviar('post', `${de(id)}/exames/${exameId}/resultado`),
     registrarMonitoramento: (id: string, desfecho: Desfecho) => enviar('post', `${de(id)}/monitoramentos`, desfecho),
   }
 }

@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Miro — Café com Bugs · Selo Saúde</title>
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  :root {
+    --navy: #0e3a6b; --navyh: #103f73; --borda: #8db7de; --icone: #e5f0fa;
+    --cinza: #efefef; --texto: #33475b; --muted: #5b6b7c;
+    --amarelo: #fde97a; --verde: #8ee3a0; --rosa: #f9a8e8; --azul: #a9c9fb; --laranja: #ffc98a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; color: var(--texto); background: #fff; }
+  .pagina { width: 297mm; height: 210mm; padding: 10mm 12mm; page-break-after: always; display: flex; flex-direction: column; gap: 5mm; overflow: hidden; }
+  .pagina:last-child { page-break-after: auto; }
+  .topo { display: flex; justify-content: space-between; align-items: center; }
+  h1 { color: var(--navy); font-size: 27pt; font-weight: 700; letter-spacing: -.3px; }
+  .grupo { background: var(--cinza); border-radius: 8px; padding: 9px 16px; font-size: 11pt; font-weight: 700; color: var(--navy); min-width: 95mm; }
+  .grupo span { font-weight: 400; color: var(--texto); margin-left: 6px; }
+  .bloco { border: 1.5px solid var(--borda); border-radius: 8px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+  .cab { display: flex; gap: 8px; align-items: flex-start; }
+  .ic { width: 22px; height: 22px; border-radius: 50%; background: var(--icone); display: grid; place-items: center; font-size: 11px; color: var(--navy); flex-shrink: 0; }
+  .tit { font-size: 11pt; font-weight: 700; color: var(--navy); }
+  .sub { font-size: 7.5pt; color: var(--muted); }
+  .barra { background: var(--navyh); color: #fff; border-radius: 6px; padding: 8px 12px; display: flex; gap: 10px; align-items: center; }
+  .barra .tit { color: #fff; font-size: 14pt; }
+  .barra .sub { color: #dce8f6; }
+  .barra .ic { background: #fff; width: 30px; height: 30px; font-size: 14px; }
+  .notas { display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; }
+  .n { font-size: 7.6pt; line-height: 1.22; padding: 5px 6px; border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,.18); color: #1d2733; width: calc(50% - 3px); }
+  .n.cheia { width: 100%; }
+  .n.terco { width: calc(33.3% - 4px); }
+  .am { background: var(--amarelo); } .ve { background: var(--verde); } .ro { background: var(--rosa); } .az { background: var(--azul); } .la { background: var(--laranja); }
+  .rodape { font-size: 7pt; color: var(--muted); text-align: right; }
+</style>
+</head>
+<body>
+
+<!-- 1. MATRIZ CSD -->
+<section class="pagina">
+  <div class="topo"><h1>Matriz CSD</h1><div class="grupo">Grupo:<span>Café com Bugs · Selo Saúde</span></div></div>
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6mm; flex:1;">
+    <div style="display:flex; flex-direction:column; gap:3mm;">
+      <div class="barra"><div class="ic">✓</div><div><div class="tit">Certezas</div><div class="sub">O que já sabemos com base em dados e evidências</div></div></div>
+      <div class="bloco" style="flex:1;"><div class="notas">
+        <div class="n az">~50% de não comparecimento aos atendimentos agendados (SESI)</div>
+        <div class="n az">APS é boa: 94% de resolutividade e NPS 97. O problema é sustentar a participação</div>
+        <div class="n az">10.025 vidas em 104 estabelecimentos (SESI Saúde Acolhe)</div>
+        <div class="n az">Retorno por risco: 1 e 2 a cada 6 meses; 3 a cada 3; 4 a critério médico</div>
+        <div class="n az">O retorno tem 4 passos: contato → resposta → agendamento → comparecimento</div>
+        <div class="n az">Ecossistema: S+ e planilhas, WhatsApp, chatbot em implantação, BI</div>
+        <div class="n az">A persona teme que o chefe saiba: nada individual pode chegar ao gestor</div>
+        <div class="n az">Sem API no evento: protótipo com dados fictícios</div>
+      </div></div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:3mm;">
+      <div class="barra"><div class="ic">?</div><div><div class="tit">Suposições</div><div class="sub">O que acreditamos ser verdade, mas precisa ser validado</div></div></div>
+      <div class="bloco" style="flex:1;"><div class="notas">
+        <div class="n am">A falta vem mais de tempo/turno e transporte do que de desinteresse</div>
+        <div class="n am">O trabalhador não entende o plano técnico (16 exames por nome técnico)</div>
+        <div class="n am">WhatsApp é o canal de menor atrito para o operário</div>
+        <div class="n am">Saber o motivo do "não consegui" permite agir na causa, não só lembrar de novo</div>
+        <div class="n am">Prever o risco de falta + contato humano reduz faltas (RR ~0,61 na literatura)</div>
+        <div class="n am">Dois lembretes (D-3 e D-1) funcionam melhor que um</div>
+      </div></div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:3mm;">
+      <div class="barra"><div class="ic">⌕</div><div><div class="tit">Dúvidas</div><div class="sub">O que ainda não sabemos e precisamos investigar</div></div></div>
+      <div class="bloco" style="flex:1;"><div class="notas">
+        <div class="n ro">Como o 50% é calculado (denominador, período)?</div>
+        <div class="n ro">Como a enfermeira descobre hoje quem sumiu?</div>
+        <div class="n ro">A empresa libera o trabalhador para consulta dentro do turno?</div>
+        <div class="n ro">Que dados o S+ guarda: histórico de faltas, escala?</div>
+        <div class="n ro">Qual é a causa dominante do abandono?</div>
+        <div class="n ro">O que a LGPD permite usar no radar de risco?</div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. CANVAS DE PERSONA -->
+<section class="pagina">
+  <div class="topo"><h1>Canvas de Persona</h1><div class="grupo">Grupo:<span>Café com Bugs · Selo Saúde</span></div></div>
+  <div style="display:grid; grid-template-columns:0.9fr 1fr 1fr; grid-template-rows:1fr 1fr; gap:5mm; flex:1;">
+    <div class="bloco" style="grid-row:1 / span 2; gap:8px;">
+      <div style="width:70px; height:70px; border-radius:50%; border:1.5px solid var(--borda); background:var(--icone); margin:4px auto; display:grid; place-items:center; font-size:30px;">👷</div>
+      <div><div class="tit" style="font-size:9.5pt;">Nome</div><div style="border-bottom:1px solid var(--borda); padding:3px 0; font-size:10pt;">Marcos</div></div>
+      <div><div class="tit" style="font-size:9.5pt;">Idade</div><div style="border-bottom:1px solid var(--borda); padding:3px 0; font-size:10pt;">38 anos</div></div>
+      <div><div class="tit" style="font-size:9.5pt;">Ocupação</div><div style="border-bottom:1px solid var(--borda); padding:3px 0; font-size:10pt;">Operador de produção, há 9 anos</div></div>
+      <div><div class="tit" style="font-size:9.5pt;">Rotina</div><div style="border-bottom:1px solid var(--borda); padding:3px 0; font-size:9pt;">Acorda 4h30, fretado de 1h10, turno 6h–14h, chega exausto. Casado, 2 filhos, sem plano de saúde</div></div>
+      <div style="background:#e8f2fc; border-radius:6px; padding:8px; flex:1;">
+        <div style="color:#2f8de4; font-weight:700; font-size:9pt;">Uma frase que ela diria</div>
+        <div style="font-size:10pt; margin-top:4px; font-style:italic;">"Se eu for no médico da firma, o chefe vai ficar sabendo."</div>
+      </div>
+    </div>
+    <div class="bloco"><div class="cab"><div class="ic">◎</div><div><div class="tit">Objetivos</div><div class="sub">O que a pessoa quer alcançar</div></div></div>
+      <div class="notas"><div class="n ve">Continuar trabalhando e garantir a renda</div><div class="n ve">Estar bem para os filhos</div><div class="n ve">Chegar em casa menos "moído"</div><div class="n ve">Dormir melhor e ter mais energia</div></div></div>
+    <div class="bloco"><div class="cab"><div class="ic">⚠</div><div><div class="tit">Dores e frustrações</div><div class="sub">O que atrapalha ou incomoda</div></div></div>
+      <div class="notas"><div class="n ro">Sem tempo fora do turno; a APS pede o turno oposto</div><div class="n ro">Perde o fretado se ficar depois do turno</div><div class="n ro">Medo de ser considerado inapto</div><div class="n ro">Apps complexos e cheios de cadastro</div></div></div>
+    <div class="bloco"><div class="cab"><div class="ic">⇄</div><div><div class="tit">Comportamentos e hábitos</div><div class="sub">Como ela age no dia a dia</div></div></div>
+      <div class="notas"><div class="n am">Só procura ajuda quando dói forte</div><div class="n am">Farmácia e UPA são a porta de entrada</div><div class="n am">Trabalha com dor para não perder o prêmio de assiduidade</div><div class="n am">Pressão 15x9 numa ação da empresa; não voltou</div></div></div>
+    <div class="bloco"><div class="cab"><div class="ic">◌</div><div><div class="tit">Canais e influências</div><div class="sub">Onde se informa e quem escuta</div></div></div>
+      <div class="notas"><div class="n az">Celular no ônibus fretado (WhatsApp)</div><div class="n az">Colegas de linha: confia mais neles que em cartaz</div><div class="n az">DDS com o líder no início do turno</div><div class="n az">Família (esposa)</div></div></div>
+  </div>
+</section>
+
+<!-- 3. MAPA DE EMPATIA -->
+<section class="pagina">
+  <div class="topo"><h1>Mapa de Empatia</h1><div class="grupo">Grupo:<span>Café com Bugs · Selo Saúde</span></div></div>
+  <div style="position:relative; border:1.5px solid var(--borda); height:112mm;">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%;"><line x1="0" y1="0" x2="100" y2="100" stroke="#8db7de" stroke-width=".25"/><line x1="100" y1="0" x2="0" y2="100" stroke="#8db7de" stroke-width=".25"/></svg>
+    <div style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:58px; height:58px; border-radius:50%; background:#e5f0fa; border:1.5px solid var(--borda); display:grid; place-items:center; font-size:26px;">👷</div>
+    <div style="position:absolute; left:30%; width:40%; top:3mm; text-align:center;">
+      <div class="sub" style="font-style:italic;">O que ele</div><div class="tit" style="font-size:15pt;">PENSA E SENTE?</div>
+      <div class="notas" style="justify-content:center; margin-top:3px;"><div class="n am terco">"Médico é para quando dói"</div><div class="n am terco">Medo de perder o emprego</div><div class="n am terco">Pensa no AVC do pai, mas afasta</div></div>
+    </div>
+    <div style="position:absolute; left:2mm; width:31%; top:34mm;">
+      <div class="sub" style="font-style:italic; text-align:center;">O que ele</div><div class="tit" style="font-size:15pt; text-align:center;">ESCUTA?</div>
+      <div class="notas" style="margin-top:3px;"><div class="n ro">Colega indicando anti-inflamatório</div><div class="n ro">Chefe cobrando a meta</div><div class="n ro cheia">"Ir ao médico sem dor é corpo mole"</div></div>
+    </div>
+    <div style="position:absolute; right:2mm; width:31%; top:34mm;">
+      <div class="sub" style="font-style:italic; text-align:center;">O que ele</div><div class="tit" style="font-size:15pt; text-align:center;">VÊ?</div>
+      <div class="notas" style="margin-top:3px;"><div class="n az">UBS fechada no horário do turno</div><div class="n az">APS da empresa ligada ao "apto/inapto"</div><div class="n az cheia">Colegas trabalhando com dor</div></div>
+    </div>
+    <div style="position:absolute; left:30%; width:40%; bottom:3mm; text-align:center;">
+      <div class="sub" style="font-style:italic;">O que ele</div><div class="tit" style="font-size:15pt;">FALA E FAZ?</div>
+      <div class="notas" style="justify-content:center; margin-top:3px;"><div class="n ve terco">"Não tenho tempo nem para respirar"</div><div class="n ve terco">Omite sintomas</div><div class="n ve terco">Não responde à mensagem de retorno</div></div>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:5mm; flex:1;">
+    <div class="bloco"><div class="cab"><div class="ic">⚠</div><div class="tit" style="font-size:13pt;">DOR <span class="sub" style="font-weight:400;">Medos, frustrações, obstáculos</span></div></div>
+      <div class="notas"><div class="n ro terco">Medo de exposição ao gestor</div><div class="n ro terco">Falta de tempo e de transporte</div><div class="n ro terco">Não entende o plano de cuidado</div></div></div>
+    <div class="bloco"><div class="cab"><div class="ic">↗</div><div class="tit" style="font-size:13pt;">GANHOS <span class="sub" style="font-weight:400;">Desejos e necessidades, formas de medir sucesso</span></div></div>
+      <div class="notas"><div class="n ve terco">Cuidar sem perder o turno nem o fretado</div><div class="n ve terco">Sigilo garantido</div><div class="n ve terco">Menos dor e mais energia logo</div></div></div>
+  </div>
+</section>
+
+<!-- 4. JTBD -->
+<section class="pagina">
+  <div class="topo"><h1>Canvas – Jobs-To-Be-Done</h1><div class="grupo">Grupo:<span>Café com Bugs · Selo Saúde</span></div></div>
+  <div style="display:grid; grid-template-columns:1fr 1fr 0.85fr; gap:8mm; flex:1;">
+    <div style="display:flex; flex-direction:column; gap:3mm;">
+      <div class="barra" style="justify-content:center; text-align:center; font-size:8pt; font-weight:700;">O Job To Be Done é o processo pelo qual um cliente passa para melhorar sua vida</div>
+      <div class="bloco" style="flex:1;"><div class="cab"><div class="ic">👤</div><div class="tit">Persona</div></div><div class="notas"><div class="n az cheia">Marcos, operador em turno fixo (6h–14h), sem plano de saúde, depende do fretado</div></div></div>
+      <div style="text-align:center; color:#2f8de4;">⬇</div>
+      <div class="bloco" style="flex:1;"><div class="cab"><div class="ic">⚠</div><div class="tit">Dor / Problema</div></div><div class="notas"><div class="n ro cheia">Recebe o plano e a convocação, não consegue seguir e ninguém sabe por quê: vira só "falta"</div></div></div>
+      <div style="text-align:center; color:#2f8de4;">⬇</div>
+      <div class="bloco" style="flex:1;"><div class="cab"><div class="ic">✓</div><div class="tit">Solução / Resultado funcional</div></div><div class="notas"><div class="n ve cheia">Lembretes que cabem no turno, plano em 3 passos e "não consegui" com o motivo em 1 toque</div></div></div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:3mm;">
+      <div class="barra" style="justify-content:center; text-align:center; font-size:8pt; font-weight:700;">Qual é a melhoria fundamental do seu cliente quando ele adquire sua solução</div>
+      <div class="bloco" style="flex:1;"><div class="cab"><div class="ic">⚙</div><div class="tit">Job funcional</div></div><div class="notas"><div class="n am cheia">Cuidar da saúde sem perder o turno nem o fretado</div></div></div>
+      <div class="bloco" style="flex:1;"><div class="cab"><div class="ic">👥</div><div class="tit">Job social</div></div><div class="notas"><div class="n am cheia">Não ser visto como "corpo mole" nem inapto pelo chefe e pelos colegas</div></div></div>
+      <div class="bloco" style="flex:1;"><div class="cab"><div class="ic">♡</div><div class="tit">Job emocional</div></div><div class="notas"><div class="n am cheia">Sentir-se seguro e respeitado, sem sermão</div></div></div>
+      <div class="bloco" style="flex:1;"><div class="cab"><div class="ic">⌂</div><div class="tit">Necessidade básica atendida</div></div><div class="notas"><div class="n am cheia">Acesso contínuo ao cuidado, a única opção dele sem plano de saúde</div></div></div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:3mm;">
+      <div class="barra" style="justify-content:center; text-align:center; font-size:8pt; font-weight:700;">Proposta de valor é a maior mudança positiva que você oferece para tornar a vida de seus clientes melhor</div>
+      <div class="bloco" style="flex:1;"><div class="cab"><div class="ic">☆</div><div class="tit">Proposta de valor chave</div></div>
+        <div class="notas"><div class="n ve cheia" style="font-size:10pt; line-height:1.35; padding:10px;">"Quando não consigo seguir meu plano, digo o porquê em um toque e a equipe de saúde resolve a causa, sem que a empresa saiba."</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. ÁRVORE DE OPORTUNIDADES -->
+<section class="pagina">
+  <div class="topo"><h1>Árvore de Oportunidades</h1><div class="grupo">Grupo:<span>Café com Bugs · Selo Saúde</span></div></div>
+  <div style="display:grid; grid-template-columns:38mm 1fr; grid-template-rows:auto auto auto auto; gap:4mm 6mm; flex:1;">
+    <div class="barra" style="flex-direction:column; align-items:flex-start; gap:2px;"><div class="tit" style="font-size:11pt;">Resultado desejado</div><div class="sub">A meta que queremos alcançar</div></div>
+    <div class="bloco" style="width:60%; margin:0 auto; align-items:center; justify-content:center;"><div class="n ve cheia" style="font-size:10pt; text-align:center;">Reduzir o não comparecimento de ~50% para 35% em 90 dias (piloto em 1 planta)</div></div>
+
+    <div class="barra" style="flex-direction:column; align-items:flex-start; gap:2px;"><div class="tit" style="font-size:11pt;">Oportunidades</div><div class="sub">Dores, necessidades e desejos do cliente</div></div>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:4mm;">
+      <div class="bloco"><div class="n am cheia">"Meu horário não bate com o turno e o fretado"</div></div>
+      <div class="bloco"><div class="n am cheia">"Não entendi o plano / não consegui fazer"</div></div>
+      <div class="bloco"><div class="n am cheia">"A enfermeira não sabe quem está sumindo"</div></div>
+    </div>
+
+    <div class="barra" style="flex-direction:column; align-items:flex-start; gap:2px;"><div class="tit" style="font-size:11pt;">Soluções</div><div class="sub">Ideias para atender cada oportunidade</div></div>
+    <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:3mm;">
+      <div class="bloco"><div class="n az cheia">Horários fora do turno, por vídeo ou 20 min no turno</div></div>
+      <div class="bloco"><div class="n az cheia">2 horários mais próximos em destaque</div></div>
+      <div class="bloco"><div class="n az cheia">Plano em 3 passos + pergunta de checagem</div></div>
+      <div class="bloco"><div class="n az cheia">Botão "não consegui" com o motivo</div></div>
+      <div class="bloco"><div class="n az cheia">Radar de risco de falta com o porquê</div></div>
+      <div class="bloco"><div class="n az cheia">Lembretes D-3 e D-1 + plano se-então</div></div>
+    </div>
+
+    <div class="barra" style="flex-direction:column; align-items:flex-start; gap:2px;"><div class="tit" style="font-size:11pt;">Experimentos</div><div class="sub">Testes rápidos para validar as soluções</div></div>
+    <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:3mm;">
+      <div class="bloco"><div class="n la cheia">% que escolhe vídeo ou no turno</div></div>
+      <div class="bloco"><div class="n la cheia">Dias entre marcar e ir</div></div>
+      <div class="bloco"><div class="n la cheia">% que acerta a checagem do plano</div></div>
+      <div class="bloco"><div class="n la cheia">% de "não consegui" resolvidos em 48h</div></div>
+      <div class="bloco"><div class="n la cheia">Faltas: grupo contatado x não contatado</div></div>
+      <div class="bloco"><div class="n la cheia">Comparecimento: 2 lembretes x 1</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. PROPOSTA DE VALOR -->
+<section class="pagina">
+  <div class="topo"><h1>Canvas de Proposta de Valor</h1><div class="grupo">Grupo:<span>Café com Bugs · Selo Saúde</span></div></div>
+  <div style="display:grid; grid-template-columns:1fr 18mm 1fr; gap:4mm; flex:1;">
+    <div style="display:flex; flex-direction:column; gap:3mm;">
+      <div class="barra" style="justify-content:center;"><div class="tit" style="font-size:11pt;">Mapa de valor</div></div>
+      <div style="display:grid; grid-template-columns:0.8fr 1.2fr; grid-template-rows:1fr 1fr; border:1.5px solid var(--borda); flex:1;">
+        <div style="grid-row:1/span 2; border-right:1.5px solid var(--borda); padding:8px; display:flex; flex-direction:column; gap:5px;">
+          <div class="tit" style="text-align:center;">📦 Produtos e serviços</div><div class="sub" style="text-align:center;">O que você oferece</div>
+          <div class="notas"><div class="n az cheia">WhatsApp: lembretes, check-in do plano e "não consegui"</div><div class="n az cheia">Página leve do plano, sem instalar app</div><div class="n az cheia">Painel da enfermeira com radar de risco</div><div class="n az cheia">Totem por unidade; visões agregadas de RH e liderança</div></div>
+        </div>
+        <div style="border-bottom:1.5px solid var(--borda); padding:8px; display:flex; flex-direction:column; gap:5px;">
+          <div class="tit" style="text-align:center;">🎁 Criadores de ganho</div><div class="sub" style="text-align:center;">Como a solução gera os ganhos que o cliente deseja</div>
+          <div class="notas"><div class="n ve">Horário garantido, sem fila</div><div class="n ve">"O que você ganha" em cada passo</div><div class="n ve cheia">Selos e meta coletiva do turno, sem ranking</div></div>
+        </div>
+        <div style="padding:8px; display:flex; flex-direction:column; gap:5px;">
+          <div class="tit" style="text-align:center;">🛡 Aliviadores de dor</div><div class="sub" style="text-align:center;">Como a solução reduz as dores do cliente</div>
+          <div class="notas"><div class="n ro">Horário por vídeo, no turno ou fora</div><div class="n ro">Sigilo: nada individual para a empresa</div><div class="n ro cheia">Motivo em 1 toque, sem burocracia</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;">
+      <div style="width:44px; height:44px; border-radius:50%; background:var(--icone); display:grid; place-items:center; color:var(--navy); font-size:18px;">⇄</div>
+      <div style="font-size:8pt; color:#2f8de4; font-weight:700;">Encaixe</div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:3mm;">
+      <div class="barra" style="justify-content:center;"><div class="tit" style="font-size:11pt;">Perfil do cliente</div></div>
+      <div style="position:relative; flex:1;">
+        <svg viewBox="0 0 100 100" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:118mm; height:118mm;"><circle cx="50" cy="50" r="49" fill="none" stroke="#8db7de" stroke-width=".5"/><line x1="1" y1="50" x2="50" y2="50" stroke="#8db7de" stroke-width=".5"/><line x1="50" y1="50" x2="74.5" y2="7.6" stroke="#8db7de" stroke-width=".5"/><line x1="50" y1="50" x2="74.5" y2="92.4" stroke="#8db7de" stroke-width=".5"/></svg>
+        <div style="position:absolute; left:calc(50% - 50mm); top:calc(50% - 45mm); width:44mm; text-align:center;">
+          <div class="tit">☺ Ganhos</div><div class="sub">Resultados e benefícios que ele deseja</div>
+          <div class="notas" style="margin-top:3px;"><div class="n ve cheia">Menos dor, mais energia, dormir melhor</div><div class="n ve cheia">Ser tratado com respeito</div><div class="n ve cheia">Praticidade</div></div>
+        </div>
+        <div style="position:absolute; left:calc(50% - 50mm); top:calc(50% + 4mm); width:44mm; text-align:center;">
+          <div class="tit">☹ Dores</div><div class="sub">Frustrações, riscos e obstáculos</div>
+          <div class="notas" style="margin-top:3px;"><div class="n ro cheia">Falta de tempo e transporte</div><div class="n ro cheia">Medo de exposição</div><div class="n ro cheia">Plano técnico e confuso</div></div>
+        </div>
+        <div style="position:absolute; left:calc(50% + 8mm); top:calc(50% - 22mm); width:42mm; text-align:center;">
+          <div class="tit">📋 Tarefas do cliente</div><div class="sub">O que o cliente tenta resolver</div>
+          <div class="notas" style="margin-top:3px;"><div class="n am cheia">Saber o próximo passo e quando</div><div class="n am cheia">Marcar sem perder o turno</div><div class="n am cheia">Avisar quando não conseguiu</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. BUSINESS MODEL CANVAS -->
+<section class="pagina">
+  <div class="topo"><h1>Business Model Canvas</h1><div class="grupo">Grupo:<span>Café com Bugs · Selo Saúde</span></div></div>
+  <div style="display:grid; grid-template-columns:repeat(10,1fr); grid-template-rows:1fr 1fr 0.75fr; border:2px solid #111; flex:1; font-family:Arial, sans-serif;">
+    <div style="grid-column:1/3; grid-row:1/3; border-right:1.5px solid #111; padding:7px;"><div style="font-weight:900; font-size:9pt; color:#111;">PARCEIROS CHAVE 🤝</div><div class="notas" style="margin-top:5px;"><div class="n am cheia">SESI Saúde Acolhe (equipe de APS)</div><div class="n am cheia">Empresas industriais</div><div class="n am cheia">S+ / futuro Klingo</div><div class="n am cheia">WhatsApp Business</div></div></div>
+    <div style="grid-column:3/5; grid-row:1; border-right:1.5px solid #111; border-bottom:1.5px solid #111; padding:7px;"><div style="font-weight:900; font-size:9pt; color:#111;">ATIVIDADES CHAVE 🧹</div><div class="notas" style="margin-top:5px;"><div class="n ve cheia">Lembretes e check-ins</div><div class="n ve cheia">Tradução do plano</div><div class="n ve cheia">Radar de risco e painel da enfermagem</div></div></div>
+    <div style="grid-column:3/5; grid-row:2; border-right:1.5px solid #111; padding:7px;"><div style="font-weight:900; font-size:9pt; color:#111;">RECURSOS CHAVE 🧰</div><div class="notas" style="margin-top:5px;"><div class="n ve cheia">Plataforma com adaptador para o S+</div><div class="n ve cheia">Regras de risco</div><div class="n ve cheia">Enfermagem e totens</div></div></div>
+    <div style="grid-column:5/7; grid-row:1/3; border-right:1.5px solid #111; padding:7px;"><div style="font-weight:900; font-size:9pt; color:#111;">PROPOSIÇÕES DE VALOR 🎁</div><div class="notas" style="margin-top:5px;"><div class="n ro cheia" style="font-size:9pt;">Descobrir por que o trabalhador sai do cuidado e dizer à enfermeira quem procurar primeiro e como ajudar</div><div class="n ro cheia">Sigilo: empresa vê só agregados</div><div class="n ro cheia">Cabe no turno e no fretado</div></div></div>
+    <div style="grid-column:7/9; grid-row:1; border-right:1.5px solid #111; border-bottom:1.5px solid #111; padding:7px;"><div style="font-weight:900; font-size:9pt; color:#111;">RELACIONAMENTO COM CLIENTES ♡</div><div class="notas" style="margin-top:5px;"><div class="n az cheia">Mensagens em nome da enfermeira de referência</div><div class="n az cheia">Acompanhamento contínuo</div></div></div>
+    <div style="grid-column:7/9; grid-row:2; border-right:1.5px solid #111; padding:7px;"><div style="font-weight:900; font-size:9pt; color:#111;">CANAIS 🚚</div><div class="notas" style="margin-top:5px;"><div class="n az cheia">WhatsApp</div><div class="n az cheia">Página leve</div><div class="n az cheia">Totem na unidade · painel web</div></div></div>
+    <div style="grid-column:9/11; grid-row:1/3; padding:7px;"><div style="font-weight:900; font-size:9pt; color:#111;">SEGMENTOS DE CLIENTES 🧍</div><div class="notas" style="margin-top:5px;"><div class="n la cheia">Trabalhador da indústria em turno (usuário)</div><div class="n la cheia">Equipe de APS do SESI (operador)</div><div class="n la cheia">Empresas contratantes (pagador)</div></div></div>
+    <div style="grid-column:1/6; grid-row:3; border-top:1.5px solid #111; border-right:1.5px solid #111; padding:7px;"><div style="font-weight:900; font-size:9pt; color:#111;">CUSTOS 🧾</div><div class="notas" style="margin-top:5px;"><div class="n am">Desenvolvimento e hospedagem</div><div class="n am">Mensagens WhatsApp Business</div><div class="n am">Totens e integração com o S+</div><div class="n am">Suporte · [valores da planilha]</div></div></div>
+    <div style="grid-column:6/11; grid-row:3; border-top:1.5px solid #111; padding:7px;"><div style="font-weight:900; font-size:9pt; color:#111;">RECEITAS 💰</div><div class="notas" style="margin-top:5px;"><div class="n ve">Módulo do SESI Saúde Acolhe por vida/mês, pago pela empresa [R$__]</div><div class="n ve">Eficiência da APS: menos vagas perdidas</div></div></div>
+  </div>
+  <div class="rodape">Café com Bugs · Hackathon+ SESI Saúde 2026 · dados fictícios</div>
+</section>
+
+</body>
+</html>

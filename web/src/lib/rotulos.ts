@@ -49,6 +49,7 @@ export const ROTULO_MOTIVO = Object.fromEntries(MOTIVOS.map((m) => [m.motivo, m.
 /** Botões de resposta da conversa. */
 export const ROTULO_ACAO: Record<Acao, string> = {
   confirmar: '✅ Confirmo',
+  exames: '🧪 Ver meus exames',
   remarcar: '📅 Preciso remarcar',
   escolher_horario: '📅 Escolher horário',
   plano: '📋 Ver meu plano',

@@ -10,6 +10,7 @@ from selo_saude.modulos.agenda.eventos import (
     RemarcacaoPedida,
 )
 from selo_saude.modulos.cadastro import servico as cadastro
+from selo_saude.modulos.exames.eventos import ResultadoLiberado
 from selo_saude.modulos.monitoramento.eventos import CheckinRespondido
 from selo_saude.modulos.plano.eventos import DificuldadeRelatada, HabitoRespondido, PlanoEnviado, SeloConquistado
 from selo_saude.modulos.plano.regras import MOTIVOS_DE_HORARIO, ROTULO_MOTIVO
@@ -73,6 +74,11 @@ async def ao_relatar_dificuldade(sessao: AsyncSession, evento: DificuldadeRelata
 async def ao_enviar_plano(sessao: AsyncSession, evento: PlanoEnviado) -> None:
     trabalhador = await cadastro.obter(sessao, evento.trabalhador_id)
     await do_sesi(sessao, evento.trabalhador_id, textos.plano_pronto(trabalhador))
+
+
+async def ao_liberar_resultado(sessao: AsyncSession, evento: ResultadoLiberado) -> None:
+    trabalhador = await cadastro.obter(sessao, evento.trabalhador_id)
+    await do_sesi(sessao, evento.trabalhador_id, textos.resultado_liberado(trabalhador))
 
 
 async def ao_conquistar_selo(sessao: AsyncSession, evento: SeloConquistado) -> None:

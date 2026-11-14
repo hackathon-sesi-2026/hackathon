@@ -11,6 +11,7 @@ from selo_saude.modulos.agenda.eventos import (
 )
 from selo_saude.modulos.cadastro.eventos import TurnoAtualizado
 from selo_saude.modulos.comunicacao.eventos import CheckinHabitoEnviado, LembreteEnviado
+from selo_saude.modulos.exames.eventos import ExameColetado, ResultadoLiberado, ResultadoVisto
 from selo_saude.modulos.plano.eventos import (
     DificuldadeRelatada,
     DificuldadeResolvida,
@@ -64,6 +65,12 @@ def _registro(evento: EventoDominio) -> tuple[str, str | None] | None:
             return "teach_back", f"{'acertou' if acertou else 'errou'} a pergunta de checagem"
         case SeloConquistado(nome=nome, emoji=emoji):
             return "selo", f"{emoji} {nome}"
+        case ExameColetado(titulo=titulo):
+            return "exame_coletado", titulo
+        case ResultadoLiberado(titulo=titulo):
+            return "resultado_liberado", titulo
+        case ResultadoVisto():
+            return "resultado_visto", None
         case CheckinRespondido(tudo_bem=tudo_bem):
             return ("checkin_ok" if tudo_bem else "checkin_ajuda"), None
     return None

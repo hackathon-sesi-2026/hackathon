@@ -70,6 +70,9 @@ const ROTULO_REGISTRO: Record<TipoRegistro, string> = {
   dificuldade_resolvida: 'Dificuldade resolvida',
   teach_back: 'Pergunta de checagem do plano',
   compromisso: 'Combinou como vai (se-então)',
+  exame_coletado: 'Fez a coleta dos exames',
+  resultado_liberado: 'Resultado de exames liberado',
+  resultado_visto: 'Abriu o resultado dos exames',
   lembrete_auto: 'Lembrete automático',
   selo: 'Ganhou selo',
 }
@@ -410,6 +413,8 @@ function Gaveta({
 
             <LembretesAuto t={t} />
 
+            <ExamesStatus t={t} />
+
             <div className="rounded-xl border border-slate-100 p-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Radar de risco de falta</p>
@@ -505,6 +510,36 @@ function Gaveta({
         )}
       </div>
     </aside>
+  )
+}
+
+/** Andamento dos exames (sem valores: o laudo fica no S+). Na demo, a enfermeira simula a liberação do laboratório. */
+function ExamesStatus({ t }: { t: LinhaDaFila }) {
+  const acoes = useAcoes()
+  if (t.exames.length === 0) return null
+  const rotulo = { pedido: 'Pedido, falta coletar', coletado: 'Coletado, aguardando resultado', resultado: 'Resultado disponível' } as const
+  return (
+    <div className="rounded-xl border border-slate-100 p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Exames</p>
+      <ul className="mt-2 space-y-1.5">
+        {t.exames.map((ex) => (
+          <li key={ex.id} className="flex items-center justify-between gap-2 text-xs">
+            <span className="min-w-0">
+              <span className="font-semibold text-navy">{ex.titulo}</span>
+              <span className="block text-slate-500">
+                {rotulo[ex.status]}
+                {ex.status === 'resultado' && (ex.resultadoVisto ? ' · aberto pelo trabalhador' : ' · ainda não aberto')}
+              </span>
+            </span>
+            {ex.status !== 'resultado' && (
+              <button onClick={() => acoes.liberarResultado(t.trabalhador.id, ex.id)} className="shrink-0 font-semibold text-tech underline" title="No produto, o resultado vem do laboratório/S+">
+                simular resultado
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 

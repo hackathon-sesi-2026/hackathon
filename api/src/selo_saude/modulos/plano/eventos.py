@@ -18,6 +18,7 @@ class PlanoRecebido(EventoDominio):
 @dataclass(frozen=True, kw_only=True)
 class PassoFeito(EventoDominio):
     trabalhador_id: str
+    passo_id: str
     titulo: str
 
 
@@ -31,6 +32,7 @@ class HabitoRespondido(EventoDominio):
     """Resposta ao check-in "conseguiu fazer este passo?"."""
 
     trabalhador_id: str
+    passo_id: str
     fez: bool
 
 

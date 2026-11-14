@@ -168,6 +168,15 @@ def checkin(t: DadosTrabalhador) -> Texto:
     )
 
 
+def resultado_liberado(t: DadosTrabalhador) -> Texto:
+    """Só o aviso e o caminho para a página pessoal. Nenhum valor ou nome de exame vai pelo WhatsApp."""
+    return Texto(
+        f"Oi, {t.primeiro_nome}! Aqui é a {t.enfermeira}. O resultado dos seus exames saiu. "
+        "Veja na sua página pessoal, com explicação simples. Por segurança, aqui não mostramos detalhes.",
+        ["exames"],
+    )
+
+
 def selo(nome: str, emoji: str, semanas: int) -> Texto:
     return Texto(
         f'{emoji} Você ganhou o selo "{nome}": {semanas} semanas seguidas cuidando de você. Ele fica no seu plano.'

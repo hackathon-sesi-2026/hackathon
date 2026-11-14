@@ -10,6 +10,8 @@ from selo_saude.modulos.agenda import servico as agenda
 from selo_saude.modulos.agenda.servico import DadosConsulta
 from selo_saude.modulos.cadastro import servico as cadastro
 from selo_saude.modulos.cadastro.servico import DadosTrabalhador
+from selo_saude.modulos.exames import servico as exames
+from selo_saude.modulos.exames.servico import AndamentoDoExame
 from selo_saude.modulos.plano import servico as plano
 from selo_saude.modulos.plano.servico import DadosPlano
 from selo_saude.nucleo import relogio
@@ -39,6 +41,8 @@ class LinhaDaFila(Esquema):
     trabalhador: DadosTrabalhador
     consulta: DadosConsulta | None
     plano: DadosPlano
+    exames: list[AndamentoDoExame]
+    """Só o andamento. O laudo com os valores fica no S+."""
     historico: list[RegistroHistorico]
     ultimo_contato_enfermagem: Instante | None
     proximo_monitoramento: Instante
@@ -53,6 +57,7 @@ async def fila(sessao: AsyncSession) -> list[LinhaDaFila]:
     hoje = relogio.agora()
     consultas = await agenda.por_trabalhador(sessao)
     planos = await plano.por_trabalhador(sessao)
+    andamentos = await exames.andamento_por_trabalhador(sessao)
     acompanhamentos = {a.trabalhador_id: a for a in await sessao.scalars(select(Acompanhamento))}
     historicos: dict[str, list[RegistroHistorico]] = defaultdict(list)
     for registro in await sessao.scalars(select(Registro).order_by(Registro.data, Registro.sequencia)):
@@ -76,6 +81,7 @@ async def fila(sessao: AsyncSession) -> list[LinhaDaFila]:
                 trabalhador=trabalhador,
                 consulta=retrato.consulta,
                 plano=retrato.plano,
+                exames=andamentos.get(trabalhador.id, []),
                 historico=retrato.historico,
                 ultimo_contato_enfermagem=acompanhamento.ultimo_contato_enfermagem,
                 proximo_monitoramento=acompanhamento.proximo_monitoramento,

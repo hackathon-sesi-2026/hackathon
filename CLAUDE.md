@@ -48,6 +48,7 @@ api/src/selo_saude/
 | `plano` | Plano de cuidado, passos, dificuldades, checagem, selos |
 | `comunicacao` | A conversa com o trabalhador e todo texto enviado (`textos.py`) |
 | `monitoramento` | Situação, risco de falta, linha do tempo, desfecho da enfermagem |
+| `exames` | Andamento do pedido (pedido, coletado, resultado) e o resultado explicado em linguagem simples |
 | `pulso` | Respostas anônimas do totem |
 | `indicadores` | Agregados para RH e liderança, com o corte de grupo mínimo |
 

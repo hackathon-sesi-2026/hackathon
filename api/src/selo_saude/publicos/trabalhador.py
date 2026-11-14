@@ -16,6 +16,8 @@ from selo_saude.modulos.cadastro import servico as cadastro
 from selo_saude.modulos.cadastro.servico import TURNOS, DadosTrabalhador, Motivacao, Turno
 from selo_saude.modulos.comunicacao import servico as comunicacao
 from selo_saude.modulos.comunicacao.servico import DadosMensagem
+from selo_saude.modulos.exames import servico as exames
+from selo_saude.modulos.exames.servico import DadosExame
 from selo_saude.modulos.indicadores import servico as indicadores
 from selo_saude.modulos.indicadores.servico import MetaDoTurno
 from selo_saude.modulos.monitoramento import servico as monitoramento
@@ -62,6 +64,9 @@ class MeuCuidado(Esquema):
     dificuldades: list[MinhaDificuldade]
     checagem: list[str] | None
     """Opções da pergunta "qual é o seu primeiro passo?", enquanto ela estiver pendente."""
+    exames: list[DadosExame]
+    resultado_nao_visto: bool
+    """Há resultado novo que a pessoa ainda não abriu."""
     mensagens: list[DadosMensagem]
     meta_do_turno: MetaDoTurno | None
 
@@ -114,6 +119,7 @@ class RespostaDoCheckin(Esquema):
 @rota.get("")
 async def meu_cuidado(eu: Eu, sessao: Sessao) -> MeuCuidado:
     meu_plano = await plano.obter(sessao, eu.id)
+    meus_exames = await exames.listar(sessao, eu.id)
     return MeuCuidado(
         id=eu.id,
         nome=eu.nome,
@@ -128,6 +134,8 @@ async def meu_cuidado(eu: Eu, sessao: Sessao) -> MeuCuidado:
         passos=meu_plano.passos,
         dificuldades=[MinhaDificuldade.model_validate(d) for d in meu_plano.dificuldades],
         checagem=meu_plano.opcoes_da_checagem(eu.id),
+        exames=meus_exames,
+        resultado_nao_visto=any(not e.resultado_visto for e in meus_exames),
         mensagens=await comunicacao.listar(sessao, eu.id),
         meta_do_turno=await indicadores.meta_do_turno(sessao, eu.unidade, eu.turno.nome),
     )
@@ -207,6 +215,12 @@ async def relatar_dificuldade(eu: Eu, corpo: RelatoDeDificuldade, sessao: Sessao
 @transacional
 async def responder_checagem(eu: Eu, corpo: RespostaDaChecagem, sessao: Sessao) -> None:
     await plano.responder_checagem(sessao, eu.id, corpo.resposta)
+
+
+@rota.post("/exames/visualizacao", status_code=204)
+@transacional
+async def ver_resultados(eu: Eu, sessao: Sessao) -> None:
+    await exames.ver_resultados(sessao, eu.id)
 
 
 @rota.post("/checkin", status_code=204)

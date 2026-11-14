@@ -24,6 +24,8 @@ export function criarAcoes(base: string, enviar: Enviar) {
     relatarDificuldade: (motivo: MotivoDificuldade, origem: 'plano' | 'checkin', passoId?: string | null) =>
       enviar('post', `${base}/plano/dificuldades`, { motivo, origem, passoId: passoId ?? null }),
     responderChecagem: (resposta: string) => enviar('post', `${base}/plano/checagem`, { resposta }),
+    /** A pessoa abriu "Meus exames": some o aviso de resultado novo. */
+    verResultados: () => enviar('post', `${base}/exames/visualizacao`),
     responderCheckin: (tudoBem: boolean) => enviar('post', `${base}/checkin`, { tudoBem }),
   }
 }
