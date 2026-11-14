@@ -105,7 +105,7 @@ function Chat({ t, irPara, pedirMotivo }: { t: Trabalhador; irPara: (t: Tela) =>
         </span>
         <div className="min-w-0">
           <p className="flex items-center gap-1 font-semibold leading-tight">
-            SESI Saúde APS <BadgeCheck className="size-4 text-saude" />
+            Selo Saúde · SESI <BadgeCheck className="size-4 text-saude" />
           </p>
           <p className="truncate text-xs text-blue-100/80">canal oficial · sem dados de saúde nas mensagens</p>
         </div>

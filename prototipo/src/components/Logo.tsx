@@ -28,7 +28,7 @@ export function Logo({ tamanho = 'md', claro = true }: { tamanho?: 'sm' | 'md' |
     <span className="inline-flex items-center gap-2">
       <LogoMarca className={marca} />
       <span className={`${texto} font-extrabold tracking-tight ${claro ? 'text-white' : 'text-navy'}`}>
-        SESI <span className="text-saude">Saúde</span>
+        Selo <span className="text-saude">Saúde</span>
       </span>
     </span>
   )

@@ -39,6 +39,7 @@ export default function App() {
           <p className="mt-1 text-[11px] text-blue-100/70">
             Cuidar hoje. <span className="text-saude">Trabalhar melhor</span> amanhã.
           </p>
+          <p className="text-[10px] text-blue-100/50">com a APS do SESI Saúde Acolhe</p>
         </div>
 
         <nav className="mt-6 space-y-1">
