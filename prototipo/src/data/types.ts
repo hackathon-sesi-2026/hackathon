@@ -13,7 +13,33 @@ export interface Turno {
   fim: number
 }
 
-export type Modalidade = 'presencial' | 'online'
+/** presencial = fora do turno · online = por vídeo · no_turno = microconsulta de 20 min no ambulatório da empresa, com liberação. */
+export type Modalidade = 'presencial' | 'online' | 'no_turno'
+
+/** O que move a pessoa a se cuidar (escolhido por ela). Usado nas mensagens e no app. */
+export type Motivacao = 'familia' | 'energia' | 'menos_dor' | 'sono'
+
+/** Resposta anônima do "Como você está hoje?" no totem. Sem identificação. */
+export interface Pulso {
+  id: string
+  unidade: string
+  turno: string
+  data: string // ISO
+  energia: 1 | 2 | 3
+  dor: 1 | 2 | 3 // 1 sem dor, 3 dor forte
+  sono: 1 | 2 | 3 // 1 dormiu mal, 3 dormiu bem
+}
+
+/** Compromisso de saúde que cai no turno e precisa de liberação. A liderança nunca vê o motivo. */
+export interface Liberacao {
+  id: string
+  unidade: string
+  turno: string
+  inicio: string // ISO
+  duracaoMin: number
+  /** Só preenchido se o trabalhador autorizou mostrar o nome à liderança. */
+  nome?: string
+}
 
 export type StatusConsulta = 'agendada' | 'confirmada' | 'remarcar' | 'faltou'
 
@@ -24,6 +50,12 @@ export interface Consulta {
   profissional: string
   modalidade: Modalidade
   status: StatusConsulta
+  /** Para consultas no turno: o trabalhador autorizou a liderança a ver o nome (nunca o motivo). */
+  nomeParaLideranca?: boolean
+  /** Plano se-então que a pessoa escolheu (opcional), ex.: "sair do turno e ir direto". */
+  compromisso?: string
+  /** Lembretes automáticos já enviados (D-3 e D-1). */
+  lembretesAutoEnviados?: ('D-3' | 'D-1')[]
 }
 
 /** Status do plano de cuidado, como na ficha Gestão de Retorno ("Não recebido"). */
@@ -39,11 +71,25 @@ export interface PassoPlano {
   detalhe: string
   prazo: string // ISO
   feito: boolean
+  /** O que a pessoa ganha no curto prazo (ganho percebido, não promessa clínica). */
+  ganho: string
   /** Texto técnico original do plano (ex.: nomes dos exames), visível só se o trabalhador quiser abrir. */
   itensTecnicos?: string[]
 }
 
-export type Acao = 'confirmar' | 'remarcar' | 'escolher_horario' | 'plano' | 'checkin_ok' | 'checkin_ajuda'
+export type Acao =
+  | 'confirmar'
+  | 'remarcar'
+  | 'escolher_horario'
+  | 'plano'
+  | 'checkin_ok'
+  | 'checkin_ajuda'
+  | 'habito_sim'
+  | 'habito_nao'
+  // Plano se-então (compromisso opcional ao confirmar)
+  | 'se_turno'
+  | 'se_folga'
+  | 'se_so_lembrete'
 
 export interface Mensagem {
   id: string
@@ -51,6 +97,21 @@ export interface Mensagem {
   texto: string
   hora: string // ISO
   acoes?: Acao[]
+  /** Passo do plano a que a mensagem se refere (check-in de hábito). */
+  passoId?: string
+}
+
+/** Motivos que o trabalhador pode relatar quando não consegue seguir o plano (slides 14 e 16 da abertura). */
+export type MotivoDificuldade = 'tempo' | 'transporte' | 'nao_entendi' | 'remedio' | 'dinheiro' | 'outro'
+
+export interface Dificuldade {
+  id: string
+  motivo: MotivoDificuldade
+  passoId?: string
+  origem: 'plano' | 'checkin' | 'teach_back'
+  data: string // ISO
+  resolvida: boolean
+  nota?: string
 }
 
 export type TipoEvento =
@@ -66,6 +127,13 @@ export type TipoEvento =
   | 'monitoramento'
   | 'faltou'
   | 'turno_atualizado'
+  | 'checkin_habito'
+  | 'dificuldade'
+  | 'dificuldade_resolvida'
+  | 'teach_back'
+  | 'compromisso'
+  | 'lembrete_auto'
+  | 'selo'
 
 export interface Evento {
   id: string
@@ -90,7 +158,14 @@ export interface Trabalhador {
   nome: string
   funcao: string
   empresa: string
+  /** Planta / estabelecimento onde trabalha (e onde fica o totem). */
+  unidade: string
   medicoReferencia: string
+  /** Enfermeira de referência: as mensagens vêm em nome dela (acolhimento / reciprocidade). */
+  enfermeira: string
+  motivacao: Motivacao | null
+  /** Semanas seguidas com alguma ação de cuidado (passo feito, check-in respondido, retorno confirmado). */
+  semanasSeguidas: number
   turno: Turno
   risco: Risco
   ultimaConsultaMedica: string // ISO
@@ -103,12 +178,19 @@ export interface Trabalhador {
   mensagens: Mensagem[]
   eventos: Evento[]
   pediuContato: boolean
+  /** Dificuldades relatadas pelo trabalhador ("não consegui"). */
+  dificuldades: Dificuldade[]
+  /** Pergunta de checagem do plano (teach-back assíncrono). */
+  teachBack: 'pendente' | 'acertou' | 'errou'
+  /** Faltas a retornos nos últimos 12 meses (entra no radar de risco de falta). */
+  faltasUltimoAno: number
 }
 
 export interface Horario {
   inicio: string // ISO
   local: string
   modalidade: Modalidade
+  duracaoMin: number
   /** Dica exibida ao trabalhador, ex.: "antes do fretado". */
   dica?: string
 }

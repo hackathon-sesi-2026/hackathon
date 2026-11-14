@@ -1,19 +1,29 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { DataAdapter } from './adapter'
-import type { Trabalhador } from './types'
+import type { Liberacao, Pulso, Trabalhador } from './types'
 import { MockAdapter } from './mockAdapter'
 
 // Ponto único onde se escolhe a implementação. Para usar o S+: trocar por `new SPlusAdapter(...)`.
 export const adapter = new MockAdapter()
 
-const Ctx = createContext<{ adapter: DataAdapter; trabalhadores: Trabalhador[] } | null>(null)
+interface Dados {
+  adapter: DataAdapter
+  trabalhadores: Trabalhador[]
+  pulsos: Pulso[]
+  liberacoes: Liberacao[]
+}
+
+const Ctx = createContext<Dados | null>(null)
 
 export function DadosProvider({ children }: { children: ReactNode }) {
-  const [trabalhadores, setTrabalhadores] = useState<Trabalhador[]>([])
+  const [estado, setEstado] = useState<Omit<Dados, 'adapter'>>({ trabalhadores: [], pulsos: [], liberacoes: [] })
 
   useEffect(() => {
     let vivo = true
-    const carregar = () => adapter.listarTrabalhadores().then((d) => vivo && setTrabalhadores(d))
+    const carregar = () =>
+      Promise.all([adapter.listarTrabalhadores(), adapter.listarPulsos(), adapter.listarLiberacoes()]).then(
+        ([trabalhadores, pulsos, liberacoes]) => vivo && setEstado({ trabalhadores, pulsos, liberacoes }),
+      )
     carregar()
     const sair = adapter.assinar(carregar)
     return () => {
@@ -22,7 +32,7 @@ export function DadosProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  return <Ctx.Provider value={{ adapter, trabalhadores }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ adapter, ...estado }}>{children}</Ctx.Provider>
 }
 
 export function useDados() {

@@ -1,5 +1,5 @@
-import type { Consulta, Evento, Mensagem, PassoPlano, Risco, StatusConsulta, StatusPlano, Trabalhador } from './types'
-import { PRAZO_DIAS, TURNOS } from '../domain/regras'
+import type { Consulta, Evento, Mensagem, MotivoDificuldade, PassoPlano, Risco, StatusConsulta, StatusPlano, Trabalhador } from './types'
+import { PRAZO_DIAS, RESPOSTA_MOTIVO, TURNOS } from '../domain/regras'
 import { textoCheckin, textoLembrete, textoPlano } from '../domain/mensagens'
 import { emDias } from '../lib/datas'
 
@@ -37,25 +37,29 @@ interface Semente {
   checkin?: number
   pediuContato?: boolean
   passosFeitos?: number
+  faltas?: number
+  /** Dificuldade já relatada: motivo, índice do passo e dias atrás. */
+  dificuldade?: { motivo: MotivoDificuldade; passo: number; dias: number; origem: 'plano' | 'checkin' | 'teach_back' }
+  teachBack?: Trabalhador['teachBack']
 }
 
 // O primeiro é a persona oficial do desafio: Marcos, operador de produção, turno 6h–14h, ônibus fretado.
 const SEMENTES: Semente[] = [
-  { nome: 'Marcos Oliveira Santos', funcao: 'Operador de produção', empresa: EMPRESAS.metal, turno: A, risco: 2, ultimo: 170, plano: 'enviado', planoEnviado: 1, consulta: { dias: 4, hora: 15, status: 'agendada' }, lembrete: 0 },
-  { nome: 'Juliana Bispo Almeida', funcao: 'Separadora de pedidos', empresa: EMPRESAS.alimentos, turno: B, risco: 3, ultimo: 100, plano: 'recebido', lembrete: 4, passosFeitos: 1 },
-  { nome: 'Ana Paula Ferreira', funcao: 'Costureira', empresa: EMPRESAS.textil, turno: A, risco: 3, ultimo: 60, plano: 'recebido', consulta: { dias: -2, hora: 15, status: 'faltou' } },
-  { nome: 'Rafael Lima Conceição', funcao: 'Soldador', empresa: EMPRESAS.metal, turno: C, risco: 4, ultimo: 40, plano: 'recebido', passosFeitos: 1 },
+  { nome: 'Marcos Oliveira Santos', funcao: 'Operador de produção', empresa: EMPRESAS.metal, turno: A, risco: 2, ultimo: 170, plano: 'enviado', planoEnviado: 1, consulta: { dias: 4, hora: 15, status: 'agendada' }, lembrete: 0, faltas: 1 },
+  { nome: 'Juliana Bispo Almeida', funcao: 'Separadora de pedidos', empresa: EMPRESAS.alimentos, turno: B, risco: 3, ultimo: 100, plano: 'recebido', lembrete: 4, passosFeitos: 1, faltas: 2, dificuldade: { motivo: 'transporte', passo: 1, dias: 2, origem: 'checkin' } },
+  { nome: 'Ana Paula Ferreira', funcao: 'Costureira', empresa: EMPRESAS.textil, turno: A, risco: 3, ultimo: 60, plano: 'recebido', consulta: { dias: -2, hora: 15, status: 'faltou' }, faltas: 2 },
+  { nome: 'Rafael Lima Conceição', funcao: 'Soldador', empresa: EMPRESAS.metal, turno: C, risco: 4, ultimo: 40, plano: 'recebido', passosFeitos: 1, faltas: 1, teachBack: 'errou', dificuldade: { motivo: 'nao_entendi', passo: 1, dias: 1, origem: 'teach_back' } },
   { nome: 'Luciana Nascimento Rocha', funcao: 'Embaladora', empresa: EMPRESAS.alimentos, turno: B, risco: 2, ultimo: 90, plano: 'recebido', checkin: 1, pediuContato: true },
   { nome: 'Sandra Santos Mendes', funcao: 'Líder de linha', empresa: EMPRESAS.textil, turno: ADM, risco: 3, ultimo: 85, plano: 'recebido', consulta: { dias: 3, hora: 9, status: 'remarcar' } },
-  { nome: 'Edson Pereira Almeida', funcao: 'Almoxarife', empresa: EMPRESAS.plasticos, turno: B, risco: 2, ultimo: 120, plano: 'recebido', consulta: { dias: 2, hora: 10, status: 'agendada' }, lembrete: 4 },
-  { nome: 'Patrícia Teixeira Carvalho', funcao: 'Auxiliar de produção', empresa: EMPRESAS.plasticos, turno: A, risco: 2, ultimo: 200, plano: 'enviado', planoEnviado: 190 },
-  { nome: 'Leandro Teixeira Rodrigues', funcao: 'Mecânico de manutenção', empresa: EMPRESAS.ceramica, turno: B, risco: 3, ultimo: 82, plano: 'recebido', passosFeitos: 2 },
+  { nome: 'Edson Pereira Almeida', funcao: 'Almoxarife', empresa: EMPRESAS.plasticos, turno: B, risco: 2, ultimo: 120, plano: 'recebido', consulta: { dias: 2, hora: 10, status: 'agendada' }, lembrete: 4, faltas: 1 },
+  { nome: 'Patrícia Teixeira Carvalho', funcao: 'Auxiliar de produção', empresa: EMPRESAS.plasticos, turno: A, risco: 2, ultimo: 200, plano: 'enviado', planoEnviado: 190, faltas: 2 },
+  { nome: 'Leandro Teixeira Rodrigues', funcao: 'Mecânico de manutenção', empresa: EMPRESAS.ceramica, turno: B, risco: 3, ultimo: 82, plano: 'recebido', passosFeitos: 0, dificuldade: { motivo: 'remedio', passo: 0, dias: 1, origem: 'plano' } },
   { nome: 'Bruna Nascimento Barbosa', funcao: 'Operadora de máquinas', empresa: EMPRESAS.plasticos, turno: C, risco: 3, ultimo: 12, plano: 'enviado', planoEnviado: 6 },
   { nome: 'José Nunes Lima', funcao: 'Operador de extrusora', empresa: EMPRESAS.quimica, turno: C, risco: 3, ultimo: 45, plano: 'recebido', consulta: { dias: 6, hora: 19, status: 'confirmada', online: true }, passosFeitos: 1 },
   { nome: 'Fernanda Rodrigues Costa', funcao: 'Analista de qualidade', empresa: EMPRESAS.alimentos, turno: ADM, risco: 1, ultimo: 30, plano: 'recebido', checkin: 0 },
   { nome: 'Danilo Ribeiro Dias', funcao: 'Eletricista', empresa: EMPRESAS.ceramica, turno: A, risco: 1, ultimo: 3, plano: 'nao_enviado' },
-  { nome: 'Aline Araújo Batista', funcao: 'Técnica de segurança', empresa: EMPRESAS.quimica, turno: ADM, risco: 1, ultimo: 150, plano: 'recebido', passosFeitos: 3 },
-  { nome: 'Antônio Dias Nascimento', funcao: 'Caldeireiro', empresa: EMPRESAS.metal, turno: C, risco: 4, ultimo: 10, plano: 'recebido', consulta: { dias: 10, hora: 17, status: 'confirmada' } },
+  { nome: 'Aline Araújo Batista', funcao: 'Técnica de segurança', empresa: EMPRESAS.quimica, turno: ADM, risco: 1, ultimo: 150, plano: 'recebido', passosFeitos: 3, dificuldade: { motivo: 'tempo', passo: 3, dias: 20, origem: 'checkin' } },
+  { nome: 'Antônio Dias Nascimento', funcao: 'Caldeireiro', empresa: EMPRESAS.metal, turno: C, risco: 4, ultimo: 10, plano: 'recebido', consulta: { dias: 10, hora: 17, status: 'confirmada' }, faltas: 1 },
 ]
 
 const EXAMES = [
@@ -69,17 +73,17 @@ function plano(risco: Risco, hoje: Date, id: string, feitos = 0): PassoPlano[] {
   const passos: Omit<PassoPlano, 'id' | 'feito'>[] =
     risco <= 2
       ? [
-          { categoria: 'exames', titulo: 'Fazer os exames de sangue e urina', detalhe: 'É uma coleta só, de manhã, com jejum de 8 horas. Leve o pedido da médica.', prazo: emDias(hoje, 10), itensTecnicos: EXAMES },
-          { categoria: 'nutricao', titulo: 'Marcar conversa com a nutricionista', detalhe: 'Para ajustar a alimentação e o peso, sem dieta radical.', prazo: emDias(hoje, 20) },
-          { categoria: 'vacina', titulo: 'Tomar a vacina da gripe', detalhe: 'Leve sua caderneta para a equipe conferir se falta alguma vacina.', prazo: emDias(hoje, 30) },
-          { categoria: 'atividade', titulo: 'Manter o exercício que você já faz', detalhe: 'Do seu jeito, respeitando seus limites. Caminhar já conta.', prazo: emDias(hoje, 60) },
-          { categoria: 'retorno', titulo: 'Voltar à médica de família', detalhe: 'Para ver os resultados dos exames e combinar os próximos passos.', prazo: emDias(hoje, 45) },
+          { categoria: 'exames', titulo: 'Fazer os exames de sangue e urina', detalhe: 'É uma coleta só, de manhã, com jejum de 8 horas. Leve o pedido da médica.', ganho: 'Saber como está o seu corpo antes de sentir dor.', prazo: emDias(hoje, 10), itensTecnicos: EXAMES },
+          { categoria: 'nutricao', titulo: 'Marcar conversa com a nutricionista', detalhe: 'Para ajustar a alimentação e o peso, sem dieta radical.', ganho: 'Mais disposição no fim do turno.', prazo: emDias(hoje, 20) },
+          { categoria: 'vacina', titulo: 'Tomar a vacina da gripe', detalhe: 'Leve sua caderneta para a equipe conferir se falta alguma vacina.', ganho: 'Menos chance de ficar de cama e perder dias de trabalho.', prazo: emDias(hoje, 30) },
+          { categoria: 'atividade', titulo: 'Manter o exercício que você já faz', detalhe: 'Do seu jeito, respeitando seus limites. Caminhar já conta.', ganho: 'Menos dor nas costas e sono melhor.', prazo: emDias(hoje, 60) },
+          { categoria: 'retorno', titulo: 'Voltar à médica de família', detalhe: 'Para ver os resultados dos exames e combinar os próximos passos.', ganho: 'Tirar dúvidas e ajustar o plano ao seu ritmo.', prazo: emDias(hoje, 45) },
         ]
       : [
-          { categoria: 'remedio', titulo: 'Tomar o remédio no horário combinado', detalhe: 'Mesmo quando estiver se sentindo bem. Se acabar, avise a equipe.', prazo: emDias(hoje, 7) },
-          { categoria: 'psicologia', titulo: 'Marcar conversa com a psicóloga', detalhe: 'A equipe ajuda a achar um horário fora do seu turno, presencial ou por vídeo.', prazo: emDias(hoje, 14) },
-          { categoria: 'habitos', titulo: 'Beber 2 litros de água e cuidar do sono', detalhe: 'Pequenos passos contam: uma garrafa no posto de trabalho já ajuda.', prazo: emDias(hoje, 21) },
-          { categoria: 'retorno', titulo: 'Retorno com a médica de família', detalhe: 'Para ver como você está e ajustar o plano se precisar.', prazo: emDias(hoje, 30) },
+          { categoria: 'remedio', titulo: 'Tomar o remédio no horário combinado', detalhe: 'Mesmo quando estiver se sentindo bem. Se acabar, avise a equipe.', ganho: 'Dias mais estáveis, com menos altos e baixos.', prazo: emDias(hoje, 7) },
+          { categoria: 'psicologia', titulo: 'Marcar conversa com a psicóloga', detalhe: 'A equipe ajuda a achar um horário fora do seu turno, presencial ou por vídeo.', ganho: 'Um espaço só seu para desabafar, em sigilo.', prazo: emDias(hoje, 14) },
+          { categoria: 'habitos', titulo: 'Beber 2 litros de água e cuidar do sono', detalhe: 'Pequenos passos contam: uma garrafa no posto de trabalho já ajuda.', ganho: 'Menos dor de cabeça e mais energia já nesta semana.', prazo: emDias(hoje, 21) },
+          { categoria: 'retorno', titulo: 'Retorno com a médica de família', detalhe: 'Para ver como você está e ajustar o plano se precisar.', ganho: 'Ajustar o que não está funcionando.', prazo: emDias(hoje, 30) },
         ]
   return passos.map((p, i) => ({ ...p, id: `${id}-p${i + 1}`, feito: i < feitos }))
 }
@@ -104,7 +108,11 @@ export function criarDados(hoje = new Date()): Trabalhador[] {
       nome: s.nome,
       funcao: s.funcao,
       empresa: s.empresa,
+      unidade: s.empresa === EMPRESAS.metal ? 'Planta Camaçari' : 'Unidade única',
       medicoReferencia: MEDICOS[i % MEDICOS.length],
+      enfermeira: ['Ana', 'Cláudia', 'Rita'][i % 3],
+      motivacao: i === 0 ? null : (['familia', 'energia', 'menos_dor', 'sono'] as const)[i % 4],
+      semanasSeguidas: i === 0 ? 2 : (i * 3) % 6,
       turno: s.turno,
       risco: s.risco,
       ultimaConsultaMedica: emDias(hoje, -s.ultimo, 10),
@@ -117,6 +125,17 @@ export function criarDados(hoje = new Date()): Trabalhador[] {
       mensagens: [],
       eventos: [],
       pediuContato: false,
+      dificuldades: [],
+      teachBack: s.teachBack ?? (s.plano === 'recebido' ? 'acertou' : 'pendente'),
+      faltasUltimoAno: s.faltas ?? 0,
+    }
+
+    if (s.dificuldade) {
+      const d = s.dificuldade
+      const quando = emDias(hoje, -d.dias, 18, 20)
+      // A dificuldade antiga da Aline já foi resolvida (mostra o histórico funcionando).
+      const resolvida = d.dias > 10
+      t.dificuldades.push({ id: `${id}-d1`, motivo: d.motivo, passoId: t.plano[d.passo]?.id, origem: d.origem, data: quando, resolvida, nota: resolvida ? 'Remarcado por vídeo' : undefined })
     }
 
     const msgs: Mensagem[] = []
@@ -151,6 +170,18 @@ export function criarDados(hoje = new Date()): Trabalhador[] {
         evs.push({ id: `${id}-e3`, tipo: 'checkin_ajuda', data: emDias(hoje, -s.checkin, 12, 40) })
       }
     }
+    for (const d of t.dificuldades) {
+      const idx = t.plano.findIndex((p) => p.id === d.passoId)
+      if (d.origem === 'checkin') {
+        const antes = new Date(new Date(d.data).getTime() - 3 * 3600_000).toISOString()
+        msgs.push({ id: `${id}-m6`, de: 'sesi', texto: `Oi, ${s.nome.split(' ')[0]}! Passando para saber do seu plano. Esta semana você conseguiu fazer o passo ${idx + 1}?`, hora: antes })
+        msgs.push({ id: `${id}-m7`, de: 'trabalhador', texto: 'Não consegui 😕', hora: d.data })
+      }
+      if (d.origem !== 'teach_back') msgs.push({ id: `${id}-m8`, de: 'sesi', texto: RESPOSTA_MOTIVO[d.motivo], hora: new Date(new Date(d.data).getTime() + 60_000).toISOString() })
+      evs.push({ id: `${id}-e-d`, tipo: d.origem === 'teach_back' ? 'teach_back' : 'dificuldade', data: d.data, nota: d.origem === 'teach_back' ? 'errou a pergunta de checagem' : undefined })
+      if (d.resolvida) evs.push({ id: `${id}-e-dr`, tipo: 'dificuldade_resolvida', data: emDias(hoje, -18, 10), nota: d.nota })
+    }
+
     msgs.sort((a, b) => a.hora.localeCompare(b.hora))
     evs.sort((a, b) => a.data.localeCompare(b.data))
     // Só a última mensagem do SESI mantém botões.

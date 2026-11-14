@@ -1,16 +1,22 @@
 import { useState } from 'react'
-import { Columns2, Database, RotateCcw, ShieldCheck, Smartphone, Users, type LucideIcon } from 'lucide-react'
+import { Building2, CalendarClock, Columns2, Database, MonitorSmartphone, RotateCcw, ShieldCheck, Smartphone, Users, type LucideIcon } from 'lucide-react'
 import { adapter, useDados } from './data/store'
 import { TrabalhadorApp } from './trabalhador/TrabalhadorApp'
 import { PainelEnfermeira } from './enfermeira/PainelEnfermeira'
+import { Totem } from './totem/Totem'
+import { PainelRH } from './rh/PainelRH'
+import { PainelLideranca } from './lideranca/PainelLideranca'
 import { Logo } from './components/Logo'
 
-type Modo = 'lado' | 'trabalhador' | 'enfermeira'
+type Modo = 'lado' | 'trabalhador' | 'totem' | 'enfermeira' | 'lideranca' | 'rh'
 
-const NAV: { modo: Modo; rotulo: string; Icone: LucideIcon; soDesktop?: boolean }[] = [
-  { modo: 'lado', rotulo: 'Visão lado a lado', Icone: Columns2, soDesktop: true },
-  { modo: 'trabalhador', rotulo: 'Celular do trabalhador', Icone: Smartphone },
-  { modo: 'enfermeira', rotulo: 'Painel da APS', Icone: Users },
+const NAV: { grupo: string; modo: Modo; rotulo: string; Icone: LucideIcon; soDesktop?: boolean }[] = [
+  { grupo: 'Trabalhador', modo: 'lado', rotulo: 'Visão lado a lado', Icone: Columns2, soDesktop: true },
+  { grupo: 'Trabalhador', modo: 'trabalhador', rotulo: 'Celular do trabalhador', Icone: Smartphone },
+  { grupo: 'Trabalhador', modo: 'totem', rotulo: 'Totem na unidade', Icone: MonitorSmartphone },
+  { grupo: 'Equipe de saúde', modo: 'enfermeira', rotulo: 'Painel da APS', Icone: Users },
+  { grupo: 'Empresa', modo: 'lideranca', rotulo: 'Liderança do turno', Icone: CalendarClock },
+  { grupo: 'Empresa', modo: 'rh', rotulo: 'RH e Direção', Icone: Building2 },
 ]
 
 export default function App() {
@@ -35,18 +41,21 @@ export default function App() {
           </p>
         </div>
 
-        <p className="mt-8 px-2 text-[11px] font-semibold uppercase tracking-wider text-blue-100/50">Demonstração</p>
-        <nav className="mt-2 space-y-1">
-          {NAV.map(({ modo: m, rotulo, Icone, soDesktop }) => (
-            <button
-              key={m}
-              onClick={() => setModo(m)}
-              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                modo === m ? 'bg-tech text-white shadow' : 'text-blue-100/80 hover:bg-white/5'
-              } ${soDesktop ? 'max-xl:hidden' : ''}`}
-            >
-              <Icone className="size-4" /> {rotulo}
-            </button>
+        <nav className="mt-6 space-y-1">
+          {NAV.map(({ grupo, modo: m, rotulo, Icone, soDesktop }, i) => (
+            <div key={m}>
+              {(i === 0 || NAV[i - 1].grupo !== grupo) && (
+                <p className="mt-4 mb-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-blue-100/50">{grupo}</p>
+              )}
+              <button
+                onClick={() => setModo(m)}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                  modo === m ? 'bg-tech text-white shadow' : 'text-blue-100/80 hover:bg-white/5'
+                } ${soDesktop ? 'max-xl:hidden' : ''}`}
+              >
+                <Icone className="size-4" /> {rotulo}
+              </button>
+            </div>
           ))}
         </nav>
 
@@ -59,7 +68,7 @@ export default function App() {
             <p className="mt-2 flex items-center gap-1.5 font-semibold text-white">
               <ShieldCheck className="size-3.5 text-saude" /> LGPD
             </p>
-            <p className="mt-1">Nada individual vai para RH ou liderança. Mensagens sem dado clínico.</p>
+            <p className="mt-1">RH e direção veem só agregados (grupos de 5+). Liderança vê só horários de liberação. Mensagens sem dado clínico.</p>
           </div>
           <button onClick={() => adapter.reiniciar()} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-blue-100/80 hover:bg-white/5">
             <RotateCcw className="size-4" /> Reiniciar demo
@@ -90,7 +99,22 @@ export default function App() {
         </header>
 
         <main className={`flex min-h-0 flex-1 gap-6 overflow-auto p-4 sm:p-6 ${modo === 'lado' ? 'flex-row' : 'flex-col'}`}>
-          {modo !== 'enfermeira' && t && (
+          {modo === 'totem' && (
+            <section className="mx-auto">
+              <Totem />
+            </section>
+          )}
+          {modo === 'rh' && (
+            <section className="min-w-0 flex-1">
+              <PainelRH />
+            </section>
+          )}
+          {modo === 'lideranca' && (
+            <section className="min-w-0 flex-1">
+              <PainelLideranca />
+            </section>
+          )}
+          {(modo === 'lado' || modo === 'trabalhador') && t && (
             <section className={`flex shrink-0 flex-col items-center gap-3 ${modo === 'trabalhador' ? 'mx-auto' : ''}`}>
               <label className="text-sm text-slate-600">
                 Simulando o celular de{' '}
@@ -108,7 +132,7 @@ export default function App() {
               </div>
             </section>
           )}
-          {modo !== 'trabalhador' && (
+          {(modo === 'lado' || modo === 'enfermeira') && (
             <section className="min-h-[600px] min-w-0 flex-1">
               <PainelEnfermeira selecionado={selecionado} onVerTrabalhador={verTrabalhador} compacto={modo === 'lado'} />
             </section>

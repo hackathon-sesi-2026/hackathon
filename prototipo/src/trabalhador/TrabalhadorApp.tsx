@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, BadgeCheck, CalendarClock, CheckCircle2, ChevronDown, Lock, MapPin, ShieldCheck, Video } from 'lucide-react'
-import type { Acao, Horario, Modalidade, Trabalhador } from '../data/types'
+import { ArrowLeft, BadgeCheck, CalendarClock, CheckCircle2, ChevronDown, Factory, Flame, Lock, MapPin, ShieldCheck, Sparkles, Video } from 'lucide-react'
+import type { Acao, Horario, Mensagem, Modalidade, Motivacao, MotivoDificuldade, Trabalhador } from '../data/types'
+import { EM_DIA_POR_TURNO } from '../data/unidades'
+import { MetaTurno } from '../components/comum'
 import { useDados } from '../data/store'
-import { ROTULO_ACAO } from '../domain/mensagens'
-import { TURNOS, primeiroNome } from '../domain/regras'
+import { ROTULO_ACAO, selosDe } from '../domain/mensagens'
+import { MOTIVOS, ROTULO_MOTIVO, TURNOS, dificuldadesAbertas, primeiroNome } from '../domain/regras'
 import { dataCurta, diaSemana, faixaTurno, hora, horaCurta, relativo, semanaCurta } from '../lib/datas'
 import { LogoMarca } from '../components/Logo'
 import { IconeCategoria } from '../components/categorias'
@@ -12,26 +14,69 @@ type Tela = 'chat' | 'plano' | 'horarios'
 
 export function TrabalhadorApp({ trabalhador }: { trabalhador: Trabalhador }) {
   const [tela, setTela] = useState<Tela>('chat')
+  const [pedindoMotivo, setPedindoMotivo] = useState<PedidoMotivo | null>(null)
+  const { adapter } = useDados()
   return (
-    <div className="flex h-full flex-col bg-white">
-      {tela === 'chat' && <Chat t={trabalhador} irPara={setTela} />}
-      {tela === 'plano' && <Plano t={trabalhador} irPara={setTela} />}
+    <div className="relative flex h-full flex-col bg-white">
+      {tela === 'chat' && <Chat t={trabalhador} irPara={setTela} pedirMotivo={setPedindoMotivo} />}
+      {tela === 'plano' && <Plano t={trabalhador} irPara={setTela} pedirMotivo={setPedindoMotivo} />}
       {tela === 'horarios' && <Horarios t={trabalhador} irPara={setTela} />}
+      {pedindoMotivo && (
+        <FolhaMotivo
+          fechar={() => setPedindoMotivo(null)}
+          escolher={async (m) => {
+            await adapter.relatarDificuldade(trabalhador.id, m, pedindoMotivo.origem, pedindoMotivo.passoId)
+            setPedindoMotivo(null)
+            setTela('chat')
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+type PedidoMotivo = { origem: 'plano' | 'checkin'; passoId?: string }
+
+/** "Não consegui": o trabalhador diz o motivo em um toque. É o dado que a enfermeira hoje não tem (slide 16). */
+function FolhaMotivo({ fechar, escolher }: { fechar: () => void; escolher: (m: MotivoDificuldade) => void }) {
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col justify-end bg-navy/40" onClick={fechar}>
+      <div className="rounded-t-3xl bg-white p-4 pb-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200" />
+        <p className="font-bold text-navy">Tudo bem, acontece. O que atrapalhou?</p>
+        <p className="mt-0.5 text-xs text-slate-500">Só a equipe de saúde vê sua resposta. Sua empresa não.</p>
+        <div className="mt-3 grid gap-2">
+          {MOTIVOS.map((m) => (
+            <button
+              key={m.motivo}
+              onClick={() => escolher(m.motivo)}
+              className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-left text-sm font-medium text-slate-800 hover:border-tech hover:bg-blue-50"
+            >
+              <span className="text-lg">{m.emoji}</span> {m.rotulo}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
 
 // ---------------------------------------------------------------- Chat (canal WhatsApp que o SESI já usa)
 
-function Chat({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) {
+function Chat({ t, irPara, pedirMotivo }: { t: Trabalhador; irPara: (t: Tela) => void; pedirMotivo: (p: PedidoMotivo) => void }) {
   const { adapter } = useDados()
   const fim = useRef<HTMLDivElement>(null)
   useEffect(() => {
     fim.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [t.mensagens.length])
 
-  async function agir(a: Acao) {
+  async function agir(a: Acao, m: Mensagem) {
     switch (a) {
+      case 'habito_sim':
+        return m.passoId && adapter.responderHabito(t.id, m.passoId, true)
+      case 'habito_nao':
+        if (m.passoId) await adapter.responderHabito(t.id, m.passoId, false)
+        return pedirMotivo({ origem: 'checkin', passoId: m.passoId })
       case 'confirmar':
         return adapter.confirmarConsulta(t.id)
       case 'remarcar':
@@ -45,6 +90,10 @@ function Chat({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) {
         return adapter.responderCheckin(t.id, true)
       case 'checkin_ajuda':
         return adapter.responderCheckin(t.id, false)
+      case 'se_turno':
+      case 'se_folga':
+      case 'se_so_lembrete':
+        return adapter.escolherCompromisso(t.id, a)
     }
   }
 
@@ -83,7 +132,7 @@ function Chat({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) {
                   {m.acoes.map((a) => (
                     <button
                       key={a}
-                      onClick={() => agir(a)}
+                      onClick={() => agir(a, m)}
                       className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-tech shadow-sm transition hover:bg-blue-50 active:scale-[0.98]"
                     >
                       {ROTULO_ACAO[a]}
@@ -128,12 +177,27 @@ function CabecalhoPagina({ titulo, voltar }: { titulo: string; voltar: () => voi
 
 // ---------------------------------------------------------------- Plano (tradução do Plano de Cuidados)
 
-function Plano({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) {
+function Plano({ t, irPara, pedirMotivo }: { t: Trabalhador; irPara: (t: Tela) => void; pedirMotivo: (p: PedidoMotivo) => void }) {
   const { adapter } = useDados()
   const [aberto, setAberto] = useState<string | null>(null)
+  const [comemoracao, setComemoracao] = useState<string | null>(null)
+  const abertas = dificuldadesAbertas(t)
   useEffect(() => {
     adapter.abrirPlano(t.id)
   }, [adapter, t.id])
+  useEffect(() => {
+    if (!comemoracao) return
+    const id = setTimeout(() => setComemoracao(null), 4000)
+    return () => clearTimeout(id)
+  }, [comemoracao])
+
+  const motivacao = t.motivacao ? MOTIVACOES.find((m) => m.valor === t.motivacao) : undefined
+  const temDadosTurno = EM_DIA_POR_TURNO[t.unidade]?.[t.turno.nome] !== undefined
+
+  async function jaFiz(passoId: string) {
+    await adapter.marcarPasso(t.id, passoId, true)
+    setComemoracao(motivacao ? `Boa! +1 passo ${motivacao.porque}.` : 'Boa! +1 passo no seu cuidado.')
+  }
 
   const pendentes = t.plano.filter((p) => !p.feito)
   const proximos = pendentes.slice(0, 3)
@@ -154,10 +218,31 @@ function Plano({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) {
         <section>
           <p className="text-lg font-bold text-navy">Olá, {primeiroNome(t.nome)}! 👋</p>
           <p className="text-sm text-slate-600">Vamos continuar cuidando da sua saúde?</p>
-          <span className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${status.cor}`}>
-            <CheckCircle2 className="size-3.5" /> {status.texto}
-          </span>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${status.cor}`}>
+              <CheckCircle2 className="size-3.5" /> {status.texto}
+            </span>
+            {t.semanasSeguidas > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">
+                <Flame className="size-3.5" /> {t.semanasSeguidas} {t.semanasSeguidas === 1 ? 'semana' : 'semanas seguidas'} se cuidando
+              </span>
+            )}
+            {selosDe(t.semanasSeguidas).map((s) => (
+              <span key={s.nome} className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200" title="Selo por manter o acompanhamento">
+                {s.emoji} Selo {s.nome}
+              </span>
+            ))}
+          </div>
+          {motivacao && (
+            <p className="mt-2 text-xs text-slate-600">
+              Você se cuida por: <b className="text-navy">{motivacao.rotulo.toLowerCase()} {motivacao.emoji}</b>
+            </p>
+          )}
         </section>
+
+        {comemoracao && <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-saude-700 ring-1 ring-emerald-200">🎉 {comemoracao}</p>}
+
+        {!t.motivacao && <EscolhaMotivacao t={t} />}
 
         <section className="rounded-2xl bg-white p-4 shadow-sm">
           <p className="mb-3 text-sm font-bold text-navy">Próximo compromisso</p>
@@ -171,12 +256,19 @@ function Plano({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) {
                 <div className="min-w-0">
                   <p className="font-semibold text-slate-900">Retorno com a enfermagem</p>
                   <p className="flex items-center gap-1 text-xs text-slate-500">
-                    {c.modalidade === 'online' ? <Video className="size-3.5" /> : <MapPin className="size-3.5" />}
-                    Às {horaCurta(c.data)} · {c.modalidade === 'online' ? 'por vídeo' : c.local}
+                    {c.modalidade === 'online' ? <Video className="size-3.5" /> : c.modalidade === 'no_turno' ? <Factory className="size-3.5" /> : <MapPin className="size-3.5" />}
+                    Às {horaCurta(c.data)} · {c.modalidade === 'online' ? 'por vídeo' : c.modalidade === 'no_turno' ? 'no turno, 20 min' : c.local}
                   </p>
                   {c.status === 'remarcar' && <p className="mt-0.5 text-xs font-medium text-amber-600">Você pediu para remarcar</p>}
                 </div>
               </div>
+              {c.status === 'confirmada' && (
+                <p className="mt-3 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-saude-700">
+                  ✅ Horário garantido: atendimento na hora marcada, sem fila.
+                  {c.compromisso && <span className="block font-medium text-slate-600">Você combinou: {c.compromisso}.</span>}
+                </p>
+              )}
+              {c.status === 'agendada' && <p className="mt-3 text-xs text-slate-500">Confirme para garantir seu horário sem fila.</p>}
               <div className="mt-3 flex gap-2">
                 {c.status === 'agendada' && (
                   <button onClick={() => adapter.confirmarConsulta(t.id)} className="flex-1 rounded-xl bg-navy py-2.5 text-sm font-semibold text-white">
@@ -201,6 +293,8 @@ function Plano({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) {
           )}
         </section>
 
+        {t.teachBack === 'pendente' && proximos[0] && <ChecagemPlano t={t} />}
+
         <section>
           <div className="mb-2 flex items-baseline justify-between">
             <p className="text-sm font-bold text-navy">Seu plano de cuidado</p>
@@ -220,6 +314,9 @@ function Plano({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) {
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold leading-snug text-slate-900">{p.titulo}</p>
                     <p className="mt-0.5 text-[13px] leading-snug text-slate-600">{p.detalhe}</p>
+                    <p className="mt-1 flex items-start gap-1 text-xs font-medium text-saude-700">
+                      <Sparkles className="mt-0.5 size-3 shrink-0" /> O que você ganha: {p.ganho}
+                    </p>
                     <p className="mt-1 text-xs text-slate-500">
                       Até {dataCurta(p.prazo)} · {relativo(p.prazo)}
                     </p>
@@ -240,11 +337,23 @@ function Plano({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) {
                     )}
                   </div>
                 )}
-                <div className="mt-2 pl-[3.25rem]">
-                  <button onClick={() => adapter.marcarPasso(t.id, p.id, true)} className="rounded-lg bg-saude px-3 py-1.5 text-xs font-semibold text-white hover:bg-saude-700">
-                    Já fiz
-                  </button>
-                </div>
+                {abertas.find((d) => d.passoId === p.id) ? (
+                  <p className="mt-2 ml-[3.25rem] rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800">
+                    Você avisou: {ROTULO_MOTIVO[abertas.find((d) => d.passoId === p.id)!.motivo].toLowerCase()}. A enfermeira vai te procurar.
+                  </p>
+                ) : (
+                  <div className="mt-2 flex gap-2 pl-[3.25rem]">
+                    <button onClick={() => jaFiz(p.id)} className="rounded-lg bg-saude px-3 py-1.5 text-xs font-semibold text-white hover:bg-saude-700">
+                      Já fiz
+                    </button>
+                    <button
+                      onClick={() => pedirMotivo({ origem: 'plano', passoId: p.id })}
+                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                    >
+                      Não consegui
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ol>
@@ -265,12 +374,78 @@ function Plano({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) {
           )}
         </section>
 
+        {temDadosTurno && (
+          <section className="space-y-2">
+            <p className="text-sm font-bold text-navy">Seu turno junto</p>
+            <MetaTurno unidade={t.unidade} turno={t.turno.nome} />
+          </section>
+        )}
+
         <p className="flex gap-2 rounded-2xl bg-navy/5 p-3 text-xs text-navy">
           <ShieldCheck className="size-4 shrink-0 text-saude-700" />
           Só você e a equipe de saúde do SESI veem esta página. Sua empresa e sua liderança não têm acesso, e o cuidado é separado do exame ocupacional.
         </p>
       </div>
     </>
+  )
+}
+
+/** Motivação pessoal: a pessoa escolhe por que se cuida; o app lembra disso nos momentos certos. */
+const MOTIVACOES: { valor: Motivacao; rotulo: string; emoji: string; porque: string }[] = [
+  { valor: 'familia', rotulo: 'Estar bem para minha família', emoji: '👨‍👩‍👧', porque: 'para estar bem com a sua família' },
+  { valor: 'energia', rotulo: 'Ter mais energia', emoji: '⚡', porque: 'rumo a mais energia' },
+  { valor: 'menos_dor', rotulo: 'Sentir menos dor no corpo', emoji: '💪', porque: 'rumo a menos dor' },
+  { valor: 'sono', rotulo: 'Dormir melhor', emoji: '😴', porque: 'rumo a um sono melhor' },
+]
+
+function EscolhaMotivacao({ t }: { t: Trabalhador }) {
+  const { adapter } = useDados()
+  return (
+    <section className="rounded-2xl bg-white p-4 shadow-sm">
+      <p className="text-sm font-bold text-navy">Por que você quer se cuidar?</p>
+      <p className="mt-0.5 text-xs text-slate-500">Escolha um. A gente lembra disso com você.</p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {MOTIVACOES.map((m) => (
+          <button
+            key={m.valor}
+            onClick={() => adapter.definirMotivacao(t.id, m.valor)}
+            className="rounded-xl border border-slate-200 p-2.5 text-left text-xs font-semibold text-slate-800 hover:border-tech hover:bg-blue-50"
+          >
+            <span className="block text-xl">{m.emoji}</span>
+            {m.rotulo}
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/**
+ * Teach-back assíncrono: uma pergunta para conferir se o plano foi entendido.
+ * Errar não é "reprovar": vira um aviso para a enfermeira explicar.
+ */
+function ChecagemPlano({ t }: { t: Trabalhador }) {
+  const { adapter } = useDados()
+  const certo = t.plano.find((p) => !p.feito)!
+  const distratores = ['Tomar um remédio novo por conta própria', 'Fazer academia todos os dias', 'Voltar só quando sentir dor'].slice(0, 2)
+  // Ordem fixa por trabalhador, para não "pular" a cada render.
+  const opcoes = (t.id.charCodeAt(t.id.length - 1) % 2 ? [distratores[0], certo.titulo, distratores[1]] : [certo.titulo, ...distratores])
+  return (
+    <section className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+      <p className="text-sm font-bold text-navy">Para conferir: qual é o seu primeiro passo?</p>
+      <p className="mt-0.5 text-xs text-slate-600">Uma pergunta só. Ajuda a equipe a explicar melhor.</p>
+      <div className="mt-3 grid gap-2">
+        {opcoes.map((o) => (
+          <button
+            key={o}
+            onClick={() => adapter.responderTeachBack(t.id, o === certo.titulo)}
+            className="rounded-xl bg-white px-3 py-2 text-left text-sm font-medium text-slate-800 shadow-sm hover:ring-1 hover:ring-tech"
+          >
+            {o}
+          </button>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -281,13 +456,17 @@ function Horarios({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) 
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [escolhido, setEscolhido] = useState<Horario | null>(null)
   const [filtro, setFiltro] = useState<'todos' | Modalidade>('todos')
+  const [nomeLideranca, setNomeLideranca] = useState(false)
 
   useEffect(() => {
     setEscolhido(null)
+    setNomeLideranca(false)
     adapter.listarHorarios(t.id).then(setHorarios)
   }, [adapter, t.id, t.turno.nome])
 
   const visiveis = horarios.filter((h) => filtro === 'todos' || h.modalidade === filtro)
+  // Facilidade e proximidade + autonomia: duas opções mais próximas em destaque (menos tempo entre marcar e ir).
+  const sugeridos = [...visiveis].sort((a, b) => a.inicio.localeCompare(b.inicio)).slice(0, 2)
   const porDia = visiveis.reduce<Record<string, Horario[]>>((acc, h) => {
     const k = diaSemana(h.inicio)
     ;(acc[k] ??= []).push(h)
@@ -296,7 +475,7 @@ function Horarios({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) 
 
   async function confirmar() {
     if (!escolhido) return
-    await adapter.agendar(t.id, escolhido)
+    await adapter.agendar(t.id, escolhido, escolhido.modalidade === 'no_turno' && nomeLideranca)
     irPara('chat')
   }
 
@@ -322,13 +501,14 @@ function Horarios({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) 
               </option>
             ))}
           </select>
-          <span className="mt-1 block text-xs text-slate-500">Só mostramos horários fora do seu turno.</span>
+          <span className="mt-1 block text-xs text-slate-500">Mostramos horários fora do seu turno, por vídeo e, quando a empresa libera, 20 min dentro do turno.</span>
         </label>
 
         <div className="mt-3 flex rounded-xl bg-white p-1 text-xs font-semibold shadow-sm">
           {(
             [
               ['todos', 'Todos'],
+              ['no_turno', 'No turno'],
               ['presencial', 'Presencial'],
               ['online', 'Por vídeo'],
             ] as const
@@ -339,7 +519,36 @@ function Horarios({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) 
           ))}
         </div>
 
-        <div className="mt-4 space-y-4">
+        {sugeridos.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-1.5 text-sm font-semibold text-navy">Mais próximos para você</p>
+            <div className="grid grid-cols-2 gap-2">
+              {sugeridos.map((h) => {
+                const ativo = escolhido?.inicio === h.inicio && escolhido.modalidade === h.modalidade
+                return (
+                  <button
+                    key={`s-${h.inicio}${h.modalidade}`}
+                    onClick={() => setEscolhido(h)}
+                    className={`rounded-xl border-2 p-2.5 text-left transition ${ativo ? 'border-tech bg-tech text-white' : 'border-tech/30 bg-white hover:border-tech'}`}
+                  >
+                    <span className="block text-xs capitalize opacity-80">{semanaCurta(h.inicio)} · {dataCurta(h.inicio)}</span>
+                    <span className="flex items-center gap-1 text-base font-bold">
+                      {h.modalidade === 'online' && <Video className="size-4" />}
+                      {h.modalidade === 'no_turno' && <Factory className="size-4" />}
+                      {horaCurta(h.inicio)}
+                    </span>
+                    <span className={`block text-[11px] ${ativo ? 'text-blue-50' : 'text-saude-700'}`}>
+                      {h.dica ?? (h.modalidade === 'online' ? 'por vídeo' : 'presencial')}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Outros horários</p>
+        <div className="mt-2 space-y-4">
           {Object.entries(porDia).map(([dia, hs]) => (
             <div key={dia}>
               <p className="mb-1.5 text-sm font-semibold capitalize text-navy">{dia}</p>
@@ -356,6 +565,7 @@ function Horarios({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) 
                     >
                       <span className="flex items-center justify-center gap-1 text-sm font-semibold">
                         {h.modalidade === 'online' && <Video className="size-3.5" />}
+                        {h.modalidade === 'no_turno' && <Factory className="size-3.5" />}
                         {horaCurta(h.inicio)}
                       </span>
                       {h.dica && <span className={`block text-[10px] leading-tight ${ativo ? 'text-blue-50' : 'text-saude-700'}`}>{h.dica}</span>}
@@ -372,8 +582,16 @@ function Horarios({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) 
         {escolhido && (
           <p className="mb-2 text-xs text-slate-600">
             <span className="capitalize">{diaSemana(escolhido.inicio)}</span>, {horaCurta(escolhido.inicio)} ·{' '}
-            {escolhido.modalidade === 'online' ? 'por vídeo' : escolhido.local}
+            {escolhido.modalidade === 'online' ? 'por vídeo' : escolhido.modalidade === 'no_turno' ? `${escolhido.local}, no turno (20 min)` : escolhido.local}
           </p>
+        )}
+        {escolhido?.modalidade === 'no_turno' && (
+          <label className="mb-2 flex items-start gap-2 rounded-xl bg-cinza p-2.5 text-xs text-slate-700">
+            <input type="checkbox" checked={nomeLideranca} onChange={(e) => setNomeLideranca(e.target.checked)} className="mt-0.5 size-4 accent-[#2563eb]" />
+            <span>
+              Mostrar meu nome à liderança para organizar a liberação. <b>Nunca o motivo.</b> Se deixar desmarcado, aparece só "Colaborador(a)".
+            </span>
+          </label>
         )}
         <button disabled={!escolhido} onClick={confirmar} className="w-full rounded-xl bg-navy py-3 text-sm font-semibold text-white disabled:bg-slate-300">
           Confirmar horário

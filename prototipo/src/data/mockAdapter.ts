@@ -1,8 +1,9 @@
 import type { DataAdapter } from './adapter'
-import type { Acao, Horario, Mensagem, Monitoramento, TipoEvento, Trabalhador, Turno } from './types'
+import type { Acao, Horario, Liberacao, Mensagem, Monitoramento, Motivacao, MotivoDificuldade, Pulso, TipoEvento, Trabalhador, Turno } from './types'
 import { criarDados } from './seed'
-import { gerarHorarios } from '../domain/regras'
-import { textoLembrete, textoPlano } from '../domain/mensagens'
+import { gerarLiberacoes, gerarPulsos } from './unidades'
+import { RESPOSTA_MOTIVO, ROTULO_MOTIVO, gerarHorarios } from '../domain/regras'
+import { COMPROMISSO, SELOS, textoCheckinHabito, textoConfirmado, textoLembrete, textoLembreteAuto, textoPlano } from '../domain/mensagens'
 import { data, diaSemana, horaCurta } from '../lib/datas'
 
 let seq = 0
@@ -15,11 +16,103 @@ const novoId = (p: string) => `${p}-${Date.now().toString(36)}-${(seq++).toStrin
 export class MockAdapter implements DataAdapter {
   readonly nome = 'Adaptador simulado · dados fictícios'
   private dados: Trabalhador[] = criarDados()
+  private pulsos: Pulso[] = gerarPulsos()
+  private liberacoesBase: Liberacao[] = gerarLiberacoes()
+  /** Quem já somou uma semana na sequência nesta sessão de demo. */
+  private semanaContada = new Set<string>()
   private ouvintes = new Set<() => void>()
 
   reiniciar() {
     this.dados = criarDados()
+    this.pulsos = gerarPulsos()
+    this.liberacoesBase = gerarLiberacoes()
+    this.semanaContada.clear()
     this.notificar()
+  }
+
+  async listarPulsos() {
+    return [...this.pulsos]
+  }
+
+  async listarLiberacoes(): Promise<Liberacao[]> {
+    // Base fictícia + consultas "no turno" marcadas no protótipo (nome só com autorização).
+    const doPrototipo = this.dados
+      .filter((t) => t.consulta?.modalidade === 'no_turno' && t.consulta.status !== 'faltou')
+      .map((t) => ({
+        id: `lib-${t.id}`,
+        unidade: t.unidade,
+        turno: t.turno.nome,
+        inicio: t.consulta!.data,
+        duracaoMin: 20,
+        nome: t.consulta!.nomeParaLideranca ? `${t.nome.split(' ')[0]} ${t.nome.split(' ').slice(-1)[0][0]}.` : undefined,
+      }))
+    return [...this.liberacoesBase, ...doPrototipo]
+  }
+
+  async registrarPulso(p: Omit<Pulso, 'id' | 'data'>) {
+    this.pulsos.push({ ...p, id: novoId('p'), data: new Date().toISOString() })
+    this.notificar()
+  }
+
+  async definirMotivacao(id: string, m: Motivacao) {
+    this.alterar(id, (t) => {
+      t.motivacao = m
+    })
+  }
+
+  /** Sequência semanal: a primeira ação de cuidado da semana soma 1 (gatilho de progresso). */
+  private contarSemana(t: Trabalhador) {
+    if (this.semanaContada.has(t.id)) return
+    this.semanaContada.add(t.id)
+    t.semanasSeguidas += 1
+    // Selo ao atingir um marco (reconhecimento individual, sem ranking nem comparação).
+    const selo = SELOS.find((s) => s.semanas === t.semanasSeguidas)
+    if (selo) {
+      this.evento(t, 'selo', `${selo.emoji} ${selo.nome}`)
+      this.selosPendentes.set(t.id, `${selo.emoji} Você ganhou o selo "${selo.nome}": ${t.semanasSeguidas} semanas seguidas cuidando de você. Ele fica no seu plano.`)
+    }
+  }
+
+  /** Mensagem de selo é enviada depois da resposta da ação que o gerou (para a conversa ficar natural). */
+  private selosPendentes = new Map<string, string>()
+  private entregarSelo(t: Trabalhador) {
+    const msg = this.selosPendentes.get(t.id)
+    if (!msg) return
+    this.selosPendentes.delete(t.id)
+    const acoes = t.mensagens[t.mensagens.length - 1]?.acoes
+    this.sesi(t, msg)
+    // Mantém os botões da mensagem anterior (ex.: se-então) no fim da conversa.
+    if (acoes) t.mensagens[t.mensagens.length - 1].acoes = acoes
+  }
+
+  async escolherCompromisso(id: string, acao: Acao) {
+    this.alterar(id, (t) => {
+      if (!t.consulta) return
+      const texto = COMPROMISSO[acao]
+      this.responder(t, acao === 'se_turno' ? 'Saio do turno e vou direto' : acao === 'se_folga' ? 'Vou no meu dia de folga' : 'Só me lembre', 'compromisso')
+      if (texto) {
+        t.consulta.compromisso = texto
+        const quando = diaSemana(t.consulta.data)
+        this.sesi(
+          t,
+          acao === 'se_turno'
+            ? `Fechado: quando sair do turno na ${quando}, você vai direto. Eu te lembro disso um dia antes. 💪`
+            : `Fechado: você vai no seu dia de folga, ${quando}. Eu te lembro um dia antes. 💪`,
+        )
+      } else {
+        this.sesi(t, 'Combinado, só o lembrete. 👍')
+      }
+    })
+  }
+
+  async simularLembreteAuto(id: string, qual: 'D-3' | 'D-1') {
+    this.alterar(id, (t) => {
+      if (!t.consulta || t.consulta.status === 'faltou') return
+      const l = textoLembreteAuto(t, qual)
+      this.sesi(t, l.texto, l.acoes)
+      t.consulta.lembretesAutoEnviados = [...(t.consulta.lembretesAutoEnviados ?? []), qual]
+      this.evento(t, 'lembrete_auto', qual)
+    })
   }
 
   assinar(cb: () => void) {
@@ -37,8 +130,11 @@ export class MockAdapter implements DataAdapter {
     this.alterar(id, (t) => {
       if (!t.consulta) return
       t.consulta.status = 'confirmada'
+      this.contarSemana(t)
       this.responder(t, 'Confirmo ✅', 'confirmou')
-      this.sesi(t, `Combinado! Te esperamos ${diaSemana(t.consulta.data)}, às ${horaCurta(t.consulta.data)}. Um dia antes eu te lembro de novo.`)
+      const c = textoConfirmado(t)
+      this.sesi(t, c.texto, c.acoes.length ? c.acoes : undefined)
+      this.entregarSelo(t)
     })
   }
 
@@ -54,7 +150,7 @@ export class MockAdapter implements DataAdapter {
     return gerarHorarios(this.buscar(id))
   }
 
-  async agendar(id: string, h: Horario) {
+  async agendar(id: string, h: Horario, nomeParaLideranca = false) {
     this.alterar(id, (t) => {
       t.consulta = {
         id: novoId('c'),
@@ -63,10 +159,20 @@ export class MockAdapter implements DataAdapter {
         profissional: 'Enfermeira de cuidado',
         modalidade: h.modalidade,
         status: 'confirmada',
+        nomeParaLideranca: h.modalidade === 'no_turno' ? nomeParaLideranca : undefined,
       }
-      const onde = h.modalidade === 'online' ? 'por vídeo (o link chega aqui no dia)' : `no ${h.local}`
+      this.contarSemana(t)
+      const onde =
+        h.modalidade === 'online'
+          ? 'por vídeo (o link chega aqui no dia)'
+          : h.modalidade === 'no_turno'
+            ? `no ${h.local}, dentro do seu turno (20 min). Sua liderança recebe só o horário da liberação${nomeParaLideranca ? '' : ', sem o seu nome'}, nunca o motivo`
+            : `no ${h.local}`
       this.evento(t, 'agendou', `${diaSemana(h.inicio)}, ${horaCurta(h.inicio)} · ${h.modalidade}`)
-      this.sesi(t, `Pronto! Seu retorno ficou para ${diaSemana(h.inicio)}, às ${horaCurta(h.inicio)}, ${onde}. Um dia antes eu te lembro.`)
+      this.sesi(t, `Pronto! Seu retorno ficou para ${diaSemana(h.inicio)}, às ${horaCurta(h.inicio)}, ${onde}.`)
+      const c = textoConfirmado(t)
+      this.sesi(t, c.texto, c.acoes.length ? c.acoes : undefined)
+      this.entregarSelo(t)
     })
   }
 
@@ -91,7 +197,11 @@ export class MockAdapter implements DataAdapter {
       const p = t.plano.find((x) => x.id === passoId)
       if (!p) return
       p.feito = feito
-      if (feito) this.evento(t, 'passo_feito', p.titulo)
+      if (feito) {
+        this.contarSemana(t)
+        this.evento(t, 'passo_feito', p.titulo)
+        this.entregarSelo(t)
+      }
     })
   }
 
@@ -105,6 +215,67 @@ export class MockAdapter implements DataAdapter {
         this.responder(t, 'Quero falar com a enfermeira', 'checkin_ajuda')
         this.sesi(t, 'Certo! A enfermeira vai entrar em contato com você em até 2 dias úteis.')
       }
+    })
+  }
+
+  async responderHabito(id: string, passoId: string, fez: boolean) {
+    this.alterar(id, (t) => {
+      if (fez) {
+        const p = t.plano.find((x) => x.id === passoId)
+        if (p) p.feito = true
+        this.contarSemana(t)
+        this.responder(t, 'Consegui ✅', 'passo_feito')
+        this.sesi(t, 'Boa! Cada passo conta. Seu próximo passo já está no seu plano.', ['plano'])
+        this.entregarSelo(t)
+      } else {
+        // O motivo é escolhido em seguida (relatarDificuldade); aqui só registra a resposta.
+        this.responder(t, 'Não consegui 😕', 'checkin_habito')
+      }
+    })
+  }
+
+  async relatarDificuldade(id: string, motivo: MotivoDificuldade, origem: 'plano' | 'checkin', passoId?: string) {
+    this.alterar(id, (t) => {
+      t.dificuldades.push({ id: novoId('d'), motivo, passoId, origem, data: new Date().toISOString(), resolvida: false })
+      if (origem === 'checkin') {
+        this.limparAcoes(t)
+        t.mensagens.push({ id: novoId('m'), de: 'trabalhador', texto: ROTULO_MOTIVO[motivo], hora: new Date().toISOString() })
+      }
+      const acoes: Acao[] | undefined = motivo === 'tempo' || motivo === 'transporte' ? ['escolher_horario'] : undefined
+      this.sesi(t, RESPOSTA_MOTIVO[motivo], acoes)
+      this.evento(t, 'dificuldade', ROTULO_MOTIVO[motivo])
+    })
+  }
+
+  async responderTeachBack(id: string, acertou: boolean) {
+    this.alterar(id, (t) => {
+      t.teachBack = acertou ? 'acertou' : 'errou'
+      this.evento(t, 'teach_back', acertou ? 'acertou a pergunta de checagem' : 'errou a pergunta de checagem')
+      if (!acertou) {
+        t.dificuldades.push({ id: novoId('d'), motivo: 'nao_entendi', passoId: t.plano.find((p) => !p.feito)?.id, origem: 'teach_back', data: new Date().toISOString(), resolvida: false })
+      }
+    })
+  }
+
+  async enviarCheckinHabito(id: string) {
+    this.alterar(id, (t) => {
+      const c = textoCheckinHabito(t)
+      if (!c) return
+      this.limparAcoes(t)
+      t.mensagens.push({ id: novoId('m'), de: 'sesi', texto: c.texto, hora: new Date().toISOString(), acoes: c.acoes, passoId: c.passoId })
+      this.evento(t, 'checkin_habito', 'check-in enviado')
+    })
+  }
+
+  async resolverDificuldade(id: string, dificuldadeId: string, nota: string) {
+    this.alterar(id, (t) => {
+      const d = t.dificuldades.find((x) => x.id === dificuldadeId)
+      if (!d) return
+      d.resolvida = true
+      d.nota = nota || undefined
+      if (d.origem === 'teach_back') t.teachBack = 'acertou'
+      t.ultimoContatoEnfermagem = new Date().toISOString()
+      this.evento(t, 'dificuldade_resolvida', `${ROTULO_MOTIVO[d.motivo]}${nota ? ` — ${nota}` : ''}`)
     })
   }
 

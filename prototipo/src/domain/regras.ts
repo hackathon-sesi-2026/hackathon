@@ -1,4 +1,4 @@
-import type { CategoriaPasso, Horario, Modalidade, Risco, StatusPlano, Trabalhador, Turno } from '../data/types'
+import type { CategoriaPasso, Dificuldade, Horario, Modalidade, MotivoDificuldade, Risco, StatusPlano, Trabalhador, Turno } from '../data/types'
 import { addDias, diasEntre, emDias, inicioDoDia } from '../lib/datas'
 
 /** Prazo de retorno por classe de risco (Fluxo do processo da APS). Risco 4 é critério médico; usamos 30 dias na demo. */
@@ -42,7 +42,86 @@ export const TURNOS: Turno[] = [
   { nome: 'Administrativo', inicio: 8, fim: 17 },
 ]
 
+// ---------------------------------------------------------------- "Não consegui": motivos e ação sugerida
+
+export const MOTIVOS: { motivo: MotivoDificuldade; rotulo: string; emoji: string }[] = [
+  { motivo: 'tempo', rotulo: 'Não tive tempo / bate com o turno', emoji: '⏰' },
+  { motivo: 'transporte', rotulo: 'Transporte / perderia o fretado', emoji: '🚌' },
+  { motivo: 'nao_entendi', rotulo: 'Não entendi o que fazer', emoji: '❓' },
+  { motivo: 'remedio', rotulo: 'O remédio me fez mal', emoji: '💊' },
+  { motivo: 'dinheiro', rotulo: 'Custa caro para mim', emoji: '💸' },
+  { motivo: 'outro', rotulo: 'Outro motivo', emoji: '💬' },
+]
+
+export const ROTULO_MOTIVO = Object.fromEntries(MOTIVOS.map((m) => [m.motivo, m.rotulo])) as Record<MotivoDificuldade, string>
+
+/** O que a enfermeira pode fazer para cada motivo: agir na causa, não só lembrar de novo. */
+export const ACAO_POR_MOTIVO: Record<MotivoDificuldade, string> = {
+  tempo: 'Oferecer horário por vídeo ou colado ao turno',
+  transporte: 'Oferecer teleatendimento ou horário antes do fretado',
+  nao_entendi: 'Ligar e explicar o plano (pedir para a pessoa repetir com as palavras dela)',
+  remedio: 'Levar ao médico de referência para avaliar a medicação',
+  dinheiro: 'Orientar Farmácia Popular / alternativas sem custo',
+  outro: 'Ligar para entender o que aconteceu',
+}
+
+/** Resposta automática ao trabalhador, sem dado clínico. */
+export const RESPOSTA_MOTIVO: Record<MotivoDificuldade, string> = {
+  tempo: 'Obrigado por contar! Dá para fazer por vídeo ou num horário fora do seu turno. A enfermeira também vai te procurar.',
+  transporte: 'Entendi. Tem opção por vídeo, de casa, sem perder o fretado. A enfermeira vai combinar com você.',
+  nao_entendi: 'Sem problema, é normal ter dúvida. A enfermeira vai te ligar para explicar com calma.',
+  remedio: 'Obrigado por avisar. Não pare por conta própria: a equipe vai falar com você ainda hoje.',
+  dinheiro: 'Obrigado por contar. A enfermeira vai te mostrar opções sem custo.',
+  outro: 'Obrigado por contar. A enfermeira vai entrar em contato para entender e ajudar.',
+}
+
+export const dificuldadesAbertas = (t: Trabalhador): Dificuldade[] => t.dificuldades.filter((d) => !d.resolvida)
+
+// ---------------------------------------------------------------- Radar de risco de falta (regras explicáveis, sem IA)
+
+export type NivelRiscoFalta = 'alto' | 'medio' | 'baixo'
+
+export interface RiscoFalta {
+  pontos: number
+  nivel: NivelRiscoFalta
+  motivos: string[]
+}
+
+/**
+ * Pontuação simples e auditável de quem tende a sair do cuidado.
+ * Evidência: modelo de risco + contato humano dirigido reduz faltas (Oikonomidi et al., JAMIA 2023).
+ * Pesos são hipótese do time, a calibrar com os dados históricos do S+ no piloto.
+ */
+export function riscoFalta(t: Trabalhador, hoje = new Date()): RiscoFalta {
+  const fatores: [boolean, number, string][] = [
+    [t.faltasUltimoAno >= 2, 30, `${t.faltasUltimoAno} faltas no último ano`],
+    [t.faltasUltimoAno === 1, 15, '1 falta no último ano'],
+    [t.consulta?.status === 'faltou', 15, 'faltou ao último retorno'],
+    [dificuldadesAbertas(t).some((d) => d.motivo === 'tempo' || d.motivo === 'transporte'), 20, 'relatou falta de tempo ou transporte'],
+    [dificuldadesAbertas(t).some((d) => d.motivo !== 'tempo' && d.motivo !== 'transporte'), 10, 'tem dificuldade aberta no plano'],
+    [t.teachBack === 'errou', 10, 'pode não ter entendido o plano'],
+    [t.statusPlano !== 'recebido', 10, 'não abriu o plano de cuidado'],
+    [ultimoLembreteSemResposta(t, hoje), 15, 'lembrete sem resposta há 3+ dias'],
+    [t.consulta?.status === 'agendada', 5, 'retorno ainda não confirmado'],
+    [t.turno.inicio > t.turno.fim, 10, 'trabalha no turno da noite'],
+    [diasEntre(hoje, prazoRetorno(t)) < 0 && !t.consulta, 10, 'prazo do risco vencido'],
+  ]
+  const ativos = fatores.filter(([cond]) => cond)
+  const pontos = Math.min(100, ativos.reduce((s, [, p]) => s + p, 0))
+  return { pontos, nivel: pontos >= 45 ? 'alto' : pontos >= 25 ? 'medio' : 'baixo', motivos: ativos.map(([, , m]) => m) }
+}
+
+function ultimoLembreteSemResposta(t: Trabalhador, hoje: Date): boolean {
+  const ultimoLembrete = [...t.eventos].reverse().find((e) => e.tipo === 'lembrete')
+  if (!ultimoLembrete) return false
+  const respondeuDepois = t.eventos.some(
+    (e) => e.data > ultimoLembrete.data && ['confirmou', 'pediu_remarcar', 'agendou', 'checkin_ok', 'checkin_ajuda', 'dificuldade'].includes(e.tipo),
+  )
+  return !respondeuDepois && diasEntre(ultimoLembrete.data, hoje) >= 3
+}
+
 export type CodigoSituacao =
+  | 'dificuldade'
   | 'pediu_ajuda'
   | 'faltou'
   | 'remarcar'
@@ -66,6 +145,7 @@ export interface Situacao {
 }
 
 export const ROTULO_SITUACAO: Record<CodigoSituacao, string> = {
+  dificuldade: 'Relatou dificuldade',
   pediu_ajuda: 'Pediu contato',
   faltou: 'Faltou',
   remarcar: 'Pediu remarcação',
@@ -97,6 +177,12 @@ export function situacao(t: Trabalhador, hoje = new Date()): Situacao {
     sugestao,
   })
 
+  const abertas = dificuldadesAbertas(t)
+  if (abertas.length > 0) {
+    const d = abertas[abertas.length - 1]
+    const passo = d.passoId ? t.plano.find((p) => p.id === d.passoId)?.titulo : undefined
+    return s('dificuldade', 0, `${ROTULO_MOTIVO[d.motivo]}${passo ? ` · ${passo}` : ''}`, ACAO_POR_MOTIVO[d.motivo])
+  }
   if (t.pediuContato) return s('pediu_ajuda', 0, 'Pediu para falar com a enfermeira no check-in', 'Ligar ou responder no WhatsApp em até 2 dias úteis')
   if (t.consulta?.status === 'remarcar') return s('remarcar', 1, 'Não pode ir na data marcada', 'Aguardar a escolha pelo link ou oferecer horário')
   if (t.consulta?.status === 'faltou' && !contatoRecente)
@@ -108,11 +194,7 @@ export function situacao(t: Trabalhador, hoje = new Date()): Situacao {
     return s('plano_nao_recebido', 3, `Plano enviado há ${diasEntre(t.dataEnvioPlano, hoje)} dias e ainda não aberto`, 'Reenviar o plano ou confirmar o número')
   if (t.statusPlano === 'nao_enviado') return s('plano_nao_recebido', 3, 'Plano de cuidado ainda não enviado', 'Enviar o plano pelo WhatsApp')
 
-  if (consultaFutura && t.consulta!.status === 'agendada') {
-    const ultimoLembrete = [...t.eventos].reverse().find((e) => e.tipo === 'lembrete')
-    if (ultimoLembrete && diasEntre(ultimoLembrete.data, hoje) >= 3)
-      return s('sem_resposta', 3, `Lembrete enviado há ${diasEntre(ultimoLembrete.data, hoje)} dias, sem resposta`, 'Tentar contato por telefone')
-  }
+  if (ultimoLembreteSemResposta(t, hoje)) return s('sem_resposta', 3, 'Lembrete sem resposta há 3 dias ou mais', 'Tentar contato por telefone')
 
   if (contatoRecente) return s('em_contato', 5, 'Enfermagem fez contato nos últimos 7 dias', 'Aguardar retorno do trabalhador', false)
   if (!consultaFutura && diasParaPrazo <= 15)
@@ -143,7 +225,7 @@ function ocupado(dia: number, hora: number, semente: string): boolean {
  * Horários livres da APS que não batem com o turno informado pelo trabalhador.
  * Inclui atendimento online (já previsto na ficha Gestão do Cuidado), que evita ficar na empresa depois do turno.
  */
-export function gerarHorarios(t: Trabalhador, hoje = new Date(), quantidade = 12): Horario[] {
+export function gerarHorarios(t: Trabalhador, hoje = new Date(), quantidade = 15): Horario[] {
   const candidatos: { h: number; modalidade: Modalidade }[] = [
     ...[7, 8, 9, 10, 11, 13, 14, 15, 16, 17].map((h) => ({ h, modalidade: 'presencial' as const })),
     ...[12, 18, 19].map((h) => ({ h, modalidade: 'online' as const })),
@@ -154,6 +236,12 @@ export function gerarHorarios(t: Trabalhador, hoje = new Date(), quantidade = 12
     const dia = addDias(inicioDoDia(hoje), d)
     const semana = dia.getDay()
     if (semana === 0) continue // domingo fechado
+    // Microconsulta de 20 min no ambulatório da empresa, DENTRO do turno, com liberação (dias úteis, turnos diurnos).
+    if (semana !== 6 && t.turno.inicio < t.turno.fim && t.unidade !== 'Unidade única') {
+      const h = t.turno.inicio + 2 + (d % 3)
+      if (!ocupado(d, h + 99, t.id))
+        resultado.push({ inicio: emDias(hoje, d, h, 30), modalidade: 'no_turno', duracaoMin: 20, local: 'Ambulatório SESI na empresa', dica: 'no turno · 20 min' })
+    }
     for (const { h, modalidade } of candidatos) {
       if (semana === 6 && h > 11) continue // sábado só manhã
       if (horaNoTurno(h, t.turno) || horaNoTurno(h + 0.99, t.turno)) continue
@@ -168,6 +256,7 @@ export function gerarHorarios(t: Trabalhador, hoje = new Date(), quantidade = 12
       resultado.push({
         inicio: emDias(hoje, d, h),
         modalidade,
+        duracaoMin: 30,
         local: modalidade === 'online' ? 'Teleatendimento' : semana === 6 || h < 8 ? 'Unidade SESI Centro' : 'Ambulatório SESI na empresa',
         dica,
       })

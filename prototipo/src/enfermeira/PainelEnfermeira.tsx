@@ -6,30 +6,46 @@ import {
   Clock,
   Eye,
   FileWarning,
+  MessageCircleQuestion,
   MessageCircleWarning,
+  Radar,
   Search,
   Send,
   Smartphone,
   X,
   type LucideIcon,
 } from 'lucide-react'
-import type { TipoEvento, Trabalhador } from '../data/types'
+import type { MotivoDificuldade, TipoEvento, Trabalhador } from '../data/types'
 import { useDados } from '../data/store'
 import {
+  ACAO_POR_MOTIVO,
   FREQUENCIA_RISCO,
+  MOTIVOS,
+  ROTULO_MOTIVO,
   ROTULO_RISCO,
   ROTULO_SITUACAO,
   ROTULO_STATUS_PLANO,
   iniciais,
   prazoRetorno,
+  riscoFalta,
   situacao,
   type CodigoSituacao,
+  type NivelRiscoFalta,
+  type RiscoFalta,
   type Situacao,
 } from '../domain/regras'
 import { addDias, data, dataCurta, faixaTurno, horaCurta, relativo } from '../lib/datas'
 import { IconeCategoria } from '../components/categorias'
 
+const COR_RISCO_FALTA: Record<NivelRiscoFalta, string> = {
+  alto: 'bg-red-50 text-alerta ring-red-200',
+  medio: 'bg-amber-50 text-amber-700 ring-amber-200',
+  baixo: 'bg-slate-50 text-slate-500 ring-slate-200',
+}
+const ROTULO_RISCO_FALTA: Record<NivelRiscoFalta, string> = { alto: 'Alto', medio: 'Médio', baixo: 'Baixo' }
+
 const COR_SITUACAO: Record<CodigoSituacao, string> = {
+  dificuldade: 'bg-violet-50 text-violet-700 ring-violet-200',
   pediu_ajuda: 'bg-rose-50 text-rose-700 ring-rose-200',
   faltou: 'bg-orange-50 text-orange-700 ring-orange-200',
   remarcar: 'bg-orange-50 text-orange-700 ring-orange-200',
@@ -62,9 +78,17 @@ const ROTULO_EVENTO: Record<TipoEvento, string> = {
   monitoramento: 'Monitoramento registrado',
   faltou: 'Faltou ao retorno',
   turno_atualizado: 'Atualizou o turno',
+  checkin_habito: 'Check-in do plano',
+  dificuldade: 'Relatou dificuldade',
+  dificuldade_resolvida: 'Dificuldade resolvida',
+  teach_back: 'Pergunta de checagem do plano',
+  compromisso: 'Combinou como vai (se-então)',
+  lembrete_auto: 'Lembrete automático',
+  selo: 'Ganhou selo',
 }
 
-type Filtro = 'acao' | 'todos' | CodigoSituacao | 'faltou_remarcar'
+type Filtro = 'acao' | 'todos' | CodigoSituacao | 'faltou_remarcar' | 'ajuda' | 'risco_alto'
+type Ordem = 'prioridade' | 'risco'
 
 export function PainelEnfermeira({
   selecionado,
@@ -80,22 +104,29 @@ export function PainelEnfermeira({
   const [filtro, setFiltro] = useState<Filtro>('acao')
   const [busca, setBusca] = useState('')
   const [aberto, setAberto] = useState<string | null>(null)
+  const [ordem, setOrdem] = useState<Ordem>('prioridade')
 
   const linhas = useMemo(
     () =>
       trabalhadores
-        .map((t) => ({ t, s: situacao(t) }))
-        .sort((a, b) => a.s.prioridade - b.s.prioridade || prazoRetorno(a.t).getTime() - prazoRetorno(b.t).getTime()),
-    [trabalhadores],
+        .map((t) => ({ t, s: situacao(t), r: riscoFalta(t) }))
+        .sort((a, b) =>
+          ordem === 'risco'
+            ? b.r.pontos - a.r.pontos || a.s.prioridade - b.s.prioridade
+            : a.s.prioridade - b.s.prioridade || b.r.pontos - a.r.pontos || prazoRetorno(a.t).getTime() - prazoRetorno(b.t).getTime(),
+        ),
+    [trabalhadores, ordem],
   )
 
   const conta = (c: CodigoSituacao[]) => linhas.filter((l) => c.includes(l.s.codigo)).length
 
-  const visiveis = linhas.filter(({ t, s }) => {
+  const visiveis = linhas.filter(({ t, s, r }) => {
     const q = busca.trim().toLowerCase()
     if (q && !t.nome.toLowerCase().includes(q) && !t.matricula.includes(q)) return false
     if (filtro === 'acao') return s.precisaAcao
     if (filtro === 'todos') return true
+    if (filtro === 'risco_alto') return r.nivel === 'alto'
+    if (filtro === 'ajuda') return s.codigo === 'dificuldade' || s.codigo === 'pediu_ajuda'
     if (filtro === 'faltou_remarcar') return s.codigo === 'faltou' || s.codigo === 'remarcar'
     if (filtro === 'em_dia') return s.codigo === 'em_dia' || s.codigo === 'em_contato'
     return s.codigo === filtro
@@ -103,12 +134,18 @@ export function PainelEnfermeira({
 
   const cartoes: { rotulo: string; valor: number; filtro: Filtro; Icone: LucideIcon; cor: string }[] = [
     { rotulo: 'Precisam de ação', valor: linhas.filter((l) => l.s.precisaAcao).length, filtro: 'acao', Icone: AlertTriangle, cor: 'bg-red-50 text-alerta' },
-    { rotulo: 'Pediram contato', valor: conta(['pediu_ajuda']), filtro: 'pediu_ajuda', Icone: MessageCircleWarning, cor: 'bg-rose-50 text-rose-600' },
+    { rotulo: 'Relataram dificuldade ou pediram contato', valor: conta(['dificuldade', 'pediu_ajuda']), filtro: 'ajuda', Icone: MessageCircleQuestion, cor: 'bg-violet-50 text-violet-600' },
+    { rotulo: 'Alto risco de falta', valor: linhas.filter((l) => l.r.nivel === 'alto').length, filtro: 'risco_alto', Icone: Radar, cor: 'bg-rose-50 text-rose-600' },
     { rotulo: 'Faltaram ou remarcar', valor: conta(['faltou', 'remarcar']), filtro: 'faltou_remarcar', Icone: CalendarX, cor: 'bg-orange-50 text-orange-600' },
     { rotulo: 'Fora do prazo do risco', valor: conta(['fora_do_prazo']), filtro: 'fora_do_prazo', Icone: Clock, cor: 'bg-red-50 text-alerta' },
     { rotulo: 'Plano não recebido', valor: conta(['plano_nao_recebido']), filtro: 'plano_nao_recebido', Icone: FileWarning, cor: 'bg-amber-50 text-amber-600' },
-    { rotulo: 'Em dia', valor: conta(['em_dia', 'em_contato']), filtro: 'em_dia', Icone: CheckCircle2, cor: 'bg-emerald-50 text-saude-700' },
   ]
+
+  // Motivos relatados por todos (agregado, sem nome): mostra POR QUE as pessoas saem do cuidado.
+  const motivos = MOTIVOS.map((m) => ({ ...m, n: trabalhadores.reduce((s, t) => s + t.dificuldades.filter((d) => d.motivo === m.motivo).length, 0) }))
+    .filter((m) => m.n > 0)
+    .sort((a, b) => b.n - a.n)
+  const maxMotivo = Math.max(1, ...motivos.map((m) => m.n))
 
   const linhaAberta = linhas.find((l) => l.t.id === aberto)
 
@@ -142,6 +179,22 @@ export function PainelEnfermeira({
         ))}
       </div>
 
+      {motivos.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200/70">
+          <p className="text-xs font-semibold text-navy">
+            Por que estão saindo do cuidado <span className="font-normal text-slate-400">(motivos relatados no "não consegui", sem nomes)</span>
+          </p>
+          {motivos.map((m) => (
+            <span key={m.motivo} className="flex items-center gap-2 text-xs text-slate-600">
+              <span>{m.emoji}</span>
+              <span className="hidden sm:inline">{m.rotulo}</span>
+              <span className="h-1.5 rounded-full bg-violet-400" style={{ width: `${(m.n / maxMotivo) * 48}px` }} />
+              <span className="font-semibold tabular-nums text-navy">{m.n}</span>
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <label className="flex w-72 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200">
           <Search className="size-4 text-slate-400" />
@@ -161,8 +214,25 @@ export function PainelEnfermeira({
               ? 'todos'
               : filtro === 'faltou_remarcar'
                 ? 'faltaram ou pediram remarcação'
-                : ROTULO_SITUACAO[filtro]}
+                : filtro === 'ajuda'
+                  ? 'relataram dificuldade ou pediram contato'
+                  : filtro === 'risco_alto'
+                    ? 'alto risco de falta'
+                    : ROTULO_SITUACAO[filtro]}
         </span>
+        <div className="ml-auto flex items-center gap-1 rounded-xl bg-white p-1 text-xs font-semibold shadow-sm ring-1 ring-slate-200">
+          <span className="px-2 text-slate-400">Ordenar</span>
+          {(
+            [
+              ['prioridade', 'Prioridade'],
+              ['risco', 'Risco de falta'],
+            ] as const
+          ).map(([v, r]) => (
+            <button key={v} onClick={() => setOrdem(v)} className={`rounded-lg px-2.5 py-1 ${ordem === v ? 'bg-navy text-white' : 'text-slate-600'}`}>
+              {r}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="mt-3 min-h-0 flex-1 overflow-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70">
@@ -172,7 +242,8 @@ export function PainelEnfermeira({
               <th className="px-4 py-3 font-semibold">Paciente</th>
               {!compacto && <th className="px-3 py-3 font-semibold">Médico de referência</th>}
               <th className="px-3 py-3 font-semibold">Risco</th>
-              <th className="px-3 py-3 font-semibold">Retorno previsto</th>
+              <th className="px-3 py-3 font-semibold">Risco de falta</th>
+              {!compacto && <th className="px-3 py-3 font-semibold">Retorno previsto</th>}
               <th className="px-3 py-3 font-semibold">Plano de cuidado</th>
               <th className="px-3 py-3 font-semibold">Situação</th>
               <th className="px-4 py-3 text-right font-semibold">Ações</th>
@@ -181,12 +252,12 @@ export function PainelEnfermeira({
           <tbody>
             {visiveis.length === 0 && (
               <tr>
-                <td colSpan={compacto ? 6 : 7} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={compacto ? 6 : 8} className="px-4 py-12 text-center text-slate-500">
                   Ninguém nesta situação. 👏
                 </td>
               </tr>
             )}
-            {visiveis.map(({ t, s }) => (
+            {visiveis.map(({ t, s, r }) => (
               <Fragment key={t.id}>
                 <tr
                   onClick={() => setAberto(t.id)}
@@ -211,10 +282,15 @@ export function PainelEnfermeira({
                       Risco {t.risco}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3">
-                    <p className="text-slate-800">{data(prazoRetorno(t).toISOString())}</p>
-                    <p className="text-xs text-slate-500">{relativo(prazoRetorno(t).toISOString())}</p>
+                  <td className="px-3 py-3">
+                    <ChipRiscoFalta r={r} />
                   </td>
+                  {!compacto && (
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <p className="text-slate-800">{data(prazoRetorno(t).toISOString())}</p>
+                      <p className="text-xs text-slate-500">{relativo(prazoRetorno(t).toISOString())}</p>
+                    </td>
+                  )}
                   <td className={`whitespace-nowrap px-3 py-3 text-xs font-medium ${COR_PLANO[t.statusPlano]}`}>{ROTULO_STATUS_PLANO[t.statusPlano]}</td>
                   <td className="px-3 py-3">
                     <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${COR_SITUACAO[s.codigo]}`}>{s.rotulo}</span>
@@ -233,8 +309,21 @@ export function PainelEnfermeira({
         </table>
       </div>
 
-      {linhaAberta && <Gaveta key={linhaAberta.t.id} t={linhaAberta.t} s={linhaAberta.s} fechar={() => setAberto(null)} onVerTrabalhador={onVerTrabalhador} />}
+      {linhaAberta && (
+        <Gaveta key={linhaAberta.t.id} t={linhaAberta.t} s={linhaAberta.s} r={linhaAberta.r} fechar={() => setAberto(null)} onVerTrabalhador={onVerTrabalhador} />
+      )}
     </div>
+  )
+}
+
+function ChipRiscoFalta({ r }: { r: RiscoFalta }) {
+  return (
+    <span
+      title={r.motivos.length ? `Por quê: ${r.motivos.join('; ')}` : 'Nenhum fator de risco'}
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${COR_RISCO_FALTA[r.nivel]}`}
+    >
+      <Radar className="size-3" /> {ROTULO_RISCO_FALTA[r.nivel]} · {r.pontos}
+    </span>
   )
 }
 
@@ -250,7 +339,19 @@ function BotaoIcone({ titulo, onClick, Icone }: { titulo: string; onClick: () =>
 
 type Aba = 'resumo' | 'historico' | 'plano'
 
-function Gaveta({ t, s, fechar, onVerTrabalhador }: { t: Trabalhador; s: Situacao; fechar: () => void; onVerTrabalhador: (id: string) => void }) {
+function Gaveta({
+  t,
+  s,
+  r,
+  fechar,
+  onVerTrabalhador,
+}: {
+  t: Trabalhador
+  s: Situacao
+  r: RiscoFalta
+  fechar: () => void
+  onVerTrabalhador: (id: string) => void
+}) {
   const { adapter } = useDados()
   const [aba, setAba] = useState<Aba>('resumo')
   const [registrando, setRegistrando] = useState(false)
@@ -299,6 +400,27 @@ function Gaveta({ t, s, fechar, onVerTrabalhador }: { t: Trabalhador; s: Situaca
               <p className="text-sm font-medium text-slate-800">{s.sugestao}</p>
             </div>
 
+            <Dificuldades t={t} />
+
+            <LembretesAuto t={t} />
+
+            <div className="rounded-xl border border-slate-100 p-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Radar de risco de falta</p>
+                <ChipRiscoFalta r={r} />
+              </div>
+              {r.motivos.length > 0 ? (
+                <ul className="mt-2 space-y-0.5 text-xs text-slate-600">
+                  {r.motivos.map((m) => (
+                    <li key={m}>• {m}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-xs text-slate-500">Nenhum fator de risco agora.</p>
+              )}
+              <p className="mt-2 text-[11px] text-slate-400">Regras simples e explicáveis, a calibrar com o histórico do S+ no piloto.</p>
+            </div>
+
             <dl className="grid grid-cols-2 gap-x-3 gap-y-2.5 rounded-xl bg-cinza p-3 text-xs">
               <Campo rotulo="Médico de referência">{t.medicoReferencia}</Campo>
               <Campo rotulo="Classificação de risco">{ROTULO_RISCO[t.risco]}</Campo>
@@ -306,7 +428,7 @@ function Gaveta({ t, s, fechar, onVerTrabalhador }: { t: Trabalhador; s: Situaca
               <Campo rotulo="Última consulta médica">{data(t.ultimaConsultaMedica)}</Campo>
               <Campo rotulo="Retorno previsto">{data(prazoRetorno(t).toISOString())}</Campo>
               <Campo rotulo="Retorno marcado">
-                {t.consulta ? `${dataCurta(t.consulta.data)} ${horaCurta(t.consulta.data)} · ${t.consulta.modalidade === 'online' ? 'vídeo' : 'presencial'}` : '—'}
+                {t.consulta ? `${dataCurta(t.consulta.data)} ${horaCurta(t.consulta.data)} · ${t.consulta.modalidade === 'online' ? 'vídeo' : t.consulta.modalidade === 'no_turno' ? 'no turno' : 'presencial'}` : '—'}
               </Campo>
               <Campo rotulo="Status do plano">{ROTULO_STATUS_PLANO[t.statusPlano]}</Campo>
               <Campo rotulo="Próximo monitoramento">{data(t.proximoMonitoramento)}</Campo>
@@ -323,10 +445,13 @@ function Gaveta({ t, s, fechar, onVerTrabalhador }: { t: Trabalhador; s: Situaca
               <button onClick={() => adapter.enviarPlano(t.id)} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
                 <FileWarning className="size-3.5" /> {t.statusPlano === 'nao_enviado' ? 'Enviar plano' : 'Reenviar plano'}
               </button>
+              <button onClick={() => adapter.enviarCheckinHabito(t.id)} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
+                <MessageCircleWarning className="size-3.5" /> Check-in do plano
+              </button>
               <button onClick={() => onVerTrabalhador(t.id)} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
                 <Smartphone className="size-3.5" /> Ver celular
               </button>
-              <button onClick={() => setRegistrando(true)} className="rounded-xl bg-navy py-2 text-xs font-semibold text-white hover:bg-navy-700">
+              <button onClick={() => setRegistrando(true)} className="col-span-2 rounded-xl bg-navy py-2 text-xs font-semibold text-white hover:bg-navy-700">
                 Registrar monitoramento
               </button>
             </div>
@@ -374,6 +499,85 @@ function Gaveta({ t, s, fechar, onVerTrabalhador }: { t: Trabalhador; s: Situaca
         )}
       </div>
     </aside>
+  )
+}
+
+/** Lembretes automáticos D-3 e D-1 (gatilho com mais respaldo) e o plano se-então que a pessoa combinou. */
+function LembretesAuto({ t }: { t: Trabalhador }) {
+  const { adapter } = useDados()
+  const c = t.consulta
+  if (!c || c.status === 'faltou') return null
+  const enviados = c.lembretesAutoEnviados ?? []
+  const quando = (dias: number) => dataCurta(new Date(new Date(c.data).getTime() - dias * 86_400_000).toISOString())
+  return (
+    <div className="rounded-xl border border-slate-100 p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Lembretes automáticos</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {(['D-3', 'D-1'] as const).map((q) => (
+          <div key={q} className="flex items-center gap-2 rounded-lg bg-cinza px-2.5 py-1.5 text-xs">
+            <span className="font-semibold text-navy">{q}</span>
+            <span className="text-slate-500">{quando(q === 'D-3' ? 3 : 1)}</span>
+            {enviados.includes(q) ? (
+              <span className="font-semibold text-saude-700">enviado</span>
+            ) : (
+              <button onClick={() => adapter.simularLembreteAuto(t.id, q)} className="font-semibold text-tech underline" title="No produto, o envio é automático">
+                simular envio
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-slate-600">
+        {c.compromisso ? `Combinou: ${c.compromisso} (o lembrete D-1 retoma isso).` : 'Ainda não combinou como vai (opcional).'}
+      </p>
+    </div>
+  )
+}
+
+/** "Não consegui" do trabalhador: o motivo e a ação na causa. */
+function Dificuldades({ t }: { t: Trabalhador }) {
+  const { adapter } = useDados()
+  const [notas, setNotas] = useState<Record<string, string>>({})
+  if (t.dificuldades.length === 0) return null
+  const ordenadas = [...t.dificuldades].sort((a, b) => Number(a.resolvida) - Number(b.resolvida) || b.data.localeCompare(a.data))
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">"Não consegui" relatado pelo trabalhador</p>
+      <ul className="space-y-2">
+        {ordenadas.map((d) => {
+          const passo = t.plano.find((p) => p.id === d.passoId)
+          return (
+            <li key={d.id} className={`rounded-xl p-3 text-xs ring-1 ${d.resolvida ? 'bg-slate-50 text-slate-500 ring-slate-100' : 'bg-violet-50 ring-violet-200'}`}>
+              <p className="font-semibold text-slate-800">
+                {MOTIVOS.find((m) => m.motivo === d.motivo)?.emoji} {ROTULO_MOTIVO[d.motivo as MotivoDificuldade]}
+              </p>
+              <p className="mt-0.5">
+                {passo ? `Passo: ${passo.titulo}` : 'Plano de cuidado'} · {d.origem === 'teach_back' ? 'errou a pergunta de checagem' : d.origem === 'checkin' ? 'no check-in' : 'na página do plano'} ·{' '}
+                {relativo(d.data)}
+              </p>
+              {d.resolvida ? (
+                <p className="mt-1 font-medium text-saude-700">✓ Resolvida{d.nota ? `: ${d.nota}` : ''}</p>
+              ) : (
+                <>
+                  <p className="mt-1.5 font-medium text-violet-800">Ação sugerida: {ACAO_POR_MOTIVO[d.motivo]}</p>
+                  <div className="mt-2 flex gap-1.5">
+                    <input
+                      value={notas[d.id] ?? ''}
+                      onChange={(e) => setNotas({ ...notas, [d.id]: e.target.value })}
+                      placeholder="O que foi feito (sem dado clínico)"
+                      className="min-w-0 flex-1 rounded-lg border border-violet-200 bg-white px-2 py-1.5 text-xs"
+                    />
+                    <button onClick={() => adapter.resolverDificuldade(t.id, d.id, (notas[d.id] ?? '').trim())} className="rounded-lg bg-violet-600 px-2.5 py-1.5 text-xs font-semibold text-white">
+                      Resolvida
+                    </button>
+                  </div>
+                </>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }
 
