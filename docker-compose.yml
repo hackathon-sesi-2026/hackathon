@@ -1,0 +1,20 @@
+# Sobe o Postgres de desenvolvimento. A API e o front rodam fora do Docker (ver README).
+services:
+  banco:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: selo
+      POSTGRES_PASSWORD: selo
+      POSTGRES_DB: selo_saude
+    ports:
+      - "5433:5432" # 5433 no host para não disputar com um Postgres já instalado na máquina
+    volumes:
+      - dados_banco:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U selo -d selo_saude"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  dados_banco:
