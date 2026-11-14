@@ -105,6 +105,42 @@ export class MockAdapter implements DataAdapter {
     })
   }
 
+  async verResultados(id: string) {
+    if (!this.buscar(id).resultadoNaoVisto) return
+    this.alterar(id, (t) => {
+      t.resultadoNaoVisto = false
+      this.evento(t, 'resultado_visto')
+    })
+  }
+
+  async liberarResultado(id: string, exameId: string) {
+    this.alterar(id, (t) => {
+      const ex = t.exames.find((e) => e.id === exameId)
+      if (!ex || ex.status === 'resultado') return
+      const agora = new Date().toISOString()
+      ex.dataColeta ??= agora
+      ex.dataResultado = agora
+      ex.status = 'resultado'
+      t.resultadoNaoVisto = true
+      // Sem nenhum valor no WhatsApp: só o aviso e o caminho para a página pessoal.
+      this.sesi(
+        t,
+        `Oi, ${t.nome.split(' ')[0]}! Aqui é a ${t.enfermeira}. O resultado dos seus exames saiu. Veja na sua página pessoal, com explicação simples. Por segurança, aqui não mostramos detalhes.`,
+        ['exames'],
+      )
+      this.evento(t, 'resultado_liberado', ex.titulo)
+    })
+  }
+
+  /** Marcar o passo de exames como feito = coleta realizada. */
+  private registrarColeta(t: Trabalhador, passoId: string) {
+    const ex = t.exames.find((e) => e.passoId === passoId && e.status === 'pedido')
+    if (!ex) return
+    ex.status = 'coletado'
+    ex.dataColeta = new Date().toISOString()
+    this.evento(t, 'exame_coletado', ex.titulo)
+  }
+
   async simularLembreteAuto(id: string, qual: 'D-3' | 'D-1') {
     this.alterar(id, (t) => {
       if (!t.consulta || t.consulta.status === 'faltou') return
@@ -200,6 +236,7 @@ export class MockAdapter implements DataAdapter {
       if (feito) {
         this.contarSemana(t)
         this.evento(t, 'passo_feito', p.titulo)
+        this.registrarColeta(t, p.id)
         this.entregarSelo(t)
       }
     })
@@ -223,6 +260,7 @@ export class MockAdapter implements DataAdapter {
       if (fez) {
         const p = t.plano.find((x) => x.id === passoId)
         if (p) p.feito = true
+        this.registrarColeta(t, passoId)
         this.contarSemana(t)
         this.responder(t, 'Consegui ✅', 'passo_feito')
         this.sesi(t, 'Boa! Cada passo conta. Seu próximo passo já está no seu plano.', ['plano'])

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, BadgeCheck, CalendarClock, CheckCircle2, ChevronDown, Factory, Flame, Lock, MapPin, ShieldCheck, Sparkles, Video } from 'lucide-react'
-import type { Acao, Horario, Mensagem, Modalidade, Motivacao, MotivoDificuldade, Trabalhador } from '../data/types'
+import type { Acao, Horario, Mensagem, Modalidade, Motivacao, MotivoDificuldade, StatusExame, Trabalhador } from '../data/types'
 import { EM_DIA_POR_TURNO } from '../data/unidades'
 import { MetaTurno } from '../components/comum'
 import { useDados } from '../data/store'
@@ -10,7 +10,7 @@ import { dataCurta, diaSemana, faixaTurno, hora, horaCurta, relativo, semanaCurt
 import { LogoMarca } from '../components/Logo'
 import { IconeCategoria } from '../components/categorias'
 
-type Tela = 'chat' | 'plano' | 'horarios'
+type Tela = 'chat' | 'plano' | 'horarios' | 'exames'
 
 export function TrabalhadorApp({ trabalhador }: { trabalhador: Trabalhador }) {
   const [tela, setTela] = useState<Tela>('chat')
@@ -21,6 +21,7 @@ export function TrabalhadorApp({ trabalhador }: { trabalhador: Trabalhador }) {
       {tela === 'chat' && <Chat t={trabalhador} irPara={setTela} pedirMotivo={setPedindoMotivo} />}
       {tela === 'plano' && <Plano t={trabalhador} irPara={setTela} pedirMotivo={setPedindoMotivo} />}
       {tela === 'horarios' && <Horarios t={trabalhador} irPara={setTela} />}
+      {tela === 'exames' && <Exames t={trabalhador} irPara={setTela} />}
       {pedindoMotivo && (
         <FolhaMotivo
           fechar={() => setPedindoMotivo(null)}
@@ -86,6 +87,8 @@ function Chat({ t, irPara, pedirMotivo }: { t: Trabalhador; irPara: (t: Tela) =>
         return irPara('horarios')
       case 'plano':
         return irPara('plano')
+      case 'exames':
+        return irPara('exames')
       case 'checkin_ok':
         return adapter.responderCheckin(t.id, true)
       case 'checkin_ajuda':
@@ -293,6 +296,8 @@ function Plano({ t, irPara, pedirMotivo }: { t: Trabalhador; irPara: (t: Tela) =
           )}
         </section>
 
+        <ResumoExames t={t} abrir={() => irPara('exames')} />
+
         {t.teachBack === 'pendente' && proximos[0] && <ChecagemPlano t={t} />}
 
         <section>
@@ -384,6 +389,138 @@ function Plano({ t, irPara, pedirMotivo }: { t: Trabalhador; irPara: (t: Tela) =
         <p className="flex gap-2 rounded-2xl bg-navy/5 p-3 text-xs text-navy">
           <ShieldCheck className="size-4 shrink-0 text-saude-700" />
           Só você e a equipe de saúde do SESI veem esta página. Sua empresa e sua liderança não têm acesso, e o cuidado é separado do exame ocupacional.
+        </p>
+      </div>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------- Meus exames
+
+const ETAPAS: { status: StatusExame; rotulo: string }[] = [
+  { status: 'pedido', rotulo: 'Pedido' },
+  { status: 'coletado', rotulo: 'Coletado' },
+  { status: 'resultado', rotulo: 'Resultado' },
+]
+
+const ROTULO_STATUS_EXAME: Record<StatusExame, string> = {
+  pedido: 'Falta fazer a coleta',
+  coletado: 'Coletado · aguardando resultado',
+  resultado: 'Resultado disponível',
+}
+
+function ResumoExames({ t, abrir }: { t: Trabalhador; abrir: () => void }) {
+  const ex = t.exames[0]
+  if (!ex) return null
+  return (
+    <button onClick={abrir} className="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left shadow-sm hover:ring-1 hover:ring-tech">
+      <IconeCategoria categoria="exames" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-bold text-navy">Meus exames</span>
+        <span className="block text-xs text-slate-600">
+          {ex.titulo} · {ROTULO_STATUS_EXAME[ex.status].toLowerCase()}
+        </span>
+      </span>
+      {t.resultadoNaoVisto && <span className="rounded-full bg-tech px-2 py-0.5 text-[11px] font-bold text-white">Novo</span>}
+    </button>
+  )
+}
+
+function Exames({ t, irPara }: { t: Trabalhador; irPara: (t: Tela) => void }) {
+  const { adapter } = useDados()
+  const [aberto, setAberto] = useState<string | null>(t.exames.find((e) => e.status === 'resultado')?.id ?? null)
+  useEffect(() => {
+    adapter.verResultados(t.id)
+  }, [adapter, t.id])
+
+  return (
+    <>
+      <CabecalhoPagina titulo="Meus exames" voltar={() => irPara('plano')} />
+      <div className="flex-1 space-y-3 overflow-y-auto bg-cinza px-4 py-4">
+        {t.exames.map((ex) => {
+          const etapa = ETAPAS.findIndex((e) => e.status === ex.status)
+          const atencao = ex.itens.filter((i) => i.situacao === 'atencao').length
+          return (
+            <section key={ex.id} className="rounded-2xl bg-white p-4 shadow-sm">
+              <p className="font-bold text-navy">{ex.titulo}</p>
+              <p className="text-xs text-slate-500">
+                Pedido por {ex.pedidoPor} em {dataCurta(ex.dataPedido)}
+              </p>
+
+              <ol className="mt-3 flex items-center gap-1">
+                {ETAPAS.map((e, i) => (
+                  <li key={e.status} className="flex flex-1 items-center gap-1">
+                    <span
+                      className={`grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-bold ${
+                        i <= etapa ? 'bg-saude text-white' : 'bg-slate-200 text-slate-500'
+                      }`}
+                    >
+                      {i < etapa || ex.status === 'resultado' ? <CheckCircle2 className="size-3.5" /> : i + 1}
+                    </span>
+                    <span className={`text-[11px] font-semibold ${i <= etapa ? 'text-saude-700' : 'text-slate-400'}`}>{e.rotulo}</span>
+                    {i < ETAPAS.length - 1 && <span className={`h-0.5 flex-1 rounded ${i < etapa ? 'bg-saude' : 'bg-slate-200'}`} />}
+                  </li>
+                ))}
+              </ol>
+
+              {ex.status === 'pedido' && (
+                <p className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-xs text-navy">
+                  É uma coleta só, de manhã, com jejum de 8 horas. Leve o pedido. Quando fizer, marque “Já fiz” no seu plano.
+                </p>
+              )}
+              {ex.status === 'coletado' && (
+                <p className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-xs text-navy">Coleta feita em {dataCurta(ex.dataColeta!)}. Avisamos aqui quando o resultado sair.</p>
+              )}
+
+              {ex.status === 'resultado' && (
+                <>
+                  <p className="mt-3 text-sm text-slate-700">
+                    Resultado de {dataCurta(ex.dataResultado!)}: <b>{ex.itens.length - atencao} de {ex.itens.length}</b> dentro do esperado
+                    {atencao > 0 && (
+                      <>
+                        {' · '}
+                        <b className="text-amber-700">
+                          {atencao} para conversar no retorno
+                        </b>
+                      </>
+                    )}
+                    .
+                  </p>
+                  <button onClick={() => setAberto(aberto === ex.id ? null : ex.id)} className="mt-2 flex items-center gap-1 text-xs font-semibold text-tech">
+                    <ChevronDown className={`size-3.5 transition ${aberto === ex.id ? 'rotate-180' : ''}`} />
+                    {aberto === ex.id ? 'Esconder' : 'Ver'} cada exame explicado
+                  </button>
+                  {aberto === ex.id && (
+                    <ul className="mt-2 space-y-2">
+                      {ex.itens.map((i) => (
+                        <li key={i.nome} className={`rounded-xl p-3 ring-1 ${i.situacao === 'atencao' ? 'bg-amber-50 ring-amber-200' : 'bg-slate-50 ring-slate-100'}`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-slate-900">{i.simples}</p>
+                              <p className="text-[11px] text-slate-500">{i.nome}</p>
+                            </div>
+                            <p className="shrink-0 text-right text-sm font-bold text-navy">
+                              {i.valor}
+                              <span className="block text-[10px] font-normal text-slate-500">esperado: {i.referencia}</span>
+                            </p>
+                          </div>
+                          <p className={`mt-1.5 text-xs font-semibold ${i.situacao === 'atencao' ? 'text-amber-800' : 'text-saude-700'}`}>
+                            {i.situacao === 'atencao' ? 'Vale conversar no retorno' : 'Dentro do esperado'}
+                          </p>
+                          <p className="mt-0.5 text-xs text-slate-600">{i.explicacao}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+            </section>
+          )
+        })}
+
+        <p className="flex gap-2 rounded-2xl bg-navy/5 p-3 text-xs text-navy">
+          <ShieldCheck className="size-4 shrink-0 text-saude-700" />
+          Isto não é diagnóstico: a médica explica tudo no retorno. Só você e a equipe de saúde veem seus resultados. Eles nunca vão pelo WhatsApp nem para a empresa.
         </p>
       </div>
     </>

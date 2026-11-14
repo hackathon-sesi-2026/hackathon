@@ -27,6 +27,10 @@ export interface DataAdapter {
   definirMotivacao(id: string, m: Motivacao): Promise<void>
   /** Plano se-então opcional depois de confirmar (ex.: "saio do turno e vou direto"). */
   escolherCompromisso(id: string, acao: Acao): Promise<void>
+  /** O trabalhador abriu "Meus exames" (some o aviso de resultado novo). */
+  verResultados(id: string): Promise<void>
+  /** Laboratório/S+ libera o resultado. Na demo, a enfermeira simula pelo painel. */
+  liberarResultado(id: string, exameId: string): Promise<void>
   /** Demo: dispara o lembrete automático D-3 ou D-1 (no produto, um agendador faz isso sozinho). */
   simularLembreteAuto(id: string, qual: 'D-3' | 'D-1'): Promise<void>
   atualizarTurno(id: string, turno: Turno): Promise<void>

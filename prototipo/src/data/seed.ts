@@ -2,6 +2,7 @@ import type { Consulta, Evento, Mensagem, MotivoDificuldade, PassoPlano, Risco, 
 import { PRAZO_DIAS, RESPOSTA_MOTIVO, TURNOS } from '../domain/regras'
 import { textoCheckin, textoLembrete, textoPlano } from '../domain/mensagens'
 import { emDias } from '../lib/datas'
+import { exameAnterior, exameAtual } from './exames'
 
 // DADOS FICTÍCIOS. Empresas e médicos de referência vêm da planilha fictícia do evento;
 // pessoas e situações foram inventadas para a demonstração.
@@ -128,6 +129,21 @@ export function criarDados(hoje = new Date()): Trabalhador[] {
       dificuldades: [],
       teachBack: s.teachBack ?? (s.plano === 'recebido' ? 'acertou' : 'pendente'),
       faltasUltimoAno: s.faltas ?? 0,
+      exames: [],
+      resultadoNaoVisto: false,
+    }
+
+    // Exames: o check-up anterior (com resultado) e, para quem tem esse passo no plano, os exames pedidos agora.
+    t.exames.push(exameAnterior(id, t.medicoReferencia, emDias(hoje, -(s.ultimo + 300), 9)))
+    const passoExames = t.plano.find((p) => p.categoria === 'exames')
+    if (passoExames) {
+      const ex = exameAtual(id, t.medicoReferencia, t.ultimaConsultaMedica, passoExames.id)
+      if (passoExames.feito) {
+        ex.status = 'resultado'
+        ex.dataColeta = emDias(hoje, -(s.ultimo - 5), 7)
+        ex.dataResultado = emDias(hoje, -(s.ultimo - 8), 14)
+      }
+      t.exames.unshift(ex)
     }
 
     if (s.dificuldade) {

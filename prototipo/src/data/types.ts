@@ -77,8 +77,38 @@ export interface PassoPlano {
   itensTecnicos?: string[]
 }
 
+// ---------------------------------------------------------------- Exames (só na página pessoal, nunca no WhatsApp)
+
+export type StatusExame = 'pedido' | 'coletado' | 'resultado'
+
+/** normal = dentro do esperado · atencao = vale conversar no retorno. Nunca "grave": isso é conversa com a médica. */
+export type SituacaoItem = 'normal' | 'atencao'
+
+export interface ItemResultado {
+  nome: string // nome técnico, como no laudo
+  simples: string // o que é, em linguagem do dia a dia
+  valor: string
+  referencia: string
+  situacao: SituacaoItem
+  explicacao: string // o que isso quer dizer para a pessoa
+}
+
+export interface Exame {
+  id: string
+  titulo: string // "Exames de sangue e urina"
+  pedidoPor: string
+  dataPedido: string // ISO
+  dataColeta?: string
+  dataResultado?: string
+  status: StatusExame
+  /** Passo do plano ligado a este exame (marcar o passo como feito = coletado). */
+  passoId?: string
+  itens: ItemResultado[]
+}
+
 export type Acao =
   | 'confirmar'
+  | 'exames'
   | 'remarcar'
   | 'escolher_horario'
   | 'plano'
@@ -134,6 +164,9 @@ export type TipoEvento =
   | 'compromisso'
   | 'lembrete_auto'
   | 'selo'
+  | 'exame_coletado'
+  | 'resultado_liberado'
+  | 'resultado_visto'
 
 export interface Evento {
   id: string
@@ -184,6 +217,10 @@ export interface Trabalhador {
   teachBack: 'pendente' | 'acertou' | 'errou'
   /** Faltas a retornos nos últimos 12 meses (entra no radar de risco de falta). */
   faltasUltimoAno: number
+  /** Exames pedidos e resultados, explicados em linguagem simples. */
+  exames: Exame[]
+  /** Resultado novo que a pessoa ainda não abriu. */
+  resultadoNaoVisto: boolean
 }
 
 export interface Horario {
