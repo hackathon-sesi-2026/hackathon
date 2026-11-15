@@ -357,7 +357,8 @@ export interface IndicadoresDaUnidade {
   unidade: string
   vidas: number
   /** Funil do retorno nos últimos 30 dias. */
-  funil: { contato: number; resposta: number; agendamento: number; comparecimento: number }
+  /** Acompanhamento nos últimos 30 dias, na ordem da jornada. */
+  funil: { whatsapp: number; exame: number; consulta: number; reavaliacao: number }
   comparecimentoAntes: number
   comparecimentoAgora: number
   planosRecebidos: number
@@ -381,4 +382,17 @@ export interface PainelDaEmpresa {
   pulso: IndicadoresDoPulso
   semanas: { rotulo: string; respostas: number }[]
   turnos: { unidade: string; turno: string; oculto: boolean; indicadores: IndicadoresDoPulso | null; alertas: string[] }[]
+  /** As 5 especialidades médicas mais procuradas em 30 dias, agregado das unidades do filtro. */
+  especialidades: ItemContado[]
+  /** Os 5 locais de dor mais citados no totem, só de grupos com 5 ou mais respostas. */
+  locaisDeDor: ItemContado[]
 }
+
+export interface ItemContado {
+  codigo: string
+  rotulo: string
+  vezes: number
+}
+
+/** Região do corpo tocada no boneco do totem. */
+export type LocalDor = 'cabeca' | 'pescoco' | 'ombros' | 'bracos' | 'maos_punhos' | 'costas' | 'lombar' | 'quadril' | 'joelhos' | 'pernas_pes'

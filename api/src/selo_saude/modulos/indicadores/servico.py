@@ -4,6 +4,7 @@
 pessoas são omitidos antes de qualquer dado sair do servidor.
 """
 
+from collections import Counter
 from datetime import timedelta
 
 from sqlalchemy import select
@@ -11,12 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from selo_saude.modulos.cadastro.servico import TURNOS, Turno
 from selo_saude.modulos.pulso import servico as pulso
+from selo_saude.modulos.pulso.regras import LOCAIS_DE_DOR
 from selo_saude.modulos.pulso.servico import DadosPulso
 from selo_saude.nucleo import relogio
 from selo_saude.nucleo.erros import NaoEncontrado
 from selo_saude.nucleo.esquema import Esquema, slug
 
 from .modelos import EmDiaPorTurno, ResumoUnidade
+from .regras import ESPECIALIDADES, mais_frequentes
 
 MINIMO_DO_GRUPO = 5
 META_DO_TURNO = 80
@@ -68,6 +71,12 @@ class IndicadoresDaUnidade(Esquema):
     respostas_no_totem: int
 
 
+class ItemContado(Esquema):
+    codigo: str
+    rotulo: str
+    vezes: int
+
+
 class PainelDaEmpresa(Esquema):
     empresa: str
     minimo_do_grupo: int
@@ -82,6 +91,10 @@ class PainelDaEmpresa(Esquema):
     pulso: IndicadoresDoPulso
     semanas: list[SemanaDoPulso]
     turnos: list[PulsoDoTurno]
+    especialidades: list[ItemContado]
+    """As 5 especialidades médicas mais procuradas nos últimos 30 dias, das unidades do filtro."""
+    locais_de_dor: list[ItemContado]
+    """Os 5 locais de dor mais citados no totem, só de grupos com 5 ou mais respostas."""
 
 
 class TurnoDaLideranca(Esquema):
@@ -189,7 +202,29 @@ async def painel_da_empresa(sessao: AsyncSession, filtro: str = "todas") -> Pain
         pulso=_indicadores(do_filtro),
         semanas=semanas,
         turnos=_por_turno(do_filtro_bruto),
+        especialidades=_especialidades_mais_procuradas(selecionadas),
+        locais_de_dor=_locais_de_dor(do_filtro),
     )
+
+
+# ---------------------------------------------------------------- rankings
+
+
+def _especialidades_mais_procuradas(unidades: list[ResumoUnidade]) -> list[ItemContado]:
+    contagem: Counter[str] = Counter()
+    for unidade in unidades:
+        contagem.update(unidade.especialidades or {})
+    return [
+        ItemContado(codigo=c, rotulo=ESPECIALIDADES.get(c, c), vezes=n)
+        for c, n in mais_frequentes(contagem, MINIMO_DO_GRUPO)
+    ]
+
+
+def _locais_de_dor(respostas: list[DadosPulso]) -> list[ItemContado]:
+    contagem = Counter(r.local_dor for r in respostas if r.local_dor)
+    return [
+        ItemContado(codigo=c, rotulo=LOCAIS_DE_DOR[c], vezes=n) for c, n in mais_frequentes(contagem, MINIMO_DO_GRUPO)
+    ]
 
 
 def _so_grupos_visiveis(respostas: list[DadosPulso]) -> list[DadosPulso]:

@@ -227,7 +227,8 @@ def test_prd32_pulso_e_gravado_sem_identificar_ninguem():
         finally:
             await conexao.close()
 
-    assert asyncio.run(colunas()) == {"id", "unidade", "turno", "data", "energia", "dor", "sono"}
+    # local_dor é a região do corpo, sem nada que aponte a pessoa (decisão de 14/11 no produto.md).
+    assert asyncio.run(colunas()) == {"id", "unidade", "turno", "data", "energia", "dor", "sono", "local_dor"}
 
 
 def test_prd32_totem_nao_aceita_cracha_de_outra_unidade(api, fila):

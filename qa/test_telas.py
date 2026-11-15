@@ -157,3 +157,17 @@ def test_telas_sem_erros_no_console(abrir, api):
         tela.pagina.wait_for_timeout(1200)
     erros = [e for t in telas for e in t.erros_no_console]
     assert not erros, f"erros no console: {erros[:5]}"
+
+
+def test_boneco_da_dor_no_totem(abrir):
+    """Com dor forte, o totem mostra o boneco; tocar a lombar e confirmar segue para a última pergunta."""
+    pagina = abrir("/totem/planta-camacari").pagina
+    pagina.get_by_text("Como você está hoje?").click()
+    pagina.get_by_role("button", name=re.compile("Baixa")).click()
+    pagina.get_by_role("button", name=re.compile("Forte")).click()
+    ver(pagina, "Onde dói mais?")
+    pagina.get_by_role("button", name="Mulher").click()
+    pagina.get_by_role("button", name="Lombar (parte de baixo das costas)").click()
+    pagina.get_by_role("button", name="É aqui").click()
+    pagina.get_by_role("button", name=re.compile("Bem")).click()
+    ver(pagina, "Obrigado!")

@@ -170,10 +170,32 @@ RESULTADO_DO_CHECKUP_ANTERIOR = [
 ]  # fmt: skip
 _CAMPOS_DO_ITEM = ("nome", "simples", "valor", "referencia", "situacao", "explicacao")
 
+# Consultas por especialidade nos últimos 30 dias (agregado que viria do S+). Ortopedia na frente: dor no trabalho.
+ESPECIALIDADES_POR_UNIDADE = {
+    "Planta Camaçari": {
+        "ortopedia": 46,
+        "clinica_geral": 38,
+        "cardiologia": 24,
+        "endocrinologia": 19,
+        "oftalmologia": 12,
+        "dermatologia": 8,
+        "psiquiatria": 7,
+    },
+    "Planta Simões Filho": {
+        "ortopedia": 29,
+        "clinica_geral": 22,
+        "cardiologia": 13,
+        "endocrinologia": 11,
+        "oftalmologia": 6,
+        "dermatologia": 4,
+        "psiquiatria": 3,
+    },
+    "Escritório Salvador": {"clinica_geral": 2, "oftalmologia": 1},
+}
 UNIDADES = [
-    ("Planta Camaçari", 420, (180, 131, 104, 79), 51, 76, 82, 64, (21, 17, 9, 4, 3, 5)),
-    ("Planta Simões Filho", 260, (110, 70, 52, 33), 49, 63, 68, 55, (9, 14, 6, 2, 4, 2)),
-    ("Escritório Salvador", 4, (3, 3, 2, 2), 50, 100, 100, 75, (1, 0, 0, 0, 0, 0)),  # abaixo do mínimo: fica oculto
+    ("Planta Camaçari", 420, (168, 131, 104, 72), 51, 76, 82, 64, (21, 17, 9, 4, 3, 5)),
+    ("Planta Simões Filho", 260, (104, 76, 58, 35), 49, 63, 68, 55, (9, 14, 6, 2, 4, 2)),
+    ("Escritório Salvador", 4, (3, 3, 2, 1), 50, 100, 100, 75, (1, 0, 0, 0, 0, 0)),  # abaixo do mínimo: fica oculto
 ]
 EM_DIA = {
     "Planta Camaçari": {"Turno A": 71, "Turno B": 62, "Turno C (noite)": 48},
@@ -186,6 +208,19 @@ PERFIS_DO_PULSO = {
     ("Planta Camaçari", "Turno C (noite)"): (4, 0.25, 0.6, 0.45),
     ("Planta Simões Filho", "Turno A"): (5, 0.35, 0.3, 0.3),
     ("Planta Simões Filho", "Turno B"): (4, 0.15, 0.3, 0.25),
+}
+# Onde dói, entre quem relata dor no totem: peso relativo de cada região (perfil típico de indústria).
+PESOS_DOS_LOCAIS_DE_DOR = {
+    "lombar": 30,
+    "ombros": 18,
+    "maos_punhos": 14,
+    "costas": 11,
+    "pescoco": 9,
+    "joelhos": 7,
+    "pernas_pes": 5,
+    "cabeca": 3,
+    "bracos": 2,
+    "quadril": 1,
 }
 NOMES_FICTICIOS = ["Carla M.", "Jorge S.", "Renata L.", "Paulo R.", "Tânia B.", "Ivo C."]
 
@@ -324,10 +359,12 @@ def _registros_da_pessoa(i: int, p: Pessoa, hoje: datetime) -> list:
     registros: list[Registro] = []
 
     def mensagem(sufixo: str, de: str, texto: str, hora: datetime, acoes: list[str] | None = None) -> None:
+        # Nada no futuro: logo depois da meia-noite, "hoje às 8h30" ainda não aconteceu e furaria a ordem da conversa.
+        hora = min(hora, hoje)
         mensagens.append(Mensagem(id=f"{tid}-{sufixo}", trabalhador_id=tid, de=de, texto=texto, hora=hora, acoes=acoes))
 
     def registro(sufixo: str, tipo: str, data: datetime, nota: str | None = None) -> None:
-        registros.append(Registro(id=f"{tid}-{sufixo}", trabalhador_id=tid, tipo=tipo, data=data, nota=nota))
+        registros.append(Registro(id=f"{tid}-{sufixo}", trabalhador_id=tid, tipo=tipo, data=min(data, hoje), nota=nota))
 
     dificuldade = None
     if p.dificuldade:
@@ -410,7 +447,7 @@ def _itens(resultado: list[tuple[str, ...]]) -> list[dict[str, str]]:
 
 def _unidades() -> list:
     motivos = ("tempo", "transporte", "nao_entendi", "remedio", "dinheiro", "outro")
-    etapas = ("contato", "resposta", "agendamento", "comparecimento")
+    etapas = ("whatsapp", "exame", "consulta", "reavaliacao")
     linhas: list = [
         ResumoUnidade(
             unidade=unidade,
@@ -422,6 +459,7 @@ def _unidades() -> list:
             planos_recebidos=planos,
             em_dia_com_risco=em_dia,
             motivos=dict(zip(motivos, contagem, strict=True)),
+            especialidades=ESPECIALIDADES_POR_UNIDADE.get(unidade, {}),
         )  # fmt: skip
         for unidade, vidas, funil, antes, agora, planos, em_dia, contagem in UNIDADES
     ]
@@ -449,6 +487,17 @@ def _pulsos(hoje: datetime) -> list[Pulso]:
     def nivel(chance: float) -> int:
         return 1 if sorteio() < chance else 2 if sorteio() < 0.55 else 3
 
+    locais = list(PESOS_DOS_LOCAIS_DE_DOR)
+    total_dos_pesos = sum(PESOS_DOS_LOCAIS_DE_DOR.values())
+
+    def local_da_dor() -> str:
+        alvo, soma = sorteio() * total_dos_pesos, 0
+        for local in locais:
+            soma += PESOS_DOS_LOCAIS_DE_DOR[local]
+            if alvo < soma:
+                return local
+        return locais[-1]
+
     pulsos: list[Pulso] = []
     for (unidade, turno), (por_dia, dor_forte, sono_ruim, energia_baixa) in PERFIS_DO_PULSO.items():
         for d in range(28, 0, -1):
@@ -456,6 +505,7 @@ def _pulsos(hoje: datetime) -> list[Pulso]:
                 continue
             quantidade = int(por_dia * (0.6 + sorteio() * 0.8) * (1.25 if d < 14 else 1) + 0.5)
             for _ in range(quantidade):
+                dor = 4 - nivel(dor_forte)  # invertido: chance alta vira dor 3
                 pulsos.append(
                     Pulso(
                         id=f"p{len(pulsos)}",
@@ -463,8 +513,9 @@ def _pulsos(hoje: datetime) -> list[Pulso]:
                         turno=turno,
                         data=em_dias(hoje, -d, 6 + int(sorteio() * 12)),
                         energia=nivel(energia_baixa),
-                        dor=4 - nivel(dor_forte),  # invertido: chance alta vira dor 3
+                        dor=dor,
                         sono=nivel(sono_ruim),
+                        local_dor=local_da_dor() if dor >= 2 else None,
                     )
                 )
     return pulsos

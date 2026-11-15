@@ -18,6 +18,7 @@ from selo_saude.modulos.indicadores import servico as indicadores
 from selo_saude.modulos.indicadores.servico import MetaDoTurno, UnidadeComTotem
 from selo_saude.modulos.plano import servico as plano
 from selo_saude.modulos.pulso import servico as pulso
+from selo_saude.modulos.pulso.regras import LocalDor
 from selo_saude.modulos.pulso.servico import Nivel
 from selo_saude.nucleo.banco import Sessao
 from selo_saude.nucleo.erros import NaoEncontrado
@@ -40,6 +41,8 @@ class RespostaDoPulso(Esquema):
     energia: Nivel
     dor: Nivel
     sono: Nivel
+    local_dor: LocalDor | None = None
+    """Onde dói mais, tocado no boneco. Só é guardado com dor leve ou forte."""
 
 
 class Cracha(Esquema):
@@ -94,7 +97,7 @@ async def eventos(unidade: str, sessao: Sessao) -> StreamingResponse:
 @transacional
 async def responder_pulso(unidade: str, corpo: RespostaDoPulso, sessao: Sessao) -> None:
     nome = await indicadores.unidade_do_totem(sessao, unidade)
-    await pulso.registrar(sessao, nome, corpo.energia, corpo.dor, corpo.sono)
+    await pulso.registrar(sessao, nome, corpo.energia, corpo.dor, corpo.sono, corpo.local_dor)
 
 
 @rota.get("/{unidade}/crachas")

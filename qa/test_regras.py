@@ -125,6 +125,20 @@ def test_rh_recebe_so_agregados_de_grupos_grandes(api):
 
 @pytest.mark.regra("2")
 @pytest.mark.critico
+def test_rankings_do_rh_sem_contagem_pequena_nem_pessoa(api):
+    """Especialidades e locais de dor chegam só como top 5 agregado, sem itens com menos de 5 ocorrências."""
+    painel = api.get("/rh/painel?unidade=todas")
+    for chave in ("especialidades", "locaisDeDor"):
+        itens = painel[chave]
+        assert len(itens) <= 5, chave
+        assert all(set(i) == {"codigo", "rotulo", "vezes"} and i["vezes"] >= painel["minimoDoGrupo"] for i in itens), (
+            chave
+        )
+        assert [i["vezes"] for i in itens] == sorted((i["vezes"] for i in itens), reverse=True), chave
+
+
+@pytest.mark.regra("2")
+@pytest.mark.critico
 def test_lideranca_ve_horario_nunca_o_motivo(api):
     """Liberações trazem só horário, turno e duração. Nome só com autorização da própria pessoa."""
     base = f"/trabalhador/{api.token('t1')}"

@@ -106,3 +106,18 @@ def test_reiniciar_demonstracao_volta_ao_estado_inicial(api):
     api.post(f"/trabalhador/{api.token('t1')}/consulta/confirmacao")
     assert api.post("/demonstracao/reinicio") == 204
     assert api.celular("t1")["consulta"]["status"] == "agendada"
+
+
+@pytest.mark.critico
+def test_dor_tocada_no_boneco_soma_no_rh(api):
+    """O local tocado no boneco do totem entra no ranking "Onde mais dói" do RH; sem dor, o local é ignorado."""
+
+    def lombar():
+        return {i["codigo"]: i["vezes"] for i in api.get("/rh/painel")["locaisDeDor"]}.get("lombar", 0)
+
+    antes = lombar()
+    assert api.post("/totem/planta-camacari/pulsos", {"energia": 2, "dor": 3, "sono": 2, "localDor": "lombar"}) == 204
+    assert lombar() == antes + 1
+    assert api.post("/totem/planta-camacari/pulsos", {"energia": 2, "dor": 1, "sono": 2, "localDor": "lombar"}) == 204
+    assert lombar() == antes + 1, "sem dor, o local não pode ser guardado"
+    assert api.post("/totem/planta-camacari/pulsos", {"energia": 2, "dor": 3, "sono": 2, "localDor": "nariz"}) == 422
