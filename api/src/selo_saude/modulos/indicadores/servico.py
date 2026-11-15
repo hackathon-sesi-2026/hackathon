@@ -40,9 +40,12 @@ class UnidadeComTotem(Esquema):
 
 class IndicadoresDoPulso(Esquema):
     respostas: int
-    energia_baixa: int
-    dor_forte: int
-    sono_ruim: int
+    cansados: int
+    """% que responderam "Cansado(a)"."""
+    mais_ou_menos: int
+    """% que responderam "Mais ou menos"."""
+    com_dor: int
+    """% que tocaram algum lugar no "Onde dói mais?"."""
 
 
 class PulsoDoTurno(Esquema):
@@ -262,14 +265,10 @@ def _por_turno(respostas: list[DadosPulso]) -> list[PulsoDoTurno]:
 def _alertas(i: IndicadoresDoPulso) -> list[str]:
     """Leituras do pulso que sugerem uma ação da empresa sobre as condições de trabalho, não sobre pessoas."""
     alertas = []
-    if i.sono_ruim >= 40:
-        alertas.append(
-            f"{i.sono_ruim}% dizem dormir mal. Vale uma ação sobre sono para quem trabalha à noite e revisar a escala."
-        )
-    if i.dor_forte >= 25:
-        alertas.append(f"{i.dor_forte}% relatam dor forte. Sugere olhar ergonomia do posto e pausas.")
-    if i.energia_baixa >= 35:
-        alertas.append(f"{i.energia_baixa}% com energia baixa. Hidratação e pausas no turno.")
+    if i.cansados >= 30:
+        alertas.append(f"{i.cansados}% chegam cansados. Vale olhar a escala, as pausas e o sono de quem vira a noite.")
+    if i.com_dor >= 40:
+        alertas.append(f"{i.com_dor}% relatam dor. Sugere olhar a ergonomia do posto e as pausas.")
     return alertas
 
 
@@ -281,9 +280,9 @@ def _indicadores(respostas: list[DadosPulso]) -> IndicadoresDoPulso:
 
     return IndicadoresDoPulso(
         respostas=total,
-        energia_baixa=percentual(lambda r: r.energia == 1),
-        dor_forte=percentual(lambda r: r.dor == 3),
-        sono_ruim=percentual(lambda r: r.sono == 1),
+        cansados=percentual(lambda r: r.bem_estar == 1),
+        mais_ou_menos=percentual(lambda r: r.bem_estar == 2),
+        com_dor=percentual(lambda r: r.local_dor is not None),
     )
 
 

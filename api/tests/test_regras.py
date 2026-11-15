@@ -180,14 +180,6 @@ def test_mais_frequentes_corta_grupos_pequenos_e_limita_a_cinco():
     assert ("c", 4) not in mais_frequentes(contagem, minimo=5, quantos=10)
 
 
-def test_local_da_dor_so_e_guardado_quando_ha_dor():
-    from selo_saude.modulos.pulso.regras import local_guardado
-
-    assert local_guardado(1, "lombar") is None
-    assert local_guardado(2, "lombar") == "lombar"
-    assert local_guardado(3, None) is None
-
-
 # ---------------------------------------------------------------- doença crônica e engajamento
 
 
@@ -208,3 +200,16 @@ def test_engajamento_soma_as_quatro_partes_com_o_porque():
     assert all(i.como_esta and i.maximo == 25 for i in e.itens)
     sem_nada = engajamento(retrato(plano=plano(status="enviado", passos=passos), consulta=None), HOJE)
     assert sem_nada.pontos == 12 and sem_nada.nivel == "baixo"
+
+
+# ---------------------------------------------------------------- cadastro: CPF no totem
+
+
+def test_cpf_valido_confere_os_digitos_verificadores():
+    from selo_saude.modulos.cadastro.regras import cpf_valido, digitos_verificadores
+
+    assert digitos_verificadores("000000001") == "91"
+    assert cpf_valido("000.000.001-91") and cpf_valido("00000000191")
+    assert not cpf_valido("000.000.001-92"), "dígito verificador errado"
+    assert not cpf_valido("111.111.111-11"), "dígito repetido"
+    assert not cpf_valido("123"), "curto demais"

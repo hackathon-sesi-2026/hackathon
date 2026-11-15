@@ -204,7 +204,7 @@ def test_prd32_pulso_do_totem_alimenta_o_rh(api):
     antes = next(u for u in api.get("/rh/painel").json()["unidades"] if u["unidade"] == unidade["unidade"])[
         "respostasNoTotem"
     ]
-    assert api.post(f"/totem/{unidade['slug']}/pulsos", json={"energia": 1, "dor": 3, "sono": 1}).status_code == 204
+    assert api.post(f"/totem/{unidade['slug']}/pulsos", json={"bemEstar": 1, "localDor": "lombar"}).status_code == 204
     depois = next(u for u in api.get("/rh/painel").json()["unidades"] if u["unidade"] == unidade["unidade"])[
         "respostasNoTotem"
     ]
@@ -228,21 +228,23 @@ def test_prd32_pulso_e_gravado_sem_identificar_ninguem():
             await conexao.close()
 
     # local_dor é a região do corpo, sem nada que aponte a pessoa (decisão de 14/11 no produto.md).
-    assert asyncio.run(colunas()) == {"id", "unidade", "turno", "data", "energia", "dor", "sono", "local_dor"}
+    assert asyncio.run(colunas()) == {
+        "id", "unidade", "turno", "data", "bem_estar", "local_dor", "energia", "dor", "sono",
+    }  # fmt: skip
 
 
 def test_prd32_totem_nao_aceita_cracha_de_outra_unidade(api, fila):
     unidades = {u["unidade"]: u["slug"] for u in api.get("/totem/unidades").json()}
     de_fora = next(linha["trabalhador"] for linha in fila if linha["trabalhador"]["unidade"] not in unidades)
     slug = next(iter(unidades.values()))
-    assert api.post(f"/totem/{slug}/identificacao", json={"matricula": de_fora["matricula"]}).status_code == 404
+    assert api.post(f"/totem/{slug}/identificacao", json={"cpf": de_fora["cpf"]}).status_code == 404
 
 
-def test_prd6_totem_nao_entrega_o_link_pessoal_so_pela_matricula(api, fila):
-    """Corrige o vazamento achado na validação: a matrícula não é segredo, então o totem não devolve o token."""
+def test_prd6_totem_nao_entrega_o_link_pessoal_so_pelo_cpf(api, fila):
+    """Corrige o vazamento achado na validação: o CPF não é segredo, então o totem não devolve o token."""
     unidades = {u["unidade"]: u["slug"] for u in api.get("/totem/unidades").json()}
     marcos = da_fila(fila, "Marcos")["trabalhador"]
-    resposta = api.post(f"/totem/{unidades[marcos['unidade']]}/identificacao", json={"matricula": marcos["matricula"]})
+    resposta = api.post(f"/totem/{unidades[marcos['unidade']]}/identificacao", json={"cpf": marcos["cpf"]})
     assert resposta.status_code == 200
     corpo = resposta.json()
     assert "tokenAcesso" not in corpo and marcos["tokenAcesso"] not in str(corpo)
@@ -252,7 +254,7 @@ def test_prd6_totem_manda_o_link_so_para_o_whatsapp_da_propria_pessoa(api, fila)
     unidades = {u["unidade"]: u["slug"] for u in api.get("/totem/unidades").json()}
     marcos = da_fila(fila, "Marcos")["trabalhador"]
     rota = f"/totem/{unidades[marcos['unidade']]}/identificacao/link"
-    resposta = api.post(rota, json={"matricula": marcos["matricula"]})
+    resposta = api.post(rota, json={"cpf": marcos["cpf"]})
     assert resposta.status_code == 204 and resposta.content == b"", "o totem não recebe o link de volta"
     ultima = api.get(f"/trabalhador/{marcos['tokenAcesso']}").json()["mensagens"][-1]
     assert ultima["de"] == "sesi" and "só seu" in ultima["texto"]

@@ -18,8 +18,11 @@ class Pulso(Base):
     unidade: Mapped[str] = mapped_column(String(80), index=True)
     turno: Mapped[str] = mapped_column(String(40))
     data: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    energia: Mapped[int] = mapped_column(SmallInteger)  # 1 baixa, 3 boa
-    dor: Mapped[int] = mapped_column(SmallInteger)  # 1 sem dor, 3 dor forte
-    sono: Mapped[int] = mapped_column(SmallInteger)  # 1 dormiu mal, 3 dormiu bem
-    # Onde dói mais, só quando há dor (leve ou forte). Região do corpo, nunca o sexo do boneco usado na tela.
+    # "Como você está hoje?": 1 cansado(a), 2 mais ou menos, 3 bem, 4 muito bem.
+    bem_estar: Mapped[int | None] = mapped_column(SmallInteger)
+    # Onde dói mais, tocado no boneco. Vazio quando a pessoa não sente dor. Só a região do corpo.
     local_dor: Mapped[str | None] = mapped_column(String(20))
+    # Formato antigo do pulso (energia, dor e sono, de 1 a 3). Fica para as respostas já gravadas.
+    energia: Mapped[int | None] = mapped_column(SmallInteger)
+    dor: Mapped[int | None] = mapped_column(SmallInteger)
+    sono: Mapped[int | None] = mapped_column(SmallInteger)

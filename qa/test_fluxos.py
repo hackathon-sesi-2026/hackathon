@@ -80,7 +80,7 @@ def test_registrar_monitoramento(api):
 def test_pulso_do_totem(api):
     """Três toques no totem somam no contador do turno, sem identificar ninguém."""
     antes = api.get("/totem/planta-camacari")["respostasHoje"]
-    assert api.post("/totem/planta-camacari/pulsos", {"energia": 1, "dor": 3, "sono": 2}) == 204
+    assert api.post("/totem/planta-camacari/pulsos", {"bemEstar": 1, "localDor": None}) == 204
     assert api.get("/totem/planta-camacari")["respostasHoje"] == antes + 1
 
 
@@ -117,8 +117,9 @@ def test_dor_tocada_no_boneco_soma_no_rh(api):
         return {i["codigo"]: i["vezes"] for i in api.get("/rh/painel")["locaisDeDor"]}.get("lombar", 0)
 
     antes = lombar()
-    assert api.post("/totem/planta-camacari/pulsos", {"energia": 2, "dor": 3, "sono": 2, "localDor": "lombar"}) == 204
+    assert api.post("/totem/planta-camacari/pulsos", {"bemEstar": 2, "localDor": "lombar"}) == 204
     assert lombar() == antes + 1
-    assert api.post("/totem/planta-camacari/pulsos", {"energia": 2, "dor": 1, "sono": 2, "localDor": "lombar"}) == 204
-    assert lombar() == antes + 1, "sem dor, o local não pode ser guardado"
-    assert api.post("/totem/planta-camacari/pulsos", {"energia": 2, "dor": 3, "sono": 2, "localDor": "nariz"}) == 422
+    assert api.post("/totem/planta-camacari/pulsos", {"bemEstar": 3, "localDor": None}) == 204
+    assert lombar() == antes + 1, '"Não sinto dor" não soma em nenhum local'
+    assert api.post("/totem/planta-camacari/pulsos", {"bemEstar": 2, "localDor": "nariz"}) == 422
+    assert api.post("/totem/planta-camacari/pulsos", {"bemEstar": 5, "localDor": None}) == 422

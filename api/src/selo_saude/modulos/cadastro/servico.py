@@ -12,6 +12,7 @@ from selo_saude.nucleo.eventos import publicar
 
 from .eventos import MotivacaoDefinida, TurnoAtualizado
 from .modelos import Trabalhador
+from .regras import cpf_valido, so_digitos
 
 Motivacao = Literal["familia", "energia", "menos_dor", "sono"]
 Risco = Literal[1, 2, 3, 4]
@@ -41,6 +42,7 @@ class DadosTrabalhador(Esquema):
     id: str
     token_acesso: str
     matricula: str
+    cpf: str | None = None
     nome: str
     funcao: str
     data_nascimento: date
@@ -64,6 +66,7 @@ def _dados(t: Trabalhador) -> DadosTrabalhador:
         id=t.id,
         token_acesso=t.token_acesso,
         matricula=t.matricula,
+        cpf=t.cpf,
         nome=t.nome,
         funcao=t.funcao,
         data_nascimento=t.data_nascimento,
@@ -92,6 +95,13 @@ async def obter(sessao: AsyncSession, trabalhador_id: str) -> DadosTrabalhador:
 
 async def obter_por_token(sessao: AsyncSession, token: str) -> DadosTrabalhador:
     return _dados(await _buscar(sessao, token_acesso=token))
+
+
+async def obter_por_cpf(sessao: AsyncSession, cpf: str) -> DadosTrabalhador:
+    """Busca pelo CPF digitado (com ou sem pontuação). CPF inválido conta como não encontrado."""
+    if not cpf_valido(cpf):
+        raise NaoEncontrado("CPF não encontrado")
+    return _dados(await _buscar(sessao, cpf=so_digitos(cpf)))
 
 
 async def obter_por_matricula(sessao: AsyncSession, matricula: str) -> DadosTrabalhador:

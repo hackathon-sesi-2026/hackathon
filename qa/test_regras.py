@@ -92,8 +92,8 @@ def test_resultado_so_sai_do_servidor_depois_de_liberado(api):
 @pytest.mark.critico
 def test_totem_mostra_so_data_e_hora(api):
     """A tela pública do totem não mostra o que é o atendimento, passos do plano nem exames."""
-    cracha = api.get("/totem/planta-camacari/crachas")[0]
-    status, cuidado = api.pedir("POST", "/totem/planta-camacari/identificacao", {"matricula": cracha["matricula"]})
+    cpf = api.linha("t1")["trabalhador"]["cpf"]  # Marcos, da Planta Camaçari
+    status, cuidado = api.pedir("POST", "/totem/planta-camacari/identificacao", {"cpf": cpf})
     assert status == 200
     assert set(cuidado) <= {"primeiroNome", "retorno", "passosFeitos", "passosNoPlano", "semanasSeguidas"}
     assert "tokenAcesso" not in cuidado, "o totem nunca devolve o link pessoal (decisão de 14/11 no produto.md)"

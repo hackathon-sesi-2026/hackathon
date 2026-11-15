@@ -177,7 +177,9 @@ def test_prd5_selos_nos_marcos_3_6_12():
 
 
 def _pulsos(n: int, turno: str = "Turno A") -> list[DadosPulso]:
-    return [DadosPulso(unidade="Planta Camaçari", turno=turno, data=HOJE, energia=1, dor=3, sono=1) for _ in range(n)]
+    return [
+        DadosPulso(unidade="Planta Camaçari", turno=turno, data=HOJE, bem_estar=1, local_dor="lombar") for _ in range(n)
+    ]
 
 
 def test_prd6_grupo_minimo_e_5():

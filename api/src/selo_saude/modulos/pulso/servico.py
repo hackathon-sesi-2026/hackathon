@@ -12,7 +12,7 @@ from selo_saude.nucleo.esquema import Esquema, novo_id
 from selo_saude.nucleo.eventos import EventoDominio, publicar
 
 from .modelos import Pulso
-from .regras import LocalDor, local_guardado
+from .regras import BemEstar, LocalDor
 
 Nivel = Literal[1, 2, 3]
 
@@ -26,10 +26,12 @@ class DadosPulso(Esquema):
     unidade: str
     turno: str
     data: datetime
-    energia: Nivel
-    dor: Nivel
-    sono: Nivel
+    bem_estar: int | None = None
     local_dor: str | None = None
+    # Formato antigo: respostas gravadas antes do pulso de 4 níveis.
+    energia: Nivel | None = None
+    dor: Nivel | None = None
+    sono: Nivel | None = None
 
 
 def turno_agora(instante: datetime | None = None) -> str:
@@ -42,19 +44,16 @@ def turno_agora(instante: datetime | None = None) -> str:
     return "Turno C (noite)"
 
 
-async def registrar(
-    sessao: AsyncSession, unidade: str, energia: Nivel, dor: Nivel, sono: Nivel, local_dor: LocalDor | None = None
-) -> None:
+async def registrar(sessao: AsyncSession, unidade: str, bem_estar: BemEstar, local_dor: LocalDor | None = None) -> None:
+    """Grava a resposta sem nada que identifique quem respondeu, nem o CPF que a pessoa digitou no totem."""
     sessao.add(
         Pulso(
             id=novo_id(),
             unidade=unidade,
             turno=turno_agora(),
             data=relogio.agora(),
-            energia=energia,
-            dor=dor,
-            sono=sono,
-            local_dor=local_guardado(dor, local_dor),
+            bem_estar=bem_estar,
+            local_dor=local_dor,
         )
     )
     await publicar(sessao, PulsoRegistrado(unidade=unidade))

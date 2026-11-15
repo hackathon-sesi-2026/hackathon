@@ -81,9 +81,9 @@ export function PainelRh() {
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
             {(
               [
-                ['Energia baixa', p.pulso.energiaBaixa, 'bg-amber-500'],
-                ['Dor forte', p.pulso.dorForte, 'bg-alerta'],
-                ['Dormiu mal', p.pulso.sonoRuim, 'bg-violet-500'],
+                ['Cansados', p.pulso.cansados, 'bg-amber-500'],
+                ['Mais ou menos', p.pulso.maisOuMenos, 'bg-sky-500'],
+                ['Com dor', p.pulso.comDor, 'bg-alerta'],
               ] as const
             ).map(([r, v, cor]) => (
               <div key={r} className="rounded-xl bg-cinza p-2">

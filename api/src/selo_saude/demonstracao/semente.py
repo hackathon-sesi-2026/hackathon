@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from selo_saude.modulos.agenda.modelos import Consulta, Liberacao
 from selo_saude.modulos.agenda.servico import DadosConsulta
 from selo_saude.modulos.cadastro.modelos import Trabalhador
+from selo_saude.modulos.cadastro.regras import digitos_verificadores
 from selo_saude.modulos.cadastro.servico import TURNOS, DadosTrabalhador, Turno
 from selo_saude.modulos.comunicacao import textos
 from selo_saude.modulos.comunicacao.modelos import Mensagem
@@ -201,13 +202,13 @@ EM_DIA = {
     "Planta Camaçari": {"Turno A": 71, "Turno B": 62, "Turno C (noite)": 48},
     "Planta Simões Filho": {"Turno A": 58, "Turno B": 52},
 }
-# Perfil do pulso por unidade e turno: respostas por dia e chance de dor forte, sono ruim e energia baixa.
+# Perfil do pulso por unidade e turno: respostas por dia e chance de dor, de "cansado(a)" e de "mais ou menos".
 PERFIS_DO_PULSO = {
-    ("Planta Camaçari", "Turno A"): (9, 0.3, 0.35, 0.25),
-    ("Planta Camaçari", "Turno B"): (7, 0.2, 0.25, 0.2),
-    ("Planta Camaçari", "Turno C (noite)"): (4, 0.25, 0.6, 0.45),
-    ("Planta Simões Filho", "Turno A"): (5, 0.35, 0.3, 0.3),
-    ("Planta Simões Filho", "Turno B"): (4, 0.15, 0.3, 0.25),
+    ("Planta Camaçari", "Turno A"): (9, 0.45, 0.22, 0.30),
+    ("Planta Camaçari", "Turno B"): (7, 0.30, 0.15, 0.25),
+    ("Planta Camaçari", "Turno C (noite)"): (4, 0.40, 0.45, 0.30),
+    ("Planta Simões Filho", "Turno A"): (5, 0.50, 0.20, 0.30),
+    ("Planta Simões Filho", "Turno B"): (4, 0.25, 0.15, 0.25),
 }
 # Onde dói, entre quem relata dor no totem: peso relativo de cada região (perfil típico de indústria).
 PESOS_DOS_LOCAIS_DE_DOR = {
@@ -225,6 +226,12 @@ PESOS_DOS_LOCAIS_DE_DOR = {
     "quadril": 1,
 }
 NOMES_FICTICIOS = ["Carla M.", "Jorge S.", "Renata L.", "Paulo R.", "Tânia B.", "Ivo C."]
+
+
+def cpf_de_demonstracao(i: int) -> str:
+    """CPF fictício e fixo por pessoa, na faixa 000.000.0xx-xx usada para testes. O do Marcos é 000.000.001-91."""
+    base = f"{i + 1:09d}"
+    return base + digitos_verificadores(base)
 
 
 def token_de_demonstracao(trabalhador_id: str) -> str:
@@ -265,6 +272,7 @@ def _registros_da_pessoa(i: int, p: Pessoa, hoje: datetime) -> list:
         id=tid,
         token_acesso=token_de_demonstracao(tid),
         matricula=str(20261001 + i * 37),
+        cpf=cpf_de_demonstracao(i),
         nome=p.nome,
         funcao=p.funcao,
         data_nascimento=_nascimento(i, hoje),
@@ -281,7 +289,8 @@ def _registros_da_pessoa(i: int, p: Pessoa, hoje: datetime) -> list:
         faltas_ultimo_ano=p.faltas,
     )
     dados = DadosTrabalhador(
-        id=tid, token_acesso="", matricula="", nome=p.nome, funcao="", data_nascimento=trabalhador.data_nascimento,
+        id=tid, token_acesso="", matricula="", cpf=None, nome=p.nome, funcao="",
+        data_nascimento=trabalhador.data_nascimento,
         empresa="", unidade="", medico_referencia="",
         enfermeira=trabalhador.enfermeira, motivacao=trabalhador.motivacao, turno=p.turno, risco=p.risco,
         ultima_consulta_medica=trabalhador.ultima_consulta_medica, faltas_ultimo_ano=p.faltas,
@@ -494,8 +503,13 @@ def _pulsos(hoje: datetime) -> list[Pulso]:
     """Respostas anônimas do totem nas últimas 4 semanas, com a participação crescendo nas 2 últimas."""
     sorteio = _sorteio(42)
 
-    def nivel(chance: float) -> int:
-        return 1 if sorteio() < chance else 2 if sorteio() < 0.55 else 3
+    def bem_estar(cansado: float, mais_ou_menos: float) -> int:
+        r = sorteio()
+        if r < cansado:
+            return 1
+        if r < cansado + mais_ou_menos:
+            return 2
+        return 3 if sorteio() < 0.6 else 4
 
     locais = list(PESOS_DOS_LOCAIS_DE_DOR)
     total_dos_pesos = sum(PESOS_DOS_LOCAIS_DE_DOR.values())
@@ -509,23 +523,20 @@ def _pulsos(hoje: datetime) -> list[Pulso]:
         return locais[-1]
 
     pulsos: list[Pulso] = []
-    for (unidade, turno), (por_dia, dor_forte, sono_ruim, energia_baixa) in PERFIS_DO_PULSO.items():
+    for (unidade, turno), (por_dia, com_dor, cansado, mais_ou_menos) in PERFIS_DO_PULSO.items():
         for d in range(28, 0, -1):
             if em_dias(hoje, -d).weekday() == relogio.DOMINGO:
                 continue
             quantidade = int(por_dia * (0.6 + sorteio() * 0.8) * (1.25 if d < 14 else 1) + 0.5)
             for _ in range(quantidade):
-                dor = 4 - nivel(dor_forte)  # invertido: chance alta vira dor 3
                 pulsos.append(
                     Pulso(
                         id=f"p{len(pulsos)}",
                         unidade=unidade,
                         turno=turno,
                         data=em_dias(hoje, -d, 6 + int(sorteio() * 12)),
-                        energia=nivel(energia_baixa),
-                        dor=dor,
-                        sono=nivel(sono_ruim),
-                        local_dor=local_da_dor() if dor >= 2 else None,
+                        bem_estar=bem_estar(cansado, mais_ou_menos),
+                        local_dor=local_da_dor() if sorteio() < com_dor else None,
                     )
                 )
     return pulsos

@@ -181,12 +181,7 @@ export interface TelaInicialDoTotem {
   metaDoTurno: MetaDoTurno | null
 }
 
-export interface Cracha {
-  matricula: string
-  nome: string
-}
-
-/** O que aparece na tela pública depois do crachá: data e hora, nunca o que é o atendimento. */
+/** O que aparece na tela pública depois do CPF: data e hora, nunca o que é o atendimento. */
 export interface CuidadoNoTotem {
   primeiroNome: string
   retorno: { data: string; local: string; modalidade: Modalidade; status: Exclude<StatusConsulta, 'faltou'> } | null
@@ -203,6 +198,8 @@ export interface Trabalhador {
   /** Segredo do link pessoal do celular. */
   tokenAcesso: string
   matricula: string
+  /** Só os 11 dígitos. Usado para entrar no totem. */
+  cpf: string | null
   nome: string
   funcao: string
   /** AAAA-MM-DD, do cadastro do S+. */
@@ -371,9 +368,12 @@ export interface AgendaDoTurno {
 
 export interface IndicadoresDoPulso {
   respostas: number
-  energiaBaixa: number
-  dorForte: number
-  sonoRuim: number
+  /** % que responderam "Cansado(a)". */
+  cansados: number
+  /** % que responderam "Mais ou menos". */
+  maisOuMenos: number
+  /** % que tocaram algum lugar no "Onde dói mais?". */
+  comDor: number
 }
 
 export interface IndicadoresDaUnidade {

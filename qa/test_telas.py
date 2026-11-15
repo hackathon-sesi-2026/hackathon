@@ -63,6 +63,20 @@ def ver(pagina, texto: str, timeout: int = 8000):
     pagina.get_by_text(texto, exact=False).first.wait_for(state="visible", timeout=timeout)
 
 
+def entrar_no_totem(pagina, cpf: str | None = "12345678901"):
+    """Começar e passar pelo CPF. Na demonstração, CPF fora do cadastro entra como o Marcos; None pula o CPF."""
+    ver(pagina, "Olá!")
+    pagina.get_by_role("button", name="Começar").click()
+    ver(pagina, "Digite seu CPF")
+    if cpf is None:
+        pagina.get_by_role("button", name="Prefiro não informar").click()
+    else:
+        for numero in cpf:
+            pagina.get_by_role("button", name=numero, exact=True).click()
+        pagina.get_by_role("button", name="Entrar").click()
+    ver(pagina, "Onde dói mais?")
+
+
 # ---------------------------------------------------------------- cada superfície abre
 
 
@@ -74,7 +88,7 @@ def ver(pagina, texto: str, timeout: int = 8000):
         ("/painel/lideranca", "Agenda de cuidado do turno"),
         ("/painel/rh", "Visão da empresa"),
         ("/totem", "De qual unidade é este totem?"),
-        ("/totem/planta-camacari", "Bom turno!"),
+        ("/totem/planta-camacari", "Olá!"),
     ],
 )
 def test_superficie_abre(abrir, caminho, texto):
@@ -100,16 +114,6 @@ def test_confirmar_com_um_toque_no_celular(abrir, api):
     pagina.get_by_role("button", name=re.compile("Confirmo")).click()
     ver(pagina, "Combinado!")
     assert api.celular("t1")["consulta"]["status"] == "confirmada"
-
-
-@pytest.mark.critico
-def test_pulso_no_totem_em_tres_toques(abrir):
-    """Três toques no totem levam ao agradecimento."""
-    pagina = abrir("/totem/planta-camacari").pagina
-    pagina.get_by_text("Como você está hoje?").click()
-    for opcao in ("Baixa", "Nenhuma", "Bem"):
-        pagina.get_by_role("button", name=re.compile(opcao)).click()
-    ver(pagina, "Obrigado!")
 
 
 @pytest.mark.critico
@@ -160,15 +164,33 @@ def test_telas_sem_erros_no_console(abrir, api):
     assert not erros, f"erros no console: {erros[:5]}"
 
 
-def test_boneco_da_dor_no_totem(abrir):
-    """Com dor forte, o totem mostra o boneco; tocar a lombar e confirmar segue para a última pergunta."""
+@pytest.mark.critico
+def test_pulso_no_totem_sem_cpf_e_sem_dor(abrir):
+    """Sem CPF e sem dor: Começar, "Prefiro não informar", "Não sinto dor", um rosto e o agradecimento."""
     pagina = abrir("/totem/planta-camacari").pagina
-    pagina.get_by_text("Como você está hoje?").click()
-    pagina.get_by_role("button", name=re.compile("Baixa")).click()
-    pagina.get_by_role("button", name=re.compile("Forte")).click()
-    ver(pagina, "Onde dói mais?")
-    pagina.get_by_role("button", name="Mulher").click()
-    pagina.get_by_role("button", name="Lombar (parte de baixo das costas)").click()
-    pagina.get_by_role("button", name="É aqui").click()
-    pagina.get_by_role("button", name=re.compile("Bem")).click()
+    entrar_no_totem(pagina, None)
+    pagina.get_by_role("button", name="Não sinto dor").click()
+    ver(pagina, "Como você está hoje?")
+    pagina.get_by_role("button", name="Bem", exact=True).click()
+    pagina.get_by_role("button", name="Continuar").click()
     ver(pagina, "Obrigado!")
+
+
+def test_boneco_da_dor_no_totem(abrir):
+    """Com CPF: tocar a lombar no boneco, confirmar, escolher "Cansado(a)" e chegar ao agradecimento."""
+    pagina = abrir("/totem/planta-camacari").pagina
+    entrar_no_totem(pagina)
+    pagina.get_by_role("button", name="Lombar (parte de baixo das costas)").click()
+    pagina.get_by_role("button", name="Confirmar").click()
+    pagina.get_by_role("button", name="Cansado(a)").click()
+    pagina.get_by_role("button", name="Continuar").click()
+    ver(pagina, "Obrigado!")
+
+
+@pytest.mark.critico
+def test_totem_comeca_pelo_cpf(abrir):
+    """O CPF vem antes de tudo; na demonstração qualquer CPF entra (como o Marcos) e "Voltar" retorna ao CPF."""
+    pagina = abrir("/totem/planta-camacari").pagina
+    entrar_no_totem(pagina, "98765432100")
+    pagina.get_by_role("button", name="Voltar").click()
+    ver(pagina, "Digite seu CPF")

@@ -15,6 +15,8 @@ class Trabalhador(Base):
     # Segredo do link pessoal enviado pelo WhatsApp. É a única credencial do trabalhador.
     token_acesso: Mapped[str] = mapped_column(String(64), unique=True)
     matricula: Mapped[str] = mapped_column(String(20), unique=True)
+    # Só os 11 dígitos. É como a pessoa se identifica no totem.
+    cpf: Mapped[str | None] = mapped_column(String(11), unique=True)
     nome: Mapped[str] = mapped_column(String(120))
     funcao: Mapped[str] = mapped_column(String(80))
     data_nascimento: Mapped[date] = mapped_column(Date)

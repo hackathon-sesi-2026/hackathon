@@ -1,13 +1,14 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react'
+import { RotateCcw } from 'lucide-react'
 import type { LocalDor } from '../../api/tipos'
+import { BotaoPrincipal, BotaoVoltar, Titulo } from './Moldura'
 
-// "Onde dói mais?" no totem: a pessoa toca a PARTE do corpo no desenho (frente e costas), pensado para o toque
-// no totem e no celular. Desenho próprio, em SVG. O sexo do boneco é só para a pessoa se reconhecer no desenho:
-// não é enviado nem guardado. Só a região vai para a API, sem nada que identifique.
+// Etapa "Onde dói mais?" do totem: silhueta do corpo, de frente e de costas, e a pessoa toca a REGIÃO.
+// Desenho próprio, em SVG. Só a região vai para a API, sem nada que identifique quem tocou.
 
-type Sexo = 'feminino' | 'masculino'
 type Vista = 'frente' | 'costas'
 
+/** Nome completo da região, lido pelo leitor de tela. */
 export const ROTULO_LOCAL_DOR: Record<LocalDor, string> = {
   cabeca: 'Cabeça',
   pescoco: 'Pescoço',
@@ -23,34 +24,88 @@ export const ROTULO_LOCAL_DOR: Record<LocalDor, string> = {
   pernas_pes: 'Pernas e pés',
 }
 
-/** Nome da região como a pessoa vê: no desenho da mulher, o peito é "Seios". */
-export function rotuloDoLocal(local: LocalDor, sexo: Sexo): string {
-  return local === 'peito' && sexo === 'feminino' ? 'Seios' : ROTULO_LOCAL_DOR[local]
+/** Nome curto que aparece na etiqueta ao lado do desenho. */
+const ETIQUETA: Record<LocalDor, string> = {
+  cabeca: 'Cabeça',
+  pescoco: 'Pescoço',
+  ombros: 'Ombro',
+  peito: 'Peito',
+  barriga: 'Barriga',
+  bracos: 'Braço',
+  maos_punhos: 'Mão',
+  costas: 'Costas',
+  lombar: 'Lombar',
+  quadril: 'Quadril',
+  joelhos: 'Joelho',
+  pernas_pes: 'Perna',
 }
 
-// Cores do desenho: pele, sombra, contorno, cabelo, roupa e a parte escolhida.
-const PELE_CLARA = '#f6cfb2'
-const PELE_ESCURA = '#e2a581'
-const CONTORNO = '#c4866a'
-const CABELO = '#5b3a26'
-const ROUPA = '#7a5640'
-const ESCOLHIDA = '#fb923c'
-const ESCOLHIDA_CONTORNO = '#c2410c'
+// Formas da silhueta, em coordenadas da figura (200 x 560, centro em x = 100). As do lado esquerdo são
+// espelhadas para o direito. Sem contorno e com a mesma cor, elas se fundem num corpo só.
+const FORMA = {
+  cabeca: { cx: 100, cy: 40, rx: 17, ry: 26 },
+  pescoco: 'M91 60 L91 76 C89 86 78 91 64 95 L136 95 C122 91 111 86 109 76 L109 60 Z',
+  tronco:
+    'M64 94 C54 96 47 102 46 113 C46 126 53 136 60 142 C61 166 67 186 68 204 C68 220 61 238 60 258 C60 268 60 276 61 284 L139 284 C140 276 140 268 140 258 C139 238 132 220 132 204 C133 186 139 166 140 142 C147 136 154 126 154 113 C153 102 146 96 136 94 Z',
+  braco: 'M52 99 C43 104 38 118 38 134 C37 154 36 172 35 190 C33 214 30 238 27 259 L39 262 C43 242 48 220 51 198 C54 178 58 160 60 142 C61 124 60 108 52 99 Z',
+  mao: 'M27 257 C22 268 20 282 22 295 C24 304 31 307 35 301 C39 291 40 276 39 261 Z',
+  perna:
+    'M60 262 C56 290 56 330 62 362 C64 376 64 388 64 398 C60 420 62 450 68 482 C70 494 70 504 70 512 L83 512 C84 500 86 486 88 470 C92 446 92 420 91 400 C92 386 95 370 97 350 C99 330 100 308 100 286 L100 262 Z',
+  pe: {
+    frente: 'M70 510 C66 522 60 534 62 540 C66 546 82 546 85 540 C86 530 84 520 83 510 Z',
+    costas: 'M70 510 C68 524 69 538 76 540 C83 538 85 524 83 510 Z',
+  },
+}
+const ESPELHO = 'translate(200 0) scale(-1 1)'
 
-// Onde uma mesma forma do desenho se divide em regiões (coordenadas da figura, 200 x 560). Quando duas áreas
-// de toque se sobrepõem, vale a desenhada por último: joelho sobre a perna, ombro sobre o braço e o tronco.
-const FIM_DO_PEITO = 180 // tronco da frente: acima disso é peito, abaixo é barriga
-const FIM_DAS_COSTAS = 198 // tronco de costas: acima disso são as costas, abaixo é a lombar
-const JOELHO = { centro: 393, raio: 19 } // perna: essa elipse é o joelho
+// Onde o tronco se divide em regiões.
+const FIM_DO_PEITO = 178
+const FIM_DAS_COSTAS = 196
+const INICIO_DO_QUADRIL = 248
 
-/** Medidas que mudam entre os desenhos: mulher com ombros mais estreitos, cintura fina e quadril mais largo. */
-function medidas(sexo: Sexo) {
-  const f = sexo === 'feminino'
-  return { f, o: f ? 52 : 46, ax: f ? 62 : 58, ci: f ? 72 : 66, qu: f ? 56 : 62, dx: f ? 5 : 0 }
+const ambosOsLados = (desenho: (transform?: string) => ReactNode) => (
+  <>
+    {desenho()}
+    {desenho(ESPELHO)}
+  </>
+)
+
+/** A silhueta: azul-clara, translúcida e com brilho, sem interação. As áreas de toque ficam por cima. */
+function Silhueta({ vista }: { vista: Vista }) {
+  const linha = { fill: 'none', stroke: '#eaf3ff', strokeWidth: 1.4, strokeLinecap: 'round' as const, opacity: 0.28 }
+  return (
+    <g pointerEvents="none" filter="url(#brilho-do-corpo)">
+      <g fill="url(#cor-do-corpo)" opacity="0.9">
+        {ambosOsLados((t) => (
+          <g transform={t}>
+            <path d={FORMA.perna} />
+            <path d={FORMA.pe[vista]} />
+            <path d={FORMA.braco} />
+            <path d={FORMA.mao} />
+          </g>
+        ))}
+        <path d={FORMA.pescoco} />
+        <path d={FORMA.tronco} />
+        <ellipse {...FORMA.cabeca} />
+      </g>
+      {vista === 'frente' ? (
+        <>
+          <path d="M70 146 Q84 160 98 152 M102 152 Q116 160 130 146" {...linha} />
+          <path d="M100 150 L100 236" {...linha} opacity={0.18} />
+          <path d="M66 396 Q77 404 90 396 M110 396 Q123 404 134 396" {...linha} />
+        </>
+      ) : (
+        <>
+          <path d="M100 98 L100 250" {...linha} />
+          <path d="M74 128 Q80 158 95 150 M126 128 Q120 158 105 150" {...linha} />
+          <path d="M66 396 Q77 388 90 396 M110 396 Q123 388 134 396" {...linha} />
+        </>
+      )}
+    </g>
+  )
 }
 
 interface Contexto {
-  sexo: Sexo
   vista: Vista
   escolhido: LocalDor | null
   aoTocar: (l: LocalDor) => void
@@ -59,29 +114,20 @@ interface Contexto {
 interface Zona {
   fill: string
   fillOpacity: number
-  stroke: string
-  strokeWidth: number
   className: string
 }
 
 /**
- * Uma parte tocável do corpo. A área é invisível até ser escolhida (laranja) ou apontada (laranja claro).
- * Cada região entra uma vez no Tab: pela frente e, de costas, só o que não existe na frente (costas e lombar).
+ * Uma região tocável. A área é invisível até ser escolhida, quando acende. Cada região entra uma vez no Tab:
+ * pela frente e, de costas, só o que não existe na frente (costas e lombar).
  */
-function Parte({ local, ctx, children }: { local: LocalDor; ctx: Contexto; children: (zona: Zona) => ReactNode }) {
+function Regiao({ local, ctx, children }: { local: LocalDor; ctx: Contexto; children: (zona: Zona) => ReactNode }) {
   const ativa = ctx.escolhido === local
   const focavel = ctx.vista === 'frente' || local === 'costas' || local === 'lombar'
-  const zona: Zona = {
-    fill: ativa ? ESCOLHIDA : 'transparent',
-    fillOpacity: ativa ? 0.88 : 1,
-    stroke: ativa ? ESCOLHIDA_CONTORNO : 'none',
-    strokeWidth: 1.6,
-    className: ativa ? '' : 'transition-[fill] group-hover:fill-orange-300/45 group-focus-visible:fill-orange-300/45',
-  }
   return (
     <g
       role="button"
-      aria-label={rotuloDoLocal(local, ctx.sexo)}
+      aria-label={ROTULO_LOCAL_DOR[local]}
       aria-pressed={ativa}
       tabIndex={focavel ? 0 : -1}
       onClick={() => ctx.aoTocar(local)}
@@ -93,284 +139,209 @@ function Parte({ local, ctx, children }: { local: LocalDor; ctx: Contexto; child
       }}
       className="group cursor-pointer outline-none [-webkit-tap-highlight-color:transparent]"
     >
-      {children(zona)}
-    </g>
-  )
-}
-
-/** Formas do desenho (coordenadas da figura, 200 x 560, centro em x = 100). Do lado esquerdo; o direito é espelhado. */
-function formas(sexo: Sexo, vista: Vista) {
-  const { f, o, ax, ci, qu, dx } = medidas(sexo)
-  return {
-    f,
-    tronco: `M88 94 C${o + 20} 98 ${o + 2} 102 ${o} 114 C${o - 4} 126 ${o + 2} 140 ${ax} 146 C${ax + 2} 176 ${ci} 196 ${ci} 214 C${ci} 228 ${qu} 238 ${qu} 252 L${200 - qu} 252 C${200 - qu} 238 ${200 - ci} 228 ${200 - ci} 214 C${200 - ci} 196 ${200 - ax - 2} 176 ${200 - ax} 146 C${200 - o - 2} 140 ${200 - o + 4} 126 ${200 - o} 114 C${200 - o - 2} 102 ${200 - o - 20} 98 112 94 Z`,
-    braco: `M${50 + dx} 114 C${38 + dx} 124 ${36 + dx} 150 ${36 + dx} 176 C${35 + dx} 198 ${33 + dx} 218 ${31 + dx} 238 C${30 + dx} 252 ${29 + dx} 262 ${29 + dx} 270 L${42 + dx} 270 C${43 + dx} 258 ${46 + dx} 244 ${48 + dx} 230 C${52 + dx} 210 ${56 + dx} 190 ${58 + dx} 170 C${60 + dx} 150 ${61 + dx} 132 ${60 + dx} 124 Z`,
-    // Área do ombro: uma calota sobre o topo do braço e o canto do tronco, recortada pelo contorno do corpo.
-    ombro: `M${30 + dx} 138 C${30 + dx} 112 ${44 + dx} 100 ${o + 10} 100 C${ax + 6} 100 ${ax + 16} 110 ${ax + 16} 122 C${ax + 16} 136 ${ax + 6} 146 ${o + 4} 148 C${40 + dx} 150 ${30 + dx} 148 ${30 + dx} 138 Z`,
-    joelhoCentro: (qu + 6 + 94) / 2,
-    mao: `M${29 + dx} 268 C${24 + dx} 280 ${24 + dx} 296 ${30 + dx} 305 C${34 + dx} 309 ${40 + dx} 307 ${42 + dx} 299 C${44 + dx} 289 ${44 + dx} 278 ${42 + dx} 268 Z`,
-    perna: `M${qu - 4} 290 C${qu - 6} 324 ${qu} 358 ${qu + 6} 386 C${qu + 6} 402 ${qu + 6} 416 ${qu + 8} 432 C${qu + 10} 462 ${qu + 12} 492 ${qu + 14} 518 L${qu + 28} 518 C${qu + 29} 492 ${qu + 31} 462 ${qu + 32} 432 C${qu + 33} 416 ${qu + 32} 400 94 386 C96 360 99 326 99 294 Z`,
-    pe:
-      vista === 'frente'
-        ? `M${qu + 14} 516 C${qu + 10} 528 ${qu + 6} 538 ${qu + 10} 542 C${qu + 18} 547 ${qu + 30} 546 ${qu + 32} 540 C${qu + 32} 532 ${qu + 30} 524 ${qu + 28} 516 Z`
-        : `M${qu + 14} 516 C${qu + 12} 530 ${qu + 14} 542 ${qu + 21} 543 C${qu + 28} 542 ${qu + 30} 530 ${qu + 28} 516 Z`,
-    calcao: `M${qu} 248 L${200 - qu} 248 C${202 - qu} 264 ${204 - qu} 278 ${204 - qu} 292 L106 296 C104 288 102 284 100 284 C98 284 96 288 94 296 L${qu - 4} 292 C${qu - 4} 278 ${qu - 2} 264 ${qu} 248 Z`,
-    top:
-      vista === 'frente'
-        ? 'M64 146 C74 136 90 138 100 148 C110 138 126 136 136 146 L136 176 C124 182 112 180 100 178 C88 180 76 182 64 176 Z'
-        : 'M62 148 L138 148 L138 170 L62 170 Z',
-    pescoco: 'M89 76 L89 100 C94 104 106 104 111 100 L111 76 Z',
-    cabeloComprido:
-      vista === 'frente'
-        ? 'M72 60 C68 20 90 10 100 10 C112 10 132 20 128 60 C131 82 132 100 122 110 L118 70 L82 70 L78 110 C68 100 69 82 72 60 Z'
-        : 'M72 60 C68 20 90 10 100 10 C112 10 132 20 128 60 C132 86 130 108 120 116 L80 116 C70 108 68 86 72 60 Z',
-    cabelo:
-      vista === 'frente'
-        ? f
-          ? 'M74 52 C70 22 90 14 100 14 C112 14 132 22 126 52 C122 36 112 26 100 26 C88 26 78 36 74 52 Z'
-          : 'M74 48 C71 22 89 14 100 14 C112 14 130 22 126 48 C120 36 110 32 100 32 C90 32 80 36 74 48 Z'
-        : f
-          ? 'M73 62 C69 22 89 14 100 14 C112 14 132 22 127 62 C118 80 82 80 73 62 Z'
-          : 'M74 60 C70 24 88 14 100 14 C112 14 130 24 126 60 C118 74 82 74 74 60 Z',
-    joelho: `M${qu + 12} 392 Q${(qu + 100) / 2} ${vista === 'frente' ? 400 : 384} 90 392`,
-  }
-}
-
-const ESPELHO = 'translate(200 0) scale(-1 1)'
-
-/** O desenho em si, liso e sem interação. As áreas de toque ficam por cima (Zonas). */
-function Desenho({ sexo, vista }: { sexo: Sexo; vista: Vista }) {
-  const d = formas(sexo, vista)
-  const pele = `url(#pele-${vista})`
-  const contorno = { stroke: CONTORNO, strokeWidth: 1.4 }
-  const detalhe = { fill: 'none', stroke: CONTORNO, strokeWidth: 1.2, strokeLinecap: 'round' as const, opacity: 0.55 }
-  const ambosOsLados = (desenho: (transform?: string) => ReactNode) => (
-    <>
-      {desenho()}
-      {desenho(ESPELHO)}
-    </>
-  )
-  return (
-    <g pointerEvents="none">
-      {d.f && <path d={d.cabeloComprido} fill={CABELO} />}
-      {ambosOsLados((t) => (
-        <g transform={t}>
-          <path d={d.perna} fill={pele} {...contorno} />
-          <path d={d.pe} fill={PELE_CLARA} {...contorno} />
-          <path d={d.joelho} {...detalhe} />
-          <path d={d.braco} fill={pele} {...contorno} />
-          <path d={d.mao} fill={PELE_CLARA} {...contorno} />
-        </g>
-      ))}
-      <path d={d.pescoco} fill={PELE_ESCURA} {...contorno} />
-      <path d={d.tronco} fill={pele} {...contorno} />
-      {vista === 'frente' ? (
-        <>
-          <path d="M78 106 Q90 112 99 109 M101 109 Q110 112 122 106" {...detalhe} />
-          {!d.f && <path d="M66 148 Q82 162 98 154 M102 154 Q118 162 134 148" {...detalhe} />}
-          <path d="M100 186 L100 206" {...detalhe} opacity={0.3} />
-          <ellipse cx="100" cy="216" rx="1.8" ry="2.6" fill={CONTORNO} opacity="0.7" />
-        </>
-      ) : (
-        <>
-          <path d="M100 102 L100 244" {...detalhe} />
-          <path d="M72 128 Q78 160 94 152 M128 128 Q122 160 106 152" {...detalhe} />
-          <path d="M84 232 Q92 238 96 234 M116 232 Q108 238 104 234" {...detalhe} opacity={0.4} />
-        </>
-      )}
-      <path d={d.calcao} fill={ROUPA} />
-      {d.f && <path d={d.top} fill={ROUPA} />}
-      <ellipse cx="73" cy="56" rx="5" ry="9" fill={PELE_ESCURA} stroke={CONTORNO} strokeWidth="1.2" />
-      <ellipse cx="127" cy="56" rx="5" ry="9" fill={PELE_ESCURA} stroke={CONTORNO} strokeWidth="1.2" />
-      <ellipse cx="100" cy="50" rx="26" ry="32" fill={vista === 'frente' ? PELE_CLARA : PELE_ESCURA} {...contorno} />
-      <path d={d.cabelo} fill={CABELO} />
+      {children({
+        fill: ativa ? '#c8f1ff' : 'transparent',
+        fillOpacity: ativa ? 0.6 : 1,
+        className: ativa ? '' : 'group-focus-visible:fill-white/25',
+      })}
     </g>
   )
 }
 
 /**
- * Áreas de toque por cima do desenho. Invisíveis até a pessoa tocar: a parte escolhida acende inteira em laranja,
- * seguindo o contorno do corpo, sem emendas no desenho.
+ * Áreas de toque por cima da silhueta. Cada área é uma forma do tamanho da região, recortada pelo contorno do
+ * corpo. Quando duas se sobrepõem, vale a desenhada por último (joelho sobre a perna, ombro sobre o braço).
  */
-function Zonas({ ctx }: { ctx: Contexto }) {
-  const d = formas(ctx.sexo, ctx.vista)
+function Regioes({ ctx }: { ctx: Contexto }) {
   const id = (nome: string) => `${nome}-${ctx.vista}`
   const recorte = (nome: string) => `url(#${id(nome)})`
-  const ambosOsLados = (desenho: (transform?: string) => ReactNode) => (
-    <>
-      {desenho()}
-      {desenho(ESPELHO)}
-    </>
-  )
-  const troncoPorRegiao =
+  const tronco =
     ctx.vista === 'frente'
       ? ([
-          ['peito', 90, FIM_DO_PEITO],
-          ['barriga', FIM_DO_PEITO, 256],
+          ['peito', 88, FIM_DO_PEITO],
+          ['barriga', FIM_DO_PEITO, INICIO_DO_QUADRIL],
         ] as const)
       : ([
-          ['costas', 90, FIM_DAS_COSTAS],
-          ['lombar', FIM_DAS_COSTAS, 256],
+          ['costas', 88, FIM_DAS_COSTAS],
+          ['lombar', FIM_DAS_COSTAS, INICIO_DO_QUADRIL],
         ] as const)
 
   return (
     <g>
       <defs>
-        {/* Silhuetas que recortam as áreas. Cada área é uma forma própria, do tamanho da região: assim o centro
-            dela cai na própria região (o que leitores de tela e testes usam para tocar). */}
-        <clipPath id={id('silhueta-tronco')}>
-          <path d={d.tronco} />
+        <clipPath id={id('no-tronco')}>
+          <path d={FORMA.tronco} />
         </clipPath>
-        <clipPath id={id('silhueta-perna')}>
-          <path d={d.perna} />
+        <clipPath id={id('na-perna')}>
+          <path d={FORMA.perna} />
         </clipPath>
-        {/* O ombro acende só onde há corpo: topo do braço e canto do tronco */}
-        <clipPath id={id('corpo-do-ombro')}>
-          <path d={d.braco} />
-          <path d={d.tronco} />
+        <clipPath id={id('no-quadril')}>
+          <path d={FORMA.tronco} />
+          <path d={FORMA.perna} />
+          <path d={FORMA.perna} transform={ESPELHO} />
+        </clipPath>
+        <clipPath id={id('no-ombro')}>
+          <path d={FORMA.braco} />
+          <path d={FORMA.tronco} />
         </clipPath>
       </defs>
 
-      <Parte local="pernas_pes" ctx={ctx}>
+      <Regiao local="pernas_pes" ctx={ctx}>
         {(z) =>
           ambosOsLados((t) => (
             <g transform={t}>
-              <path d={d.perna} {...z} />
-              <path d={d.pe} {...z} />
+              <path d={FORMA.perna} {...z} />
+              <path d={FORMA.pe[ctx.vista]} {...z} />
             </g>
           ))
         }
-      </Parte>
-      <Parte local="joelhos" ctx={ctx}>
-        {(z) =>
-          ambosOsLados((t) => (
-            <ellipse cx={d.joelhoCentro} cy={JOELHO.centro} rx="22" ry={JOELHO.raio} {...z} clipPath={recorte('silhueta-perna')} transform={t} />
-          ))
-        }
-      </Parte>
-      <Parte local="bracos" ctx={ctx}>
-        {(z) => ambosOsLados((t) => <path d={d.braco} {...z} transform={t} />)}
-      </Parte>
-      <Parte local="maos_punhos" ctx={ctx}>
-        {(z) => ambosOsLados((t) => <path d={d.mao} {...z} transform={t} />)}
-      </Parte>
-      <Parte local="pescoco" ctx={ctx}>
-        {(z) => <path d={d.pescoco} {...z} />}
-      </Parte>
-      {troncoPorRegiao.map(([local, de, ate]) => (
-        <Parte key={local} local={local} ctx={ctx}>
-          {(z) => <rect x="30" y={de} width="140" height={ate - de} {...z} clipPath={recorte('silhueta-tronco')} />}
-        </Parte>
+      </Regiao>
+      <Regiao local="joelhos" ctx={ctx}>
+        {(z) => ambosOsLados((t) => <ellipse cx="77" cy="396" rx="22" ry="20" {...z} clipPath={recorte('na-perna')} transform={t} />)}
+      </Regiao>
+      <Regiao local="bracos" ctx={ctx}>
+        {(z) => ambosOsLados((t) => <path d={FORMA.braco} {...z} transform={t} />)}
+      </Regiao>
+      <Regiao local="maos_punhos" ctx={ctx}>
+        {(z) => ambosOsLados((t) => <path d={FORMA.mao} {...z} transform={t} />)}
+      </Regiao>
+      <Regiao local="pescoco" ctx={ctx}>
+        {(z) => <path d={FORMA.pescoco} {...z} />}
+      </Regiao>
+      {tronco.map(([local, de, ate]) => (
+        <Regiao key={local} local={local} ctx={ctx}>
+          {(z) => <rect x="30" y={de} width="140" height={ate - de} {...z} clipPath={recorte('no-tronco')} />}
+        </Regiao>
       ))}
-      <Parte local="ombros" ctx={ctx}>
-        {(z) => ambosOsLados((t) => <path d={d.ombro} {...z} stroke="none" clipPath={recorte('corpo-do-ombro')} transform={t} />)}
-      </Parte>
-      <Parte local="quadril" ctx={ctx}>
-        {(z) => <path d={d.calcao} {...z} />}
-      </Parte>
-      <Parte local="cabeca" ctx={ctx}>
-        {(z) => (
-          <>
-            {d.f && <path d={d.cabeloComprido} {...z} />}
-            <ellipse cx="73" cy="56" rx="6" ry="10" {...z} />
-            <ellipse cx="127" cy="56" rx="6" ry="10" {...z} />
-            <ellipse cx="100" cy="50" rx="27" ry="34" {...z} />
-          </>
-        )}
-      </Parte>
+      <Regiao local="quadril" ctx={ctx}>
+        {(z) => <rect x="40" y={INICIO_DO_QUADRIL} width="120" height="54" {...z} clipPath={recorte('no-quadril')} />}
+      </Regiao>
+      <Regiao local="ombros" ctx={ctx}>
+        {(z) => ambosOsLados((t) => <ellipse cx="50" cy="115" rx="17" ry="18" {...z} clipPath={recorte('no-ombro')} transform={t} />)}
+      </Regiao>
+      <Regiao local="cabeca" ctx={ctx}>
+        {(z) => <ellipse {...FORMA.cabeca} {...z} />}
+      </Regiao>
     </g>
   )
 }
 
-/** Uma figura (frente ou costas): o desenho e, por cima, as áreas de toque. */
-function Figura({ ctx }: { ctx: Contexto }) {
+// O desenho inteiro tem a largura da tela do design (384 px = 842 unidades da figura).
+const LARGURA = 842
+const ALTURA = 566
+const X_DA_FIGURA: Record<Vista, number> = { frente: 192, costas: 499 }
+const Y_DA_FIGURA = 8
+/** A figura é desenhada 20% mais larga, a partir do centro, para ficar com o corpo do design. */
+const LARGO = 1.2
+const ALARGAR = `translate(100 0) scale(${LARGO} 1) translate(-100 0)`
+
+/** Ponto de cada região onde a etiqueta aponta (coordenadas da figura). Costas e lombar, só na figura de costas. */
+const PONTO: Record<LocalDor, { vista: Vista; x: number; y: number }> = {
+  cabeca: { vista: 'frente', x: 100, y: 34 },
+  pescoco: { vista: 'frente', x: 100, y: 78 },
+  ombros: { vista: 'frente', x: 52, y: 112 },
+  peito: { vista: 'frente', x: 82, y: 140 },
+  barriga: { vista: 'frente', x: 88, y: 212 },
+  bracos: { vista: 'frente', x: 42, y: 188 },
+  maos_punhos: { vista: 'frente', x: 30, y: 284 },
+  quadril: { vista: 'frente', x: 74, y: 266 },
+  joelhos: { vista: 'frente', x: 76, y: 396 },
+  pernas_pes: { vista: 'frente', x: 72, y: 452 },
+  costas: { vista: 'costas', x: 120, y: 140 },
+  lombar: { vista: 'costas', x: 104, y: 224 },
+}
+
+/** Etiqueta da região escolhida: caixa ao lado do desenho, com uma linha até o ponto de luz na região. */
+function Etiqueta({ local }: { local: LocalDor }) {
+  const p = PONTO[local]
+  const px = X_DA_FIGURA[p.vista] + 100 + (p.x - 100) * LARGO
+  const py = Y_DA_FIGURA + p.y
+  const texto = ETIQUETA[local]
+  const largura = 30 + texto.length * 17.5
+  const altura = 68
+  const aEsquerda = p.vista === 'frente'
+  const x = aEsquerda ? 185 - largura : X_DA_FIGURA.costas + 200
+  const y = Math.min(ALTURA - altura - 4, Math.max(4, py - 72))
+  const ponta = { x: aEsquerda ? x + largura : x, y: y + altura / 2 }
   return (
-    <g>
+    <g pointerEvents="none">
+      <line x1={ponta.x} y1={ponta.y} x2={px} y2={py} stroke="#d6efff" strokeWidth="2" strokeOpacity="0.85" />
+      <circle cx={px} cy={py} r="30" fill="#8fe6ff" opacity="0.75" filter="url(#luz)" />
+      <circle cx={px} cy={py} r="6.5" fill="white" />
+      <rect x={x} y={y} width={largura} height={altura} rx="16" fill="#0a2a72" fillOpacity="0.85" stroke="white" strokeOpacity="0.8" strokeWidth="2" />
+      <text x={x + largura / 2} y={y + altura / 2 + 10.5} textAnchor="middle" fontSize="30" fontWeight="500" fill="white">
+        {texto}
+      </text>
+    </g>
+  )
+}
+
+function MapaDoCorpo({ escolhido, aoTocar }: { escolhido: LocalDor | null; aoTocar: (l: LocalDor) => void }) {
+  return (
+    <svg
+      viewBox={`0 0 ${LARGURA} ${ALTURA}`}
+      className="-mx-[1.75rem] block h-full w-[calc(100%+3.5rem)] max-w-none touch-manipulation select-none"
+      role="group"
+      aria-label="Corpo de frente e de costas: toque onde dói"
+    >
       <defs>
-        <linearGradient id={`pele-${ctx.vista}`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor={PELE_ESCURA} />
-          <stop offset="0.35" stopColor={PELE_CLARA} />
-          <stop offset="0.65" stopColor={PELE_CLARA} />
-          <stop offset="1" stopColor={PELE_ESCURA} />
+        <linearGradient id="cor-do-corpo" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#a9ceff" />
+          <stop offset="0.45" stopColor="#74a9fb" />
+          <stop offset="1" stopColor="#4d86ee" />
         </linearGradient>
+        <filter id="brilho-do-corpo" x="-40%" y="-10%" width="180%" height="120%">
+          <feGaussianBlur stdDeviation="9" result="desfoque" />
+          <feColorMatrix in="desfoque" type="matrix" values="0 0 0 0 0.35  0 0 0 0 0.62  0 0 0 0 1  0 0 0 0.75 0" result="halo" />
+          <feMerge>
+            <feMergeNode in="halo" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="luz" x="-150%" y="-150%" width="400%" height="400%">
+          <feGaussianBlur stdDeviation="11" />
+        </filter>
       </defs>
-      <Desenho sexo={ctx.sexo} vista={ctx.vista} />
-      <Zonas ctx={ctx} />
-    </g>
-  )
-}
-
-const FRENTE_X = 6
-const COSTAS_X = 238
-
-function MapaDoCorpo({ sexo, escolhido, aoTocar }: { sexo: Sexo; escolhido: LocalDor | null; aoTocar: (l: LocalDor) => void }) {
-  return (
-    <svg viewBox="0 0 444 580" className="mx-auto h-auto w-full max-w-md touch-manipulation select-none" role="group" aria-label="Corpo de frente e de costas: toque onde dói">
-      <g transform={`translate(${FRENTE_X} 4)`}>
-        <Figura ctx={{ sexo, vista: 'frente', escolhido, aoTocar }} />
-      </g>
-      <g transform={`translate(${COSTAS_X} 4)`}>
-        <Figura ctx={{ sexo, vista: 'costas', escolhido, aoTocar }} />
-      </g>
-      <text x={FRENTE_X + 100} y="576" textAnchor="middle" className="fill-blue-100 text-[14px] font-semibold">
-        Frente
-      </text>
-      <text x={COSTAS_X + 100} y="576" textAnchor="middle" className="fill-blue-100 text-[14px] font-semibold">
-        Costas
-      </text>
+      {(['frente', 'costas'] as const).map((vista) => (
+        <g key={vista} transform={`translate(${X_DA_FIGURA[vista]} ${Y_DA_FIGURA}) ${ALARGAR}`}>
+          <Silhueta vista={vista} />
+          <Regioes ctx={{ vista, escolhido, aoTocar }} />
+        </g>
+      ))}
+      {escolhido && <Etiqueta local={escolhido} />}
     </svg>
   )
 }
 
-/** Tela "Onde dói mais?": escolhe o desenho, toca a parte do corpo e confirma. Pode pular. */
-export function BonecoDaDor({ aoResponder }: { aoResponder: (local: LocalDor | null) => void }) {
-  const [sexo, setSexo] = useState<Sexo>('masculino')
+/** Etapa "Onde dói mais?": toca a região e confirma, ou diz que não sente dor. */
+export function BonecoDaDor({ aoResponder, aoVoltar }: { aoResponder: (local: LocalDor | null) => void; aoVoltar: () => void }) {
   const [escolhido, setEscolhido] = useState<LocalDor | null>(null)
+  const pilula = 'flex h-[1.9rem] items-center gap-[0.4rem] rounded-full px-[0.85rem] text-[0.68rem] font-medium ring-1 ring-white/35 disabled:opacity-45'
 
   return (
-    <div className="flex flex-1 flex-col">
-      <p className="text-xs font-semibold uppercase tracking-wider text-saude">Sobre a dor</p>
-      <p className="mt-2 text-3xl font-bold leading-tight">Onde dói mais?</p>
-      <p className="mt-1 text-sm text-blue-100">Toque na parte do corpo. Continua anônimo.</p>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <Titulo apoio="Toque na região do corpo.">Onde dói mais?</Titulo>
 
-      <div role="group" aria-label="Escolha o desenho" className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-white/10 p-1">
-        {(
-          [
-            ['feminino', 'Mulher'],
-            ['masculino', 'Homem'],
-          ] as const
-        ).map(([valor, rotulo]) => (
-          <button
-            key={valor}
-            onClick={() => setSexo(valor)}
-            aria-pressed={sexo === valor}
-            className={`rounded-xl py-3 text-base font-bold transition ${sexo === valor ? 'bg-white text-navy' : 'text-blue-100 hover:bg-white/10'}`}
-          >
-            {rotulo}
-          </button>
-        ))}
+      {/* O desenho ocupa o espaço que sobra: encolhe quando a tela é baixa ou a acessibilidade está ligada. */}
+      <div className="mt-[0.3rem] min-h-[8rem] flex-1">
+        <MapaDoCorpo escolhido={escolhido} aoTocar={setEscolhido} />
       </div>
-
-      <div className="mt-5">
-        <MapaDoCorpo sexo={sexo} escolhido={escolhido} aoTocar={setEscolhido} />
-      </div>
-
-      <p className="mt-3 min-h-8 text-center text-2xl font-bold text-orange-300" aria-live="polite">
-        {escolhido ? rotuloDoLocal(escolhido, sexo) : ''}
+      <p className="sr-only" aria-live="polite">
+        {escolhido ? `Escolhido: ${ROTULO_LOCAL_DOR[escolhido]}` : ''}
       </p>
 
-      <div className="mt-auto grid gap-2 pt-4">
-        <button
-          onClick={() => escolhido && aoResponder(escolhido)}
-          disabled={!escolhido}
-          className="rounded-2xl bg-saude py-4 text-lg font-extrabold text-navy transition active:scale-[0.98] disabled:opacity-40"
-        >
-          {escolhido ? 'É aqui' : 'Toque onde dói'}
+      <div className="mt-[0.7rem] flex shrink-0 justify-center gap-[0.5rem]">
+        <button type="button" onClick={() => setEscolhido(null)} disabled={!escolhido} className={pilula}>
+          <RotateCcw className="size-[0.85rem]" /> Desfazer seleção
         </button>
-        <button onClick={() => aoResponder(null)} className="rounded-2xl py-3 text-base font-semibold text-blue-100 hover:bg-white/10">
-          Prefiro não dizer
+        <button type="button" onClick={() => aoResponder(null)} className={pilula}>
+          Não sinto dor
         </button>
       </div>
+      <BotaoPrincipal onClick={() => escolhido && aoResponder(escolhido)} disabled={!escolhido} className="mt-[0.5rem] h-[2.8rem] w-full text-[1.06rem]">
+        Confirmar
+      </BotaoPrincipal>
+      <BotaoVoltar onClick={aoVoltar} className="mt-[1.15rem]" />
     </div>
   )
 }
