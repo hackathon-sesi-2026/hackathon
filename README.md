@@ -61,4 +61,10 @@ Detalhes e convenções em [`CLAUDE.md`](CLAUDE.md). Contexto do produto em [`do
 ```bash
 cd api && .venv/Scripts/pytest && .venv/Scripts/ruff check src tests
 cd web && npm run build
+
+# QA ponta a ponta, com o sistema de pé: regras do produto, fluxos e telas no Chrome
+api/.venv/Scripts/pip install -e "api[qa]"
+api/.venv/Scripts/python qa/rodar.py
 ```
+
+No GitHub, o pipeline `.github/workflows/ci.yml` roda a cada push no `main` e em todo pull request: lint, formatação e testes unitários da API, build do front e, com Postgres, API e front de pé, o QA ponta a ponta e a validação do PRD. QA REPROVADO falha o pipeline; o relatório aparece no resumo da execução.

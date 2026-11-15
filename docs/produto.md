@@ -48,10 +48,10 @@ São cinco superfícies. Cada uma tem um público, um aparelho e um limite de pr
 | Superfície | Quem usa | Onde | Para quê | Nunca mostra |
 |---|---|---|---|---|
 | **Celular do trabalhador** | Trabalhador | Celular pessoal: conversa no WhatsApp + página leve aberta por link, sem instalar nada | Confirmar ou remarcar em 1 toque, escolher horário que cabe no turno e no transporte, ver o plano como até 3 próximos passos, ver os próprios exames explicados, dizer "não consegui" e por quê | Linguagem técnica por padrão; dado clínico nas mensagens |
-| **Totem na unidade** | Qualquer trabalhador, de passagem | Tela pública no chão de fábrica | Pulso anônimo de 3 perguntas (energia, dor, sono); com o crachá, ver o próprio próximo passo | Nada clínico; nada que identifique quem respondeu o pulso |
+| **Totem na unidade** | Qualquer trabalhador, de passagem | Tela pública no chão de fábrica | Pulso anônimo de 3 perguntas (energia, dor, sono) e, com dor, onde dói tocando num boneco; com o crachá, ver o próprio próximo passo | Nada clínico; nada que identifique quem respondeu o pulso |
 | **Painel da APS** | Enfermeira que coordena o cuidado | Computador da unidade de saúde | Substituir a planilha: fila por prioridade, situação de cada pessoa, radar de risco de falta, enviar lembrete e plano, tratar dificuldades, registrar o desfecho do monitoramento | Diagnóstico e ficha clínica (ficam no S+) |
 | **Liderança do turno** | Supervisor ou líder de turno | Computador ou tablet | Organizar a cobertura para as liberações de saúde que caem no turno; meta coletiva do turno | O motivo da liberação, sempre; o nome, salvo se a própria pessoa autorizou |
-| **RH e Direção** | RH e gestores da empresa | Computador | Ver se o programa funciona: funil do retorno, comparecimento, motivos do "não consegui", pulso do totem | Qualquer pessoa individual; grupos com menos de 5 pessoas |
+| **RH e Direção** | RH e gestores da empresa | Computador | Ver se o programa funciona: acompanhamento (WhatsApp, exame, consulta, reavaliação), comparecimento, pulso do totem, onde mais dói, especialidades mais procuradas | Qualquer pessoa individual; grupos com menos de 5 pessoas |
 
 A antiga "visão lado a lado" (painel e celular na mesma tela) foi **descartada**: era recurso de palco, não produto. Na demonstração, cada superfície abre no seu próprio aparelho ou janela. O seletor "Simulando o celular de…", a moldura de celular e o botão "Reiniciar demo" também são de palco e não fazem parte do produto.
 
@@ -103,6 +103,10 @@ Nova oferta de saúde ou serviço paralelo à APS; prontuário ou ficha clínica
 
 - **14/11:** o totem nunca devolve nem mostra o link pessoal. Com o crachá, a pessoa pede e o link é enviado ao WhatsApp dela (`POST /api/totem/{unidade}/identificacao/link`). Motivo: a matrícula não é segredo, e o link dá acesso aos exames.
 - **14/11:** grupo mínimo de 5 também nos totais do RH: o pulso agregado e as semanas só somam turnos visíveis, e motivos com 1 a 4 casos por unidade saem omitidos.
+- **14/11:** o painel de RH não mostra os motivos do "não consegui" nem a tabela de pulso por turno. Os motivos não têm fonte real na empresa, e a tabela repetia os totais do pulso. Os alertas por turno ficaram no cartão "Resultados dos totens".
+- **14/11:** com dor leve ou forte, o totem mostra um boneco (mulher ou homem, frente e costas) para a pessoa tocar onde dói mais. Só a região é guardada, na própria resposta anônima; o sexo do boneco não sai da tela. O RH vê o top 5 dos locais, só de grupos com 5 ou mais respostas.
+- **15/11:** o RH vê o top 5 das especialidades médicas mais procuradas em 30 dias, por unidade e sempre agregado (no protótipo, fictício; no produto, viria do S+). Especialidade com menos de 5 consultas no filtro não aparece. O comparativo das unidades saiu do painel.
+- **14/11:** o cartão "Onde as pessoas se perdem no retorno" virou "Acompanhamento", com as etapas respondeu WhatsApp → realizou exame → realizou consulta → reavaliação. É diferente do funil oficial do SESI (seção "Como o resultado é medido"), que segue valendo para o pitch.
 
 A arquitetura e as convenções de código estão no `CLAUDE.md` da raiz.
 

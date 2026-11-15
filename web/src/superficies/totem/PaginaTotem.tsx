@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { ArrowLeft, CalendarCheck, Flame, IdCard, Lock, MessageCircle, MessageCircleHeart } from 'lucide-react'
 import { useParams } from 'react-router'
 import { api } from '../../api/cliente'
-import type { Cracha, CuidadoNoTotem, TelaInicialDoTotem } from '../../api/tipos'
+import type { Cracha, CuidadoNoTotem, LocalDor, TelaInicialDoTotem } from '../../api/tipos'
 import { useRecurso } from '../../api/useRecurso'
 import { LogoMarca } from '../../componentes/Logo'
 import { MetaTurno } from '../../componentes/MetaTurno'
 import { AvisoDeFalha, TelaCheia } from '../../componentes/TelaCheia'
 import { diaSemana, horaCurta } from '../../lib/datas'
+import { BonecoDaDor } from './BonecoDaDor'
 
 // Totem "Ponto de Cuidado" na unidade. Tela pública: nada clínico, nada que identifique quem respondeu o pulso.
 
@@ -56,6 +57,8 @@ export function PaginaTotem() {
   const { dados: totem, erro, falha, enviar } = useRecurso<TelaInicialDoTotem>(base, `${base}/eventos`)
   const [tela, setTela] = useState<Tela>('inicio')
   const [respostas, setRespostas] = useState<Respostas>({})
+  // Onde dói: undefined enquanto não perguntou, null se a pessoa preferiu não dizer.
+  const [localDor, setLocalDor] = useState<LocalDor | null | undefined>(undefined)
   const [matricula, setMatricula] = useState<string | null>(null)
   const [cuidado, setCuidado] = useState<CuidadoNoTotem | null>(null)
   const [restante, setRestante] = useState(SEGUNDOS_ATE_SAIR)
@@ -63,6 +66,7 @@ export function PaginaTotem() {
   const sair = useCallback(() => {
     setTela('inicio')
     setRespostas({})
+    setLocalDor(undefined)
     setMatricula(null)
     setCuidado(null)
   }, [])
@@ -81,12 +85,14 @@ export function PaginaTotem() {
   if (!totem) return <TelaCheia>{erro ? 'Totem não encontrado. Confira o endereço da unidade.' : 'Preparando o totem…'}</TelaCheia>
 
   const pergunta = PERGUNTAS.find((q) => respostas[q.chave] === undefined)
+  // Com dor leve ou forte, o boneco aparece logo depois da pergunta da dor.
+  const perguntarOndeDoi = (respostas.dor ?? 0) >= 2 && localDor === undefined
 
   async function responder(chave: Chave, valor: Resposta) {
     const novas = { ...respostas, [chave]: valor }
     setRespostas(novas)
     if (PERGUNTAS.every((q) => novas[q.chave] !== undefined)) {
-      await enviar('post', `${base}/pulsos`, novas)
+      await enviar('post', `${base}/pulsos`, { ...novas, localDor: localDor ?? null })
       setTela('obrigado')
     }
   }
@@ -143,7 +149,7 @@ export function PaginaTotem() {
                 <MessageCircleHeart className="size-10 shrink-0" />
                 <span>
                   <span className="block text-lg font-extrabold">Como você está hoje?</span>
-                  <span className="block text-sm">3 toques · anônimo · sem crachá</span>
+                  <span className="block text-sm">3 perguntas · anônimo · sem crachá</span>
                 </span>
               </button>
               <button
@@ -167,7 +173,9 @@ export function PaginaTotem() {
             </div>
           )}
 
-          {tela === 'pulso' && pergunta && (
+          {tela === 'pulso' && perguntarOndeDoi && <BonecoDaDor aoResponder={setLocalDor} />}
+
+          {tela === 'pulso' && !perguntarOndeDoi && pergunta && (
             <div className="flex flex-1 flex-col">
               <p className="text-xs font-semibold uppercase tracking-wider text-saude">
                 Pergunta {PERGUNTAS.indexOf(pergunta) + 1} de {PERGUNTAS.length}

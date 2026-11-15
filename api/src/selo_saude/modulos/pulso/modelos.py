@@ -21,3 +21,5 @@ class Pulso(Base):
     energia: Mapped[int] = mapped_column(SmallInteger)  # 1 baixa, 3 boa
     dor: Mapped[int] = mapped_column(SmallInteger)  # 1 sem dor, 3 dor forte
     sono: Mapped[int] = mapped_column(SmallInteger)  # 1 dormiu mal, 3 dormiu bem
+    # Onde dói mais, só quando há dor (leve ou forte). Região do corpo, nunca o sexo do boneco usado na tela.
+    local_dor: Mapped[str | None] = mapped_column(String(20))

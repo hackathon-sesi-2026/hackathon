@@ -12,6 +12,7 @@ from selo_saude.nucleo.esquema import Esquema, novo_id
 from selo_saude.nucleo.eventos import EventoDominio, publicar
 
 from .modelos import Pulso
+from .regras import LocalDor, local_guardado
 
 Nivel = Literal[1, 2, 3]
 
@@ -28,6 +29,7 @@ class DadosPulso(Esquema):
     energia: Nivel
     dor: Nivel
     sono: Nivel
+    local_dor: str | None = None
 
 
 def turno_agora(instante: datetime | None = None) -> str:
@@ -40,7 +42,9 @@ def turno_agora(instante: datetime | None = None) -> str:
     return "Turno C (noite)"
 
 
-async def registrar(sessao: AsyncSession, unidade: str, energia: Nivel, dor: Nivel, sono: Nivel) -> None:
+async def registrar(
+    sessao: AsyncSession, unidade: str, energia: Nivel, dor: Nivel, sono: Nivel, local_dor: LocalDor | None = None
+) -> None:
     sessao.add(
         Pulso(
             id=novo_id(),
@@ -50,6 +54,7 @@ async def registrar(sessao: AsyncSession, unidade: str, energia: Nivel, dor: Niv
             energia=energia,
             dor=dor,
             sono=sono,
+            local_dor=local_guardado(dor, local_dor),
         )
     )
     await publicar(sessao, PulsoRegistrado(unidade=unidade))

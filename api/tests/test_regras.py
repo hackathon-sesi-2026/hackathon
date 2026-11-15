@@ -166,3 +166,22 @@ def test_aviso_de_resultado_nao_leva_detalhe_nenhum():
     texto = textos.resultado_liberado(trabalhador())
     assert texto.acoes == ["exames"]
     assert not any(termo in texto.texto for termo in ("mg/dL", "Colesterol", "Glicemia", "%"))
+
+
+# ---------------------------------------------------------------- indicadores e pulso: local da dor e uso
+
+
+def test_mais_frequentes_corta_grupos_pequenos_e_limita_a_cinco():
+    from selo_saude.modulos.indicadores.regras import mais_frequentes
+
+    contagem = {"a": 40, "b": 30, "c": 4, "d": 20, "e": 10, "f": 9, "g": 5}
+    assert mais_frequentes(contagem, minimo=5) == [("a", 40), ("b", 30), ("d", 20), ("e", 10), ("f", 9)]
+    assert ("c", 4) not in mais_frequentes(contagem, minimo=5, quantos=10)
+
+
+def test_local_da_dor_so_e_guardado_quando_ha_dor():
+    from selo_saude.modulos.pulso.regras import local_guardado
+
+    assert local_guardado(1, "lombar") is None
+    assert local_guardado(2, "lombar") == "lombar"
+    assert local_guardado(3, None) is None
