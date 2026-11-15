@@ -61,4 +61,8 @@ Detalhes e convenções em [`CLAUDE.md`](CLAUDE.md). Contexto do produto em [`do
 ```bash
 cd api && .venv/Scripts/pytest && .venv/Scripts/ruff check src tests
 cd web && npm run build
+
+# QA ponta a ponta, com o sistema de pé: regras do produto, fluxos e telas no Chrome
+api/.venv/Scripts/pip install -e "api[qa]"
+api/.venv/Scripts/python qa/rodar.py
 ```

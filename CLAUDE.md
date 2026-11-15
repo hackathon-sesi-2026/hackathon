@@ -27,6 +27,8 @@ A API cria os dados fictícios sozinha quando sobe com o banco vazio. `POST /api
 
 Depois de mexer em código: `pytest` e `ruff` na API, `npm run build` no front, e abra a tela afetada no navegador.
 
+**QA ponta a ponta:** `api/.venv/Scripts/python qa/rodar.py` (ou a skill `/qa-tester`) confere o sistema rodando contra as regras do `docs/produto.md` e os MDs, e dá APROVADO, APROVADO COM RESSALVAS ou REPROVADO. Regra nova no `produto.md` precisa de teste em `qa/test_regras.py`.
+
 ## Arquitetura
 
 Monólito modular. Toda regra de negócio vive na API; o front só apresenta.
