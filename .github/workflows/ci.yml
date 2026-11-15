@@ -46,6 +46,10 @@ jobs:
         run: ruff check src tests
       - name: Formatação (ruff format)
         run: ruff format --check src tests
+      - name: Lint e formatação da suíte de QA
+        run: |
+          ruff check --config pyproject.toml ../qa
+          ruff format --config pyproject.toml --check ../qa
       - name: Testes unitários
         run: pytest -q
 

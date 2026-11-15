@@ -95,7 +95,8 @@ def test_totem_mostra_so_data_e_hora(api):
     cracha = api.get("/totem/planta-camacari/crachas")[0]
     status, cuidado = api.pedir("POST", "/totem/planta-camacari/identificacao", {"matricula": cracha["matricula"]})
     assert status == 200
-    assert set(cuidado) <= {"primeiroNome", "retorno", "passosFeitos", "passosNoPlano", "semanasSeguidas", "tokenAcesso"}
+    assert set(cuidado) <= {"primeiroNome", "retorno", "passosFeitos", "passosNoPlano", "semanasSeguidas"}
+    assert "tokenAcesso" not in cuidado, "o totem nunca devolve o link pessoal (decisão de 14/11 no produto.md)"
     assert not TERMOS_CLINICOS.search(json.dumps(cuidado, ensure_ascii=False))
 
 

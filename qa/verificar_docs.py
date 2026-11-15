@@ -24,8 +24,12 @@ BASES = [
     RAIZ / "api",
     RAIZ / "web",
     RAIZ / "api" / "src" / "selo_saude",
+    RAIZ / "api" / "src" / "selo_saude" / "modulos",  # `pulso/servico.py`
     RAIZ / "web" / "src",
+    RAIZ / "web" / "src" / "superficies",
 ]
+# Skills do projeto: `/qa-tester` é comando do Claude Code, não rota de tela.
+SKILLS = {p.name for p in (RAIZ / ".claude" / "skills").glob("*") if p.is_dir()}
 EXTENSOES = (".md", ".py", ".ts", ".tsx", ".png", ".json", ".yml", ".ini", ".html", ".jpeg", ".css", ".mako")
 
 
@@ -67,6 +71,11 @@ def _rota_bate(citada: str, existentes: set[str]) -> bool:
     return False
 
 
+def _prefixo_de_rotas(citada: str, existentes: set[str]) -> bool:
+    """`/api/aps` citado como grupo: vale se alguma rota começa por ele."""
+    return any(existente.startswith(citada.rstrip("/") + "/") for existente in existentes)
+
+
 def _expandir(citacao: str) -> list[str]:
     """/painel/{aps,lideranca,rh} -> três rotas."""
     m = re.search(r"\{([^}]*,[^}]*)\}", citacao)
@@ -95,8 +104,12 @@ def verificar(url_api: str) -> list[str]:
             # Rota da API, com ou sem método na frente.
             rota = re.sub(r"^(GET|POST|PUT|DELETE) ", "", citacao)
             if rota.startswith("/api/"):
-                if rotas_api is not None and not _rota_bate(rota.split("?")[0], rotas_api):
+                sem_consulta, conhecidas = rota.split("?")[0], rotas_api or set()
+                existe = _rota_bate(sem_consulta, conhecidas) or _prefixo_de_rotas(sem_consulta, conhecidas)
+                if rotas_api is not None and not existe:
                     problemas.append(f"{nome}: rota da API `{citacao}` não existe")
+                continue
+            if rota.lstrip("/") in SKILLS:
                 continue
             # Rota do front.
             if rota.startswith("/") and not rota.startswith("//"):
