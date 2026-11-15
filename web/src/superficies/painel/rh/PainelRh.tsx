@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Activity, Building2, CalendarCheck, FileCheck2, Lightbulb, MessagesSquare, ShieldCheck, Stethoscope, type LucideIcon } from 'lucide-react'
+import { Activity, Building2, CalendarCheck, FileCheck2, Lightbulb, MessagesSquare, Stethoscope, type LucideIcon } from 'lucide-react'
 import type { ItemContado, PainelDaEmpresa } from '../../../api/tipos'
 import { useRecurso } from '../../../api/useRecurso'
 import { Cartao } from '../../../componentes/Cartao'
@@ -36,10 +36,9 @@ export function PainelRh() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-navy">Visão da empresa · {p.empresa}</h2>
-          <p className="text-sm text-slate-500">Para RH e Direção. Indicadores agregados e anônimos do programa e dos totens. Dados fictícios.</p>
         </div>
         <label className="text-sm text-slate-600">
           Unidade{' '}
@@ -51,11 +50,6 @@ export function PainelRh() {
           </select>
         </label>
       </div>
-
-      <p className="flex items-start gap-2 rounded-xl bg-navy/5 px-3 py-2 text-xs text-navy">
-        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-saude-700" />
-        Nenhum dado individual aparece aqui. Grupos com menos de {p.minimoDoGrupo} pessoas ficam ocultos. Uso do canal e respostas do totem não medem adesão ao tratamento: isso é verificado pela equipe de saúde.
-      </p>
 
       <div className="grid grid-cols-2 justify-items-center gap-4 xl:grid-cols-4">
         {kpis.map((k) => (

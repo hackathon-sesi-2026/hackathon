@@ -58,4 +58,17 @@ export function relativo(iso: string, hoje = new Date()): string {
   return n > 0 ? `em ${n} dias` : `há ${-n} dias`
 }
 
+/** Idade em anos completos a partir de uma data AAAA-MM-DD. */
+export function idade(nascimento: string, hoje = new Date()): number {
+  const [a, m, d] = nascimento.split('-').map(Number)
+  const fezAniversario = hoje.getMonth() + 1 > m || (hoje.getMonth() + 1 === m && hoje.getDate() >= d)
+  return hoje.getFullYear() - a - (fezAniversario ? 0 : 1)
+}
+
+/** AAAA-MM-DD em DD/MM/AAAA, sem passar por fuso horário. */
+export function dataSimples(iso: string): string {
+  const [a, m, d] = iso.split('-')
+  return `${d}/${m}/${a}`
+}
+
 export const faixaTurno = (inicio: number, fim: number) => `${String(inicio).padStart(2, '0')}h às ${String(fim).padStart(2, '0')}h`

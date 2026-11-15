@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, SmallInteger, String
+from sqlalchemy import Date, DateTime, SmallInteger, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from selo_saude.nucleo.banco import Base
@@ -17,6 +17,7 @@ class Trabalhador(Base):
     matricula: Mapped[str] = mapped_column(String(20), unique=True)
     nome: Mapped[str] = mapped_column(String(120))
     funcao: Mapped[str] = mapped_column(String(80))
+    data_nascimento: Mapped[date] = mapped_column(Date)
     empresa: Mapped[str] = mapped_column(String(120))
     unidade: Mapped[str] = mapped_column(String(80), index=True)
     medico_referencia: Mapped[str] = mapped_column(String(80))

@@ -3,13 +3,16 @@
 from typing import Literal
 
 LocalDor = Literal[
-    "cabeca", "pescoco", "ombros", "bracos", "maos_punhos", "costas", "lombar", "quadril", "joelhos", "pernas_pes"
+    "cabeca", "pescoco", "ombros", "peito", "barriga", "bracos", "maos_punhos",
+    "costas", "lombar", "quadril", "joelhos", "pernas_pes",
 ]  # fmt: skip
 
 LOCAIS_DE_DOR: dict[str, str] = {
     "cabeca": "Cabeça",
     "pescoco": "Pescoço",
     "ombros": "Ombros",
+    "peito": "Peito ou seios",
+    "barriga": "Barriga",
     "bracos": "Braços e cotovelos",
     "maos_punhos": "Mãos e punhos",
     "costas": "Costas (parte de cima)",

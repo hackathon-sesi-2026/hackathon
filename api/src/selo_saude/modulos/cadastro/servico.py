@@ -1,5 +1,6 @@
 """Interface pública do módulo de cadastro: quem é o trabalhador, onde e em que turno trabalha."""
 
+from datetime import date
 from typing import Literal
 
 from sqlalchemy import select
@@ -42,6 +43,7 @@ class DadosTrabalhador(Esquema):
     matricula: str
     nome: str
     funcao: str
+    data_nascimento: date
     empresa: str
     unidade: str
     medico_referencia: str
@@ -64,6 +66,7 @@ def _dados(t: Trabalhador) -> DadosTrabalhador:
         matricula=t.matricula,
         nome=t.nome,
         funcao=t.funcao,
+        data_nascimento=t.data_nascimento,
         empresa=t.empresa,
         unidade=t.unidade,
         medico_referencia=t.medico_referencia,

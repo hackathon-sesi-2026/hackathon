@@ -1,6 +1,6 @@
 """Regras puras do domínio: não precisam de banco nem de API."""
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 from selo_saude.integracoes.splus import SPlusSimulado
 from selo_saude.modulos.agenda.regras import hora_no_turno, montar_horarios
@@ -18,7 +18,8 @@ TURNO_A, _, TURNO_C, _ = TURNOS
 
 def trabalhador(**campos) -> DadosTrabalhador:
     base = dict(
-        id="t1", token_acesso="x", matricula="1", nome="Marcos Oliveira Santos", funcao="Operador", empresa="Metal",
+        id="t1", token_acesso="x", matricula="1", nome="Marcos Oliveira Santos", funcao="Operador",
+        data_nascimento=date(1985, 3, 12), empresa="Metal",
         unidade="Planta Camaçari", medico_referencia="Dra. Beatriz", enfermeira="Ana", motivacao=None, turno=TURNO_A,
         risco=2, ultima_consulta_medica=HOJE - timedelta(days=30), faltas_ultimo_ano=0,
     )  # fmt: skip
@@ -185,3 +186,25 @@ def test_local_da_dor_so_e_guardado_quando_ha_dor():
     assert local_guardado(1, "lombar") is None
     assert local_guardado(2, "lombar") == "lombar"
     assert local_guardado(3, None) is None
+
+
+# ---------------------------------------------------------------- doença crônica e engajamento
+
+
+def test_doenca_cronica_vem_do_risco_sem_diagnostico():
+    from selo_saude.modulos.monitoramento.regras import doenca_cronica
+
+    assert [doenca_cronica(r) for r in (1, 2, 3, 4)] == ["nao", "nao", "compensada", "descompensada"]
+
+
+def test_engajamento_soma_as_quatro_partes_com_o_porque():
+    from selo_saude.modulos.monitoramento.regras import engajamento
+
+    modelo = plano().passos[0]
+    passos = [modelo.model_copy(update={"id": "p1", "feito": True}), modelo.model_copy(update={"id": "p2"})]
+    r = retrato(plano=plano(status="recebido", passos=passos), consulta=consulta(5, "confirmada"))
+    e = engajamento(r, HOJE)
+    assert [i.pontos for i in e.itens] == [25, 12, 25, 0] and e.pontos == 62 and e.nivel == "medio"
+    assert all(i.como_esta and i.maximo == 25 for i in e.itens)
+    sem_nada = engajamento(retrato(plano=plano(status="enviado", passos=passos), consulta=None), HOJE)
+    assert sem_nada.pontos == 12 and sem_nada.nivel == "baixo"

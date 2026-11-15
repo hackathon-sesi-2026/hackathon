@@ -267,3 +267,74 @@ def mensagem_do_dia(r: Retrato, proximo_monitoramento: datetime, hoje: datetime)
     ):
         return "pergunta_da_semana"
     return None
+
+
+# ---------------------------------------------------------------- doença crônica e engajamento
+
+DoencaCronica = Literal["nao", "compensada", "descompensada"]
+
+
+def doenca_cronica(risco: int) -> DoencaCronica:
+    """Lida da classificação de risco do SESI, sem diagnóstico: risco 3 é doença crônica compensada,
+    risco 4 é descompensada. Riscos 1 e 2 são saudáveis (o 2 tem fatores de risco, sem doença)."""
+    return "descompensada" if risco == 4 else "compensada" if risco == 3 else "nao"
+
+
+class ItemDoEngajamento(Esquema):
+    rotulo: str
+    como_esta: str
+    """Em palavras: "1 de 4", "Confirmado", "Não". (Não se chama `valor`: na fila da APS esse nome é do exame.)"""
+    pontos: int
+    maximo: int
+
+
+class Engajamento(Esquema):
+    """Participação da pessoa no programa, de 0 a 100. É uso do canal e da agenda, não adesão ao tratamento:
+    adesão quem verifica é a equipe de saúde na consulta."""
+
+    pontos: int
+    nivel: Literal["alto", "medio", "baixo"]
+    itens: list[ItemDoEngajamento]
+
+
+def engajamento(r: Retrato, hoje: datetime) -> Engajamento:
+    """Quatro partes de 25 pontos, cada uma com o porquê. Os pesos são hipótese do time."""
+    passos = r.plano.passos
+    feitos = sum(1 for p in passos if p.feito)
+    c = r.consulta
+    respondeu = any(x.tipo in _RESPOSTAS and dias_entre(x.data, hoje) <= 30 for x in r.historico)
+
+    if c is None:
+        retorno, pontos_retorno = "Não marcado", 0
+    elif c.status == "confirmada":
+        retorno, pontos_retorno = "Confirmado", 25
+    elif c.status == "faltou":
+        retorno, pontos_retorno = "Faltou", 0
+    else:
+        retorno, pontos_retorno = "Marcado, sem confirmar", 10
+
+    itens = [
+        ItemDoEngajamento(
+            rotulo="Abriu o plano de cuidado",
+            como_esta="Sim" if r.plano.status == "recebido" else "Não",
+            pontos=25 if r.plano.status == "recebido" else 0,
+            maximo=25,
+        ),
+        ItemDoEngajamento(
+            rotulo="Passos do plano feitos",
+            como_esta=f"{feitos} de {len(passos)}",
+            pontos=round(25 * feitos / len(passos)) if passos else 0,
+            maximo=25,
+        ),
+        ItemDoEngajamento(rotulo="Retorno", como_esta=retorno, pontos=pontos_retorno, maximo=25),
+        ItemDoEngajamento(
+            rotulo="Responde às mensagens",
+            como_esta="Respondeu nos últimos 30 dias" if respondeu else "Sem resposta há 30 dias",
+            pontos=25 if respondeu else 0,
+            maximo=25,
+        ),
+    ]
+    pontos = sum(i.pontos for i in itens)
+    return Engajamento(
+        pontos=pontos, nivel="alto" if pontos >= 70 else "medio" if pontos >= 40 else "baixo", itens=itens
+    )

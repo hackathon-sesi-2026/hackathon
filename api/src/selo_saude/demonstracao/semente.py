@@ -7,7 +7,7 @@ Os textos do plano estão em linguagem simples e precisam de revisão de um prof
 
 import hashlib
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -219,7 +219,9 @@ PESOS_DOS_LOCAIS_DE_DOR = {
     "joelhos": 7,
     "pernas_pes": 5,
     "cabeca": 3,
+    "barriga": 3,
     "bracos": 2,
+    "peito": 2,
     "quadril": 1,
 }
 NOMES_FICTICIOS = ["Carla M.", "Jorge S.", "Renata L.", "Paulo R.", "Tânia B.", "Ivo C."]
@@ -265,6 +267,7 @@ def _registros_da_pessoa(i: int, p: Pessoa, hoje: datetime) -> list:
         matricula=str(20261001 + i * 37),
         nome=p.nome,
         funcao=p.funcao,
+        data_nascimento=_nascimento(i, hoje),
         empresa=p.empresa,
         unidade="Planta Camaçari" if p.empresa == METAL else "Unidade única",
         medico_referencia=MEDICOS[i % len(MEDICOS)],
@@ -278,7 +281,8 @@ def _registros_da_pessoa(i: int, p: Pessoa, hoje: datetime) -> list:
         faltas_ultimo_ano=p.faltas,
     )
     dados = DadosTrabalhador(
-        id=tid, token_acesso="", matricula="", nome=p.nome, funcao="", empresa="", unidade="", medico_referencia="",
+        id=tid, token_acesso="", matricula="", nome=p.nome, funcao="", data_nascimento=trabalhador.data_nascimento,
+        empresa="", unidade="", medico_referencia="",
         enfermeira=trabalhador.enfermeira, motivacao=trabalhador.motivacao, turno=p.turno, risco=p.risco,
         ultima_consulta_medica=trabalhador.ultima_consulta_medica, faltas_ultimo_ano=p.faltas,
     )  # fmt: skip
@@ -466,6 +470,12 @@ def _unidades() -> list:
     for unidade, turnos in EM_DIA.items():
         linhas += [EmDiaPorTurno(unidade=unidade, turno=turno, percentual=valor) for turno, valor in turnos.items()]
     return linhas
+
+
+def _nascimento(i: int, hoje: datetime) -> date:
+    """Data de nascimento fictícia e fixa por pessoa: idades de 24 a 58 anos, relativas a hoje."""
+    idade = 24 + (i * 13 + 17) % 35
+    return date(relogio.local(hoje).year - idade, 1 + (i * 5) % 12, 1 + (i * 11) % 28)
 
 
 def _sorteio(semente: int):

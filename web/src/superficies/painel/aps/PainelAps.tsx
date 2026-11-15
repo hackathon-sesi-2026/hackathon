@@ -1,19 +1,23 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
+  Briefcase,
+  Cake,
   CalendarX,
   CheckCircle2,
+  ChevronDown,
   Clock,
   Eye,
   CalendarClock,
   FileWarning,
   HeartHandshake,
+  HeartPulse,
+  Users,
   MessageCircleQuestion,
   MessageCircleWarning,
   Radar,
   Search,
   Send,
-  Smartphone,
   X,
   type LucideIcon,
 } from 'lucide-react'
@@ -21,10 +25,9 @@ import { api } from '../../../api/cliente'
 import type { CodigoSituacao, EnvioDaCadencia, LinhaDaFila, NivelRiscoFalta, RiscoFalta, Situacao, TipoRegistro } from '../../../api/tipos'
 import { useRecurso } from '../../../api/useRecurso'
 import { IconeCategoria } from '../../../componentes/IconeCategoria'
-import { linkDoCelular, QrDoCelular } from '../../../componentes/QrDoCelular'
 import { AvisoDeFalha } from '../../../componentes/TelaCheia'
-import { addDias, data, dataCurta, faixaTurno, horaCurta, relativo } from '../../../lib/datas'
-import { FREQUENCIA_RISCO, MOTIVOS, ROTULO_MOTIVO, ROTULO_RISCO, ROTULO_SITUACAO, ROTULO_STATUS_PLANO, iniciais, primeiroNome } from '../../../lib/rotulos'
+import { addDias, data, dataCurta, dataSimples, faixaTurno, horaCurta, idade, relativo } from '../../../lib/datas'
+import { FREQUENCIA_RISCO, ROTULO_MOTIVO, ROTULO_RISCO, ROTULO_SITUACAO, ROTULO_STATUS_PLANO, iniciais } from '../../../lib/rotulos'
 import { ContextoDasAcoes, criarAcoes, useAcoes } from './acoes'
 
 const COR_RISCO_FALTA: Record<NivelRiscoFalta, string> = {
@@ -91,7 +94,6 @@ export function PainelAps() {
   const [filtro, setFiltro] = useState<Filtro>('acao')
   const [busca, setBusca] = useState('')
   const [aberto, setAberto] = useState<string | null>(null)
-  const [celular, setCelular] = useState<LinhaDaFila | null>(null)
   const [ordem, setOrdem] = useState<Ordem>('prioridade')
 
   // A situação e o risco de falta já vêm calculados da API. Aqui só se ordena.
@@ -124,6 +126,7 @@ export function PainelAps() {
   })
 
   const cartoes: { rotulo: string; valor: number; filtro: Filtro; Icone: LucideIcon; cor: string }[] = [
+    { rotulo: 'Ver todos', valor: linhas.length, filtro: 'todos', Icone: Users, cor: 'bg-blue-50 text-tech' },
     { rotulo: 'Precisam de ação', valor: linhas.filter((l) => l.s.precisaAcao).length, filtro: 'acao', Icone: AlertTriangle, cor: 'bg-red-50 text-alerta' },
     { rotulo: 'Relataram dificuldade ou pediram contato', valor: conta(['dificuldade', 'pediu_ajuda']), filtro: 'ajuda', Icone: MessageCircleQuestion, cor: 'bg-violet-50 text-violet-600' },
     { rotulo: 'Alto risco de falta', valor: linhas.filter((l) => l.r.nivel === 'alto').length, filtro: 'risco_alto', Icone: Radar, cor: 'bg-rose-50 text-rose-600' },
@@ -132,21 +135,14 @@ export function PainelAps() {
     { rotulo: 'Plano não recebido', valor: conta(['plano_nao_recebido']), filtro: 'plano_nao_recebido', Icone: FileWarning, cor: 'bg-amber-50 text-amber-600' },
   ]
 
-  // Motivos relatados por todos (agregado, sem nome): mostra POR QUE as pessoas saem do cuidado.
-  const motivos = MOTIVOS.map((m) => ({ ...m, n: dados.reduce((s, t) => s + t.plano.dificuldades.filter((d) => d.motivo === m.motivo).length, 0) }))
-    .filter((m) => m.n > 0)
-    .sort((a, b) => b.n - a.n)
-  const maxMotivo = Math.max(1, ...motivos.map((m) => m.n))
-
   const linhaAberta = linhas.find((l) => l.t.trabalhador.id === aberto)
 
   return (
     <ContextoDasAcoes.Provider value={acoes}>
       <div className="relative flex h-full flex-col">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-navy">Acompanhamento do cuidado</h2>
-          <p className="text-sm text-slate-500">Quem saiu do ritmo do cuidado, pelo prazo do risco. Substitui a planilha de contatos mês a mês; o prontuário continua no S+.</p>
         </div>
         <div className="flex items-center gap-2">
           <CadenciaDoDia aoEnviar={recarregar} />
@@ -154,7 +150,7 @@ export function PainelAps() {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-6">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 2xl:grid-cols-7">
         {cartoes.map((c) => (
           <button
             key={c.rotulo}
@@ -174,33 +170,11 @@ export function PainelAps() {
         ))}
       </div>
 
-      {motivos.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200/70">
-          <p className="text-xs font-semibold text-navy">
-            Por que estão saindo do cuidado <span className="font-normal text-slate-400">(motivos relatados no "não consegui", sem nomes)</span>
-          </p>
-          {motivos.map((m) => (
-            <span key={m.motivo} className="flex items-center gap-2 text-xs text-slate-600">
-              <span>{m.emoji}</span>
-              <span className="hidden sm:inline">{m.rotulo}</span>
-              <span className="h-1.5 rounded-full bg-violet-400" style={{ width: `${(m.n / maxMotivo) * 48}px` }} />
-              <span className="font-semibold tabular-nums text-navy">{m.n}</span>
-            </span>
-          ))}
-        </div>
-      )}
-
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <label className="flex w-72 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200">
           <Search className="size-4 text-slate-400" />
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou matrícula" className="w-full bg-transparent outline-none" />
         </label>
-        <button
-          onClick={() => setFiltro('todos')}
-          className={`rounded-full px-3 py-1.5 text-xs font-semibold ${filtro === 'todos' ? 'bg-navy text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'}`}
-        >
-          Ver todos ({linhas.length})
-        </button>
         <span className="text-xs text-slate-500">
           {visiveis.length} na lista ·{' '}
           {filtro === 'acao'
@@ -291,7 +265,6 @@ export function PainelAps() {
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                       <BotaoIcone titulo="Enviar lembrete pelo WhatsApp" onClick={() => acoes.enviarLembrete(t.trabalhador.id)} Icone={Send} />
-                      <BotaoIcone titulo="Abrir o celular deste trabalhador" onClick={() => setCelular(t)} Icone={Smartphone} />
                       <BotaoIcone titulo="Abrir detalhes" onClick={() => setAberto(t.trabalhador.id)} Icone={Eye} />
                     </div>
                   </td>
@@ -302,16 +275,14 @@ export function PainelAps() {
       </div>
 
       {linhaAberta && (
-        <Gaveta key={linhaAberta.t.trabalhador.id} t={linhaAberta.t} s={linhaAberta.s} r={linhaAberta.r} fechar={() => setAberto(null)} verCelular={() => setCelular(linhaAberta.t)} />
+        <Gaveta key={linhaAberta.t.trabalhador.id} t={linhaAberta.t} s={linhaAberta.s} r={linhaAberta.r} fechar={() => setAberto(null)} />
       )}
-      {celular && <LinkDoCelular t={celular} fechar={() => setCelular(null)} />}
       <AvisoDeFalha mensagem={falha} />
       </div>
     </ContextoDasAcoes.Provider>
   )
 }
 
-/** O link pessoal que o SESI envia pelo WhatsApp. Na demonstração, o QR code abre no celular de quem apresenta. */
 /**
  * Roda o agendador do WhatsApp uma vez. No produto ele roda sozinho todo dia; aqui a enfermeira aperta
  * para ver a cadência: quem recebe o quê hoje, no máximo uma mensagem por pessoa (docs/whatsapp.md).
@@ -376,26 +347,6 @@ function CadenciaDoDia({ aoEnviar }: { aoEnviar: () => Promise<void> }) {
   )
 }
 
-function LinkDoCelular({ t, fechar }: { t: LinhaDaFila; fechar: () => void }) {
-  return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-navy/50 p-4" onClick={fechar}>
-      <div className="w-full max-w-xs rounded-2xl bg-white p-5 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <p className="font-bold text-navy">Celular de {primeiroNome(t.trabalhador.nome)}</p>
-        <p className="mt-0.5 text-xs text-slate-500">É o link pessoal que chega pelo WhatsApp. Aponte a câmera do celular.</p>
-        <div className="mt-4 flex justify-center">
-          <QrDoCelular token={t.trabalhador.tokenAcesso} tamanho={200} />
-        </div>
-        <a href={linkDoCelular(t.trabalhador.tokenAcesso)} target="_blank" rel="noreferrer" className="mt-4 block rounded-xl bg-navy py-2.5 text-sm font-semibold text-white">
-          Abrir em outra aba
-        </a>
-        <button onClick={fechar} className="mt-2 w-full rounded-xl py-2 text-sm text-slate-600 hover:bg-slate-100">
-          Fechar
-        </button>
-      </div>
-    </div>
-  )
-}
-
 function ChipRiscoFalta({ r }: { r: RiscoFalta }) {
   return (
     <span
@@ -415,132 +366,155 @@ function BotaoIcone({ titulo, onClick, Icone }: { titulo: string; onClick: () =>
   )
 }
 
-// ---------------------------------------------------------------- Gaveta de detalhe (ficha Gestão de Retorno)
+// ---------------------------------------------------------------- Ficha da pessoa (resumo da Gestão de Retorno)
 
 type Aba = 'resumo' | 'historico' | 'plano'
 
-function Gaveta({
-  t,
-  s,
-  r,
-  fechar,
-  verCelular,
-}: {
-  t: LinhaDaFila
-  s: Situacao
-  r: RiscoFalta
-  fechar: () => void
-  verCelular: () => void
-}) {
+const DOENCA_CRONICA = {
+  nao: { texto: 'Não', detalhe: 'Pelo risco do SESI', cor: 'text-saude-700' },
+  compensada: { texto: 'Sim, compensada', detalhe: 'Risco 3 · detalhes no S+', cor: 'text-amber-700' },
+  descompensada: { texto: 'Sim, descompensada', detalhe: 'Risco 4 · detalhes no S+', cor: 'text-alerta' },
+} as const
+
+const COR_ENGAJAMENTO = {
+  alto: { traco: '#10b981', texto: 'text-saude-700', rotulo: 'Alto' },
+  medio: { traco: '#f59e0b', texto: 'text-amber-700', rotulo: 'Médio' },
+  baixo: { traco: '#ef4444', texto: 'text-alerta', rotulo: 'Baixo' },
+} as const
+
+function Gaveta({ t, s, r, fechar }: { t: LinhaDaFila; s: Situacao; r: RiscoFalta; fechar: () => void }) {
   const acoes = useAcoes()
   const [aba, setAba] = useState<Aba>('resumo')
   const [registrando, setRegistrando] = useState(false)
+  const pessoa = t.trabalhador
+  const dc = DOENCA_CRONICA[t.doencaCronica]
 
   return (
-    <aside className="absolute inset-y-0 right-0 z-20 flex w-full max-w-[420px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
-      <header className="flex items-start gap-3 border-b border-slate-100 p-4">
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-tech text-sm font-bold text-white">{iniciais(t.trabalhador.nome)}</span>
+    <aside className="absolute inset-y-0 right-0 z-20 flex w-full max-w-[440px] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+      <header className="flex items-center gap-3 px-5 pb-3 pt-5">
+        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-tech text-base font-bold text-white">{iniciais(pessoa.nome)}</span>
         <div className="min-w-0 flex-1">
-          <p className="font-bold text-navy">{t.trabalhador.nome}</p>
-          <p className="text-xs text-slate-500">
-            Mat. {t.trabalhador.matricula} · {t.trabalhador.funcao}
+          <p className="text-lg font-bold leading-tight text-navy">{pessoa.nome}</p>
+          <p className="truncate text-xs text-slate-500">
+            Mat. {pessoa.matricula} · {pessoa.empresa}
           </p>
         </div>
-        <button onClick={fechar} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100" aria-label="Fechar">
+        <button onClick={fechar} className="grid size-9 place-items-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200" aria-label="Fechar">
           <X className="size-5" />
         </button>
       </header>
 
-      <nav className="flex gap-5 border-b border-slate-100 px-4 text-sm">
+      <nav className="mx-5 flex gap-1 rounded-full bg-slate-100 p-1 text-sm">
         {(
           [
             ['resumo', 'Resumo'],
             ['historico', 'Histórico'],
-            ['plano', 'Plano de Cuidado'],
+            ['plano', 'Plano de cuidado'],
           ] as const
-        ).map(([v, r]) => (
-          <button key={v} onClick={() => setAba(v)} className={`-mb-px border-b-2 py-2.5 font-medium ${aba === v ? 'border-tech text-tech' : 'border-transparent text-slate-500'}`}>
-            {r}
+        ).map(([v, rotulo]) => (
+          <button
+            key={v}
+            onClick={() => setAba(v)}
+            className={`flex-1 rounded-full py-1.5 font-semibold transition ${aba === v ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-navy'}`}
+          >
+            {rotulo}
           </button>
         ))}
       </nav>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto px-5 pb-5 pt-4">
         {aba === 'resumo' && !registrando && (
           <div className="space-y-4">
-            <div className={`rounded-xl p-3 ring-1 ${COR_SITUACAO[s.codigo]}`}>
-              <p className="flex items-center gap-1.5 text-sm font-bold">
-                {s.precisaAcao ? <AlertTriangle className="size-4" /> : <CheckCircle2 className="size-4" />} {s.rotulo}
-              </p>
-              <p className="mt-0.5 text-xs opacity-90">{s.detalhe}</p>
-            </div>
-
-            <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Próxima ação sugerida</p>
-              <p className="text-sm font-medium text-slate-800">{s.sugestao}</p>
-            </div>
-
-            <Dificuldades t={t} />
-
-            <LembretesAuto t={t} />
-
-            <ExamesStatus t={t} />
-
-            <div className="rounded-xl border border-slate-100 p-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Radar de risco de falta</p>
-                <ChipRiscoFalta r={r} />
-              </div>
-              {r.motivos.length > 0 ? (
-                <ul className="mt-2 space-y-0.5 text-xs text-slate-600">
-                  {r.motivos.map((m) => (
-                    <li key={m}>• {m}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-xs text-slate-500">Nenhum fator de risco agora.</p>
-              )}
-              <p className="mt-2 text-[11px] text-slate-400">Regras simples e explicáveis, a calibrar com o histórico do S+ no piloto.</p>
-            </div>
-
-            <dl className="grid grid-cols-2 gap-x-3 gap-y-2.5 rounded-xl bg-cinza p-3 text-xs">
-              <Campo rotulo="Médico de referência">{t.trabalhador.medicoReferencia}</Campo>
-              <Campo rotulo="Classificação de risco">{ROTULO_RISCO[t.trabalhador.risco]}</Campo>
-              <Campo rotulo="Verificação de adesão">{FREQUENCIA_RISCO[t.trabalhador.risco]}</Campo>
-              <Campo rotulo="Última consulta médica">{data(t.trabalhador.ultimaConsultaMedica)}</Campo>
-              <Campo rotulo="Retorno previsto">{data(t.prazoRetorno)}</Campo>
-              <Campo rotulo="Retorno marcado">
-                {t.consulta ? `${dataCurta(t.consulta.data)} ${horaCurta(t.consulta.data)} · ${t.consulta.modalidade === 'online' ? 'vídeo' : t.consulta.modalidade === 'no_turno' ? 'no turno' : 'presencial'}` : '—'}
-              </Campo>
-              <Campo rotulo="Status do plano">{ROTULO_STATUS_PLANO[t.plano.status]}</Campo>
-              <Campo rotulo="Próximo monitoramento">{data(t.proximoMonitoramento)}</Campo>
-              <Campo rotulo="Turno informado">
-                {t.trabalhador.turno.nome} ({faixaTurno(t.trabalhador.turno.inicio, t.trabalhador.turno.fim)})
-              </Campo>
-              <Campo rotulo="Empresa">{t.trabalhador.empresa}</Campo>
-            </dl>
-
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => acoes.enviarLembrete(t.trabalhador.id)} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
-                <Send className="size-3.5" /> Enviar lembrete
-              </button>
-              <button onClick={() => acoes.enviarPlano(t.trabalhador.id)} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
-                <FileWarning className="size-3.5" /> {t.plano.status === 'nao_enviado' ? 'Enviar plano' : 'Reenviar plano'}
-              </button>
-              <button onClick={() => acoes.enviarCheckinHabito(t.trabalhador.id)} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
-                <MessageCircleWarning className="size-3.5" /> Check-in do plano
-              </button>
-              <button onClick={() => acoes.enviarCheckin(t.trabalhador.id)} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
-                <HeartHandshake className="size-3.5" /> Perguntar como está
-              </button>
-              <button onClick={verCelular} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
-                <Smartphone className="size-3.5" /> Ver celular
-              </button>
-              <button onClick={() => setRegistrando(true)} className="col-span-2 rounded-xl bg-navy py-2 text-xs font-semibold text-white hover:bg-navy-700">
+              <Dado Icone={Briefcase} rotulo="Função">
+                {pessoa.funcao}
+              </Dado>
+              <Dado Icone={Cake} rotulo="Idade">
+                {idade(pessoa.dataNascimento)} anos
+                <span className="block text-xs font-normal text-slate-500">nasceu em {dataSimples(pessoa.dataNascimento)}</span>
+              </Dado>
+              <Dado Icone={HeartPulse} rotulo="Doença crônica">
+                <span className={dc.cor}>{dc.texto}</span>
+                <span className="block text-xs font-normal text-slate-500">{dc.detalhe}</span>
+              </Dado>
+              <Dado Icone={Clock} rotulo="Turno">
+                {pessoa.turno.nome}
+                <span className="block text-xs font-normal text-slate-500">{faixaTurno(pessoa.turno.inicio, pessoa.turno.fim)}</span>
+              </Dado>
+            </div>
+
+            <CartaoEngajamento e={t.engajamento} />
+
+            {/* Quem relatou dificuldade não ganha bloco aqui: o "não consegui" e o "Resolvida" ficam em "Mais detalhes". */}
+            {s.codigo !== 'dificuldade' && (
+              <div className={`rounded-2xl p-4 ring-1 ${COR_SITUACAO[s.codigo]}`}>
+                <p className="flex items-center gap-1.5 text-sm font-bold">
+                  {s.precisaAcao ? <AlertTriangle className="size-4" /> : <CheckCircle2 className="size-4" />} {s.rotulo}
+                </p>
+                <p className="mt-1 text-sm text-slate-800">
+                  <b>O que fazer:</b> {s.sugestao}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <button onClick={() => setRegistrando(true)} className="w-full rounded-full bg-navy py-3 text-sm font-semibold text-white hover:bg-navy-700">
                 Registrar monitoramento
               </button>
+              <div className="grid grid-cols-2 gap-2">
+                <BotaoPilula onClick={() => acoes.enviarLembrete(pessoa.id)} Icone={Send}>
+                  Lembrete
+                </BotaoPilula>
+                <BotaoPilula onClick={() => acoes.enviarPlano(pessoa.id)} Icone={FileWarning}>
+                  {t.plano.status === 'nao_enviado' ? 'Plano' : 'Reenviar'}
+                </BotaoPilula>
+                <BotaoPilula onClick={() => acoes.enviarCheckinHabito(pessoa.id)} Icone={MessageCircleWarning}>
+                  Check-in
+                </BotaoPilula>
+                <BotaoPilula onClick={() => acoes.enviarCheckin(pessoa.id)} Icone={HeartHandshake}>
+                  Como está?
+                </BotaoPilula>
+              </div>
             </div>
-            <p className="text-[11px] leading-snug text-slate-400">Abrir o plano e responder mensagens é uso do canal, não adesão ao plano. Adesão é verificada pela equipe na consulta.</p>
+
+            <details className="group rounded-2xl bg-cinza">
+              <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-navy [&::-webkit-details-marker]:hidden">
+                Mais detalhes
+                <ChevronDown className="size-4 transition group-open:rotate-180" />
+              </summary>
+              <div className="space-y-4 px-4 pb-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Risco de falta</p>
+                    <ChipRiscoFalta r={r} />
+                  </div>
+                  {r.motivos.length > 0 ? (
+                    <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-slate-600">
+                      {r.motivos.map((m) => (
+                        <li key={m}>{m}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-500">Nenhum fator de risco agora.</p>
+                  )}
+                </div>
+                <Dificuldades t={t} />
+                <LembretesAuto t={t} />
+                <ExamesStatus t={t} />
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-2.5 text-xs">
+                  <Campo rotulo="Médico de referência">{pessoa.medicoReferencia}</Campo>
+                  <Campo rotulo="Classificação de risco">{ROTULO_RISCO[pessoa.risco]}</Campo>
+                  <Campo rotulo="Última consulta médica">{data(pessoa.ultimaConsultaMedica)}</Campo>
+                  <Campo rotulo="Retorno previsto">{data(t.prazoRetorno)}</Campo>
+                  <Campo rotulo="Retorno marcado">
+                    {t.consulta ? `${dataCurta(t.consulta.data)} ${horaCurta(t.consulta.data)}` : '—'}
+                  </Campo>
+                  <Campo rotulo="Próximo monitoramento">{data(t.proximoMonitoramento)}</Campo>
+                  <Campo rotulo="Frequência de verificação">{FREQUENCIA_RISCO[pessoa.risco]}</Campo>
+                  <Campo rotulo="Status do plano">{ROTULO_STATUS_PLANO[t.plano.status]}</Campo>
+                </dl>
+              </div>
+            </details>
           </div>
         )}
 
@@ -584,6 +558,68 @@ function Gaveta({
         )}
       </div>
     </aside>
+  )
+}
+
+function Dado({ Icone, rotulo, children }: { Icone: LucideIcon; rotulo: string; children: ReactNode }) {
+  return (
+    <div className="rounded-2xl bg-cinza p-3">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+        <Icone className="size-3.5" /> {rotulo}
+      </p>
+      <p className="mt-1 text-sm font-semibold leading-snug text-navy">{children}</p>
+    </div>
+  )
+}
+
+/** Engajamento geral em anel, com as quatro partes que formam a nota. */
+function CartaoEngajamento({ e }: { e: LinhaDaFila['engajamento'] }) {
+  const cor = COR_ENGAJAMENTO[e.nivel]
+  const raio = 34
+  const volta = 2 * Math.PI * raio
+  return (
+    <section className="rounded-2xl p-4 ring-1 ring-slate-200">
+      <div className="flex items-center gap-4">
+        <div className="relative size-24 shrink-0">
+          <svg viewBox="0 0 80 80" className="size-24 -rotate-90" aria-hidden>
+            <circle cx="40" cy="40" r={raio} fill="none" stroke="#e2e8f0" strokeWidth="8" />
+            <circle cx="40" cy="40" r={raio} fill="none" stroke={cor.traco} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${(e.pontos / 100) * volta} ${volta}`} />
+          </svg>
+          <span className="absolute inset-0 grid place-items-center text-center">
+            <span>
+              <span className="block text-2xl font-bold leading-none text-navy">{e.pontos}</span>
+              <span className="text-[10px] text-slate-500">de 100</span>
+            </span>
+          </span>
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Engajamento no programa</p>
+          <p className={`text-xl font-bold ${cor.texto}`}>{cor.rotulo}</p>
+          <p className="text-xs leading-snug text-slate-500">Participação no programa. Não é adesão ao tratamento, que a equipe verifica na consulta.</p>
+        </div>
+      </div>
+      <ul className="mt-4 space-y-2.5">
+        {e.itens.map((i) => (
+          <li key={i.rotulo} className="text-xs">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-medium text-slate-700">{i.rotulo}</span>
+              <span className="shrink-0 text-slate-500">{i.comoEsta}</span>
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full" style={{ width: `${(i.pontos / i.maximo) * 100}%`, background: cor.traco }} />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function BotaoPilula({ onClick, Icone, children }: { onClick: () => void; Icone: LucideIcon; children: ReactNode }) {
+  return (
+    <button onClick={onClick} className="flex items-center justify-center gap-1.5 rounded-full border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
+      <Icone className="size-3.5" /> {children}
+    </button>
   )
 }
 
@@ -662,9 +698,9 @@ function Dificuldades({ t }: { t: LinhaDaFila }) {
         {ordenadas.map((d) => {
           const passo = t.plano.passos.find((p) => p.id === d.passoId)
           return (
-            <li key={d.id} className={`rounded-xl p-3 text-xs ring-1 ${d.resolvida ? 'bg-slate-50 text-slate-500 ring-slate-100' : 'bg-violet-50 ring-violet-200'}`}>
+            <li key={d.id} className={`rounded-xl p-3 text-xs ring-1 ${d.resolvida ? 'bg-slate-50 text-slate-500 ring-slate-100' : 'bg-white ring-slate-200'}`}>
               <p className="font-semibold text-slate-800">
-                {MOTIVOS.find((m) => m.motivo === d.motivo)?.emoji} {ROTULO_MOTIVO[d.motivo]}
+                {ROTULO_MOTIVO[d.motivo]}
               </p>
               <p className="mt-0.5">
                 {passo ? `Passo: ${passo.titulo}` : 'Plano de cuidado'} · {d.origem === 'teach_back' ? 'errou a pergunta de checagem' : d.origem === 'checkin' ? 'no check-in' : 'na página do plano'} ·{' '}
@@ -674,15 +710,15 @@ function Dificuldades({ t }: { t: LinhaDaFila }) {
                 <p className="mt-1 font-medium text-saude-700">✓ Resolvida{d.nota ? `: ${d.nota}` : ''}</p>
               ) : (
                 <>
-                  <p className="mt-1.5 font-medium text-violet-800">Ação sugerida: {d.acaoSugerida}</p>
+                  <p className="mt-1.5 font-medium text-slate-700">Ação sugerida: {d.acaoSugerida}</p>
                   <div className="mt-2 flex gap-1.5">
                     <input
                       value={notas[d.id] ?? ''}
                       onChange={(e) => setNotas({ ...notas, [d.id]: e.target.value })}
                       placeholder="O que foi feito (sem dado clínico)"
-                      className="min-w-0 flex-1 rounded-lg border border-violet-200 bg-white px-2 py-1.5 text-xs"
+                      className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs"
                     />
-                    <button onClick={() => acoes.resolverDificuldade(t.trabalhador.id, d.id, (notas[d.id] ?? '').trim())} className="rounded-lg bg-violet-600 px-2.5 py-1.5 text-xs font-semibold text-white">
+                    <button onClick={() => acoes.resolverDificuldade(t.trabalhador.id, d.id, (notas[d.id] ?? '').trim())} className="rounded-lg bg-navy px-2.5 py-1.5 text-xs font-semibold text-white">
                       Resolvida
                     </button>
                   </div>

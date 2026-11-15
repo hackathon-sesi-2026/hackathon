@@ -230,3 +230,23 @@ def test_toda_pontuacao_vem_com_o_porque(api):
         esperado = "alto" if risco["pontos"] >= 45 else "medio" if risco["pontos"] >= 25 else "baixo"
         assert risco["nivel"] == esperado
         assert situacao["sugestao"].strip() and situacao["detalhe"].strip()
+
+
+@pytest.mark.regra("5")
+@pytest.mark.critico
+def test_engajamento_explica_cada_ponto(api):
+    """O engajamento de cada pessoa é a soma das partes mostradas, cada uma com o valor em palavras."""
+    for linha in api.fila():
+        e = linha["engajamento"]
+        assert 0 <= e["pontos"] <= 100 and e["pontos"] == sum(i["pontos"] for i in e["itens"])
+        assert all(i["rotulo"] and i["comoEsta"] and 0 <= i["pontos"] <= i["maximo"] for i in e["itens"])
+        assert e["nivel"] == ("alto" if e["pontos"] >= 70 else "medio" if e["pontos"] >= 40 else "baixo")
+
+
+@pytest.mark.regra("1")
+@pytest.mark.critico
+def test_doenca_cronica_vem_so_do_risco(api):
+    """A ficha da APS diz se há doença crônica a partir do risco do SESI, sem nome de doença."""
+    esperado = {1: "nao", 2: "nao", 3: "compensada", 4: "descompensada"}
+    for linha in api.fila():
+        assert linha["doencaCronica"] == esperado[linha["trabalhador"]["risco"]]

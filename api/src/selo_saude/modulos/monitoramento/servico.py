@@ -23,11 +23,15 @@ from .eventos import CheckinRespondido, MonitoramentoRegistrado
 from .modelos import Acompanhamento, Registro
 from .regras import (
     ROTULO_CADENCIA,
+    DoencaCronica,
+    Engajamento,
     MensagemDaCadencia,
     RegistroHistorico,
     Retrato,
     RiscoFalta,
     Situacao,
+    doenca_cronica,
+    engajamento,
     mensagem_do_dia,
     prazo_retorno,
     risco_falta,
@@ -61,6 +65,9 @@ class LinhaDaFila(Esquema):
     prazo_retorno: Instante
     situacao: Situacao
     risco_falta: RiscoFalta
+    engajamento: Engajamento
+    doenca_cronica: DoencaCronica
+    """Lida do risco do SESI, sem diagnóstico (que fica no S+)."""
 
 
 async def fila(sessao: AsyncSession) -> list[LinhaDaFila]:
@@ -100,6 +107,8 @@ async def fila(sessao: AsyncSession) -> list[LinhaDaFila]:
                 prazo_retorno=prazo_retorno(trabalhador),
                 situacao=situacao(retrato, hoje),
                 risco_falta=risco_falta(retrato, hoje),
+                engajamento=engajamento(retrato, hoje),
+                doenca_cronica=doenca_cronica(trabalhador.risco),
             )
         )
     return linhas

@@ -205,6 +205,8 @@ export interface Trabalhador {
   matricula: string
   nome: string
   funcao: string
+  /** AAAA-MM-DD, do cadastro do S+. */
+  dataNascimento: string
   empresa: string
   unidade: string
   medicoReferencia: string
@@ -315,6 +317,16 @@ export interface LinhaDaFila {
   prazoRetorno: string
   situacao: Situacao
   riscoFalta: RiscoFalta
+  engajamento: Engajamento
+  /** Lida do risco do SESI (3 compensada, 4 descompensada), sem diagnóstico. */
+  doencaCronica: 'nao' | 'compensada' | 'descompensada'
+}
+
+/** Participação no programa, de 0 a 100. É uso do canal e da agenda, não adesão ao tratamento. */
+export interface Engajamento {
+  pontos: number
+  nivel: 'alto' | 'medio' | 'baixo'
+  itens: { rotulo: string; comoEsta: string; pontos: number; maximo: number }[]
 }
 
 export type MensagemDaCadencia = 'lembrete_d1' | 'lembrete_d3' | 'convite_retorno' | 'como_voce_esta' | 'pergunta_da_semana'
@@ -406,4 +418,4 @@ export interface ItemContado {
 }
 
 /** Região do corpo tocada no boneco do totem. */
-export type LocalDor = 'cabeca' | 'pescoco' | 'ombros' | 'bracos' | 'maos_punhos' | 'costas' | 'lombar' | 'quadril' | 'joelhos' | 'pernas_pes'
+export type LocalDor = 'cabeca' | 'pescoco' | 'ombros' | 'peito' | 'barriga' | 'bracos' | 'maos_punhos' | 'costas' | 'lombar' | 'quadril' | 'joelhos' | 'pernas_pes'
