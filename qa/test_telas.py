@@ -6,6 +6,7 @@ Verifica que cada superfície abre sem quebrar e que as interações principais 
 import re
 
 import pytest
+
 from conftest import URL_WEB
 
 playwright = pytest.importorskip("playwright.sync_api", reason="Playwright não instalado: pip install -e 'api[qa]'")

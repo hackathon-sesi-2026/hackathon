@@ -5,6 +5,7 @@ import time
 import urllib.request
 
 import pytest
+
 from conftest import URL_API
 
 
