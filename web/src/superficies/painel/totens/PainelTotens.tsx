@@ -3,6 +3,7 @@ import { Activity, CalendarDays, Clock, EyeOff, Frown, Lock, MonitorSmartphone, 
 import type { LocalDor, MetricasDoTotem } from '../../../api/tipos'
 import { useRecurso } from '../../../api/useRecurso'
 import { Cartao } from '../../../componentes/Cartao'
+import { faixaTurno, periodoDoTurno } from '../../../lib/datas'
 import { MapaDeCalor, ROTULO_LOCAL_DOR } from '../../totem/BonecoDaDor'
 
 // Métricas dos totens para a equipe de saúde: quanto o totem é usado e o que as respostas dizem.
@@ -71,22 +72,7 @@ export function PainelTotens() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[3fr_2fr]">
-        <Cartao titulo="Respostas por dia" subtitulo="Cada barra é um dia; a última é hoje">
-          <div className="flex h-40 items-end gap-0.5 sm:gap-1">
-            {m.porDia.map((d) => (
-              <div
-                key={d.dia}
-                title={`${d.dia.split('-').reverse().join('/')}: ${d.respostas} respostas`}
-                className="flex-1 rounded-t bg-gradient-to-t from-tech to-sky-400"
-                style={{ height: `${Math.max(2, (d.respostas / Math.max(1, ...m.porDia.map((x) => x.respostas))) * 100)}%` }}
-              />
-            ))}
-          </div>
-          <div className="mt-1 flex justify-between text-xs text-slate-500">
-            <span>há 28 dias</span>
-            <span>hoje</span>
-          </div>
-        </Cartao>
+        <GraficoPorDia dias={m.porDia} />
         <Cartao titulo="Horários de mais uso" subtitulo={`Pico às ${pico}h · bom horário para avisos e campanhas`} acao={<Clock className="size-5 text-tech" />}>
           <div className="grid grid-cols-12 gap-1">
             {m.porHora.map((n, h) => {
@@ -150,7 +136,14 @@ export function PainelTotens() {
                 {m.porTurno.map((t) => (
                   <tr key={`${t.unidade}-${t.turno}`} className="border-b border-slate-50">
                     <td className="py-2 pr-2 text-slate-700">{t.unidade}</td>
-                    <td className="px-2 py-2 text-slate-700">{t.turno}</td>
+                    <td className="px-2 py-2 text-slate-700">
+                      <span className="font-medium text-navy">{t.turno.replace(' (noite)', '')}</span>
+                      {t.inicio !== null && t.fim !== null && (
+                        <span className="block text-xs text-slate-500">
+                          {faixaTurno(t.inicio, t.fim)} · {periodoDoTurno(t.inicio)}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-2 py-2 text-right tabular-nums text-navy">{numero(t.respostas)}</td>
                     {t.oculto ? (
                       <td colSpan={2} className="py-2 pl-2 text-right text-xs text-slate-500">
@@ -174,6 +167,140 @@ export function PainelTotens() {
         </Cartao>
       </div>
     </div>
+  )
+}
+
+const PERIODOS = [7, 14, 28] as const
+const DIA_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+
+/** Dia "2026-11-15" como data local (sem o deslize de fuso do `new Date('2026-11-15')`). */
+function dataLocal(dia: string): Date {
+  const [a, m, d] = dia.split('-').map(Number)
+  return new Date(a, m - 1, d)
+}
+
+/**
+ * Respostas por dia, interativo: período de 7, 14 ou 28 dias, eixo com os dias, grade com números e a barra
+ * em foco mostrando data e quantidade. Uma série só, por isso sem legenda; o número aparece ao focar, não em tudo.
+ */
+function GraficoPorDia({ dias }: { dias: { dia: string; respostas: number }[] }) {
+  const [periodo, setPeriodo] = useState<(typeof PERIODOS)[number]>(14)
+  const [foco, setFoco] = useState<number | null>(null)
+  const visiveis = dias.slice(-periodo)
+  const total = visiveis.reduce((s, d) => s + d.respostas, 0)
+  const maior = Math.max(1, ...visiveis.map((d) => d.respostas))
+  const iMaior = visiveis.findIndex((d) => d.respostas === maior)
+  const topo = Math.max(5, Math.ceil(maior / 5) * 5)
+  const grade = [topo, Math.round(topo / 2), 0]
+  const ativo = foco ?? visiveis.length - 1
+  const d = visiveis[ativo]
+  const data = d ? dataLocal(d.dia) : null
+  const rotuloCada = periodo === 7 ? 1 : periodo === 14 ? 2 : 7
+
+  return (
+    <Cartao
+      titulo="Respostas por dia"
+      subtitulo={`${numero(total)} respostas nos últimos ${periodo} dias · média de ${numero(Math.round(total / Math.max(1, visiveis.length)))} por dia`}
+      acao={
+        <div role="tablist" aria-label="Período" className="flex rounded-full bg-cinza p-0.5 text-xs font-semibold">
+          {PERIODOS.map((p) => (
+            <button
+              key={p}
+              role="tab"
+              aria-selected={periodo === p}
+              onClick={() => {
+                setPeriodo(p)
+                setFoco(null)
+              }}
+              className={`min-h-8 rounded-full px-3 transition ${periodo === p ? 'bg-white text-navy shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+            >
+              {p}d
+            </button>
+          ))}
+        </div>
+      }
+    >
+      {/* Leitura do dia em foco: data por extenso e quantidade. Começa em hoje. */}
+      <p className="mb-3 flex min-h-6 flex-wrap items-baseline gap-x-2 text-sm" aria-live="polite">
+        {d && data && (
+          <>
+            <span className="text-2xl font-bold leading-none tabular-nums text-navy">{numero(d.respostas)}</span>
+            <span className="text-slate-600">
+              {d.respostas === 1 ? 'resposta' : 'respostas'} em {DIA_SEMANA[data.getDay()]}, {data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+              {ativo === visiveis.length - 1 && <span className="ml-1.5 rounded-full bg-tech/10 px-2 py-0.5 text-xs font-semibold text-tech">hoje</span>}
+              {ativo === iMaior && maior > 0 && <span className="ml-1.5 rounded-full bg-saude/15 px-2 py-0.5 text-xs font-semibold text-saude-700">melhor dia</span>}
+            </span>
+          </>
+        )}
+      </p>
+
+      <div className="grid grid-cols-[2rem_1fr] gap-x-2">
+        {/* eixo y */}
+        <div className="relative h-40 text-right text-xs tabular-nums text-slate-500">
+          {grade.map((g) => (
+            <span key={g} className="absolute right-0 -translate-y-1/2" style={{ top: `${100 - (g / topo) * 100}%` }}>
+              {g}
+            </span>
+          ))}
+        </div>
+        {/* barras */}
+        <div className="relative h-40" onMouseLeave={() => setFoco(null)}>
+          {grade.map((g) => (
+            <span key={g} className="pointer-events-none absolute inset-x-0 border-t border-dashed border-slate-200" style={{ top: `${100 - (g / topo) * 100}%` }} aria-hidden />
+          ))}
+          <div className="absolute inset-0 flex items-end gap-px sm:gap-1" role="group" aria-label="Respostas por dia">
+            {visiveis.map((x, i) => {
+              const dt = dataLocal(x.dia)
+              const fds = dt.getDay() === 0 || dt.getDay() === 6
+              const emFoco = i === ativo
+              return (
+                <button
+                  key={x.dia}
+                  type="button"
+                  onMouseEnter={() => setFoco(i)}
+                  onFocus={() => setFoco(i)}
+                  onClick={() => setFoco(i)}
+                  aria-label={`${DIA_SEMANA[dt.getDay()]} ${dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}: ${x.respostas} respostas`}
+                  aria-pressed={emFoco}
+                  className="group relative flex h-full flex-1 items-end rounded-t outline-none focus-visible:ring-2 focus-visible:ring-tech"
+                >
+                  <span
+                    className={`block w-full rounded-t transition-[height,background-color] duration-300 motion-reduce:transition-none ${
+                      emFoco ? 'bg-navy' : fds ? 'bg-sky-300 group-hover:bg-sky-400' : 'bg-tech group-hover:bg-blue-700'
+                    }`}
+                    style={{ height: `${Math.max(x.respostas ? 3 : 1, (x.respostas / topo) * 100)}%` }}
+                  />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        {/* eixo x */}
+        <span />
+        <div className="mt-1 flex gap-px sm:gap-1">
+          {visiveis.map((x, i) => {
+            const dt = dataLocal(x.dia)
+            const mostrar = (visiveis.length - 1 - i) % rotuloCada === 0
+            return (
+              <span key={x.dia} className={`flex-1 text-center text-[11px] leading-tight tabular-nums ${i === ativo ? 'font-semibold text-navy' : 'text-slate-500'}`}>
+                {mostrar && (
+                  <>
+                    {periodo === 7 && <span className="block">{DIA_SEMANA[dt.getDay()]}</span>}
+                    {dt.getDate().toString().padStart(2, '0')}
+                    {periodo !== 7 && <span className="text-slate-500">/{(dt.getMonth() + 1).toString().padStart(2, '0')}</span>}
+                  </>
+                )}
+              </span>
+            )
+          })}
+        </div>
+      </div>
+      <p className="mt-2 flex items-center gap-3 text-[11px] text-slate-500">
+        <span className="flex items-center gap-1"><span className="inline-block size-2.5 rounded-sm bg-tech" aria-hidden /> dia útil</span>
+        <span className="flex items-center gap-1"><span className="inline-block size-2.5 rounded-sm bg-sky-300" aria-hidden /> fim de semana</span>
+        <span className="ml-auto">passe o mouse ou use Tab para ver cada dia</span>
+      </p>
+    </Cartao>
   )
 }
 

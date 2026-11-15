@@ -72,3 +72,6 @@ export function dataSimples(iso: string): string {
 }
 
 export const faixaTurno = (inicio: number, fim: number) => `${String(inicio).padStart(2, '0')}h às ${String(fim).padStart(2, '0')}h`
+
+/** "manhã", "tarde" ou "noite", pela hora em que o turno começa. Serve para quem não sabe o que é "Turno A". */
+export const periodoDoTurno = (inicio: number): 'manhã' | 'tarde' | 'noite' => (inicio >= 5 && inicio < 12 ? 'manhã' : inicio >= 12 && inicio < 18 ? 'tarde' : 'noite')

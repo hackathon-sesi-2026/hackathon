@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
+  ArrowUpDown,
+  UserRound,
   ArrowRight,
   Building2,
   Factory,
@@ -45,12 +47,15 @@ import type {
   TipoRegistro,
 } from '../../../api/tipos'
 import { Link } from 'react-router'
+import { api } from '../../../api/cliente'
 import { useRecurso } from '../../../api/useRecurso'
+import { ESTILO_BOTAO_FILTRO, Filtro } from '../../../componentes/Filtro'
 import { IconeCategoria } from '../../../componentes/IconeCategoria'
+import { ModalDeEnvio, type PedidoDeEnvio } from '../../../componentes/ModalDeEnvio'
 import { AvisoDeFalha } from '../../../componentes/TelaCheia'
 import { addDias, data, dataCurta, dataSimples, faixaTurno, horaCurta, idade, relativo } from '../../../lib/datas'
 import { FREQUENCIA_RISCO, ROTULO_MOTIVO, ROTULO_RISCO, ROTULO_STATUS_PLANO, iniciais } from '../../../lib/rotulos'
-import { ContextoDasAcoes, criarAcoes, useAcoes } from './acoes'
+import { CAMINHO_DO_ENVIO, ContextoDasAcoes, criarAcoes, useAcoes } from './acoes'
 
 const COR_RISCO_FALTA: Record<NivelRiscoFalta, string> = {
   alto: 'bg-red-50 text-alerta ring-red-200',
@@ -216,8 +221,19 @@ export function PainelAps() {
           ...(atalho === 'acao' ? { precisaAcao: 'true' } : {}),
           ...(situacoes.length ? { situacao: situacoes.join(',') } : {}),
         })}`
-  const { dados, erro, falha, carregando, enviar } = useRecurso<PipelineDaFila | PaginaDaFila>(caminho, '/aps/eventos')
-  const acoes = useMemo(() => criarAcoes(enviar), [enviar])
+  const { dados, erro, falha, carregando, enviar, recarregar } = useRecurso<PipelineDaFila | PaginaDaFila>(caminho, '/aps/eventos')
+  const [pedido, setPedido] = useState<PedidoDeEnvio | null>(null)
+  const acoes = useMemo(() => criarAcoes(enviar, setPedido), [enviar])
+  // O modal chama a API direto para ter a mensagem de erro na mão; o toast do `enviar` não serve aqui.
+  const executarEnvio = async (p: PedidoDeEnvio): Promise<true | string> => {
+    try {
+      await api.post(CAMINHO_DO_ENVIO[p.tipo](p.trabalhadorId))
+      await recarregar()
+      return true
+    } catch (e) {
+      return e instanceof Error ? e.message : 'Não foi possível concluir. Tente de novo.'
+    }
+  }
   const abrir = (p: PessoaNaCarteira) => setAberta(p.trabalhador.id)
 
   if (!dados) return <p className="p-6 text-sm text-slate-500">{erro ? `Não foi possível carregar a carteira: ${erro}` : 'Carregando a carteira…'}</p>
@@ -320,6 +336,7 @@ export function PainelAps() {
         )}
 
         {aberta && <FichaAberta key={aberta} id={aberta} fechar={() => setAberta(null)} />}
+        <ModalDeEnvio pedido={pedido} executar={executarEnvio} fechar={() => setPedido(null)} />
         <AvisoDeFalha mensagem={falha} />
       </div>
     </ContextoDasAcoes.Provider>
@@ -381,18 +398,6 @@ function NumerosDoTopo({ resumo, atalho, escolher }: { resumo: ResumoDaFila; ata
   )
 }
 
-function Chip({ ativo, onClick, children }: { ativo: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      aria-pressed={ativo}
-      className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition ${ativo ? 'bg-navy text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-    >
-      {children}
-    </button>
-  )
-}
-
 function BarraDeFiltros({
   resumo,
   filtros,
@@ -410,47 +415,60 @@ function BarraDeFiltros({
   ordem: OrdemDaFila
   setOrdem: (o: OrdemDaFila) => void
 }) {
-  const alternar = <T,>(lista: T[], valor: T) => (lista.includes(valor) ? lista.filter((x) => x !== valor) : [...lista, valor])
   const algum = filtros.busca || buscaDigitada || filtros.risco.length || filtros.riscoFalta.length || filtros.empresa || filtros.enfermeira
-  const caixa = 'rounded-xl bg-white px-2.5 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 outline-none focus:ring-2 focus:ring-tech'
 
   return (
     <div className="mt-3 grid gap-2 rounded-2xl bg-white/70 p-2 ring-1 ring-slate-200/70 lg:flex lg:flex-wrap lg:items-center">
-      <label className="flex min-w-0 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-tech lg:min-w-52 lg:flex-1">
+      <label className="flex min-w-0 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-tech lg:min-w-44 lg:flex-1">
         <Search className="size-4 shrink-0 text-slate-500" />
         <input value={buscaDigitada} onChange={(e) => setBuscaDigitada(e.target.value)} placeholder="Nome, matrícula ou CPF" aria-label="Buscar pessoa por nome, matrícula ou CPF" className="w-full min-w-0 bg-transparent outline-none" />
       </label>
-      <div className="grid grid-cols-2 gap-2 lg:flex">
+      <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap">
         <SeletorDeEmpresa empresas={resumo.empresas} valor={filtros.empresa} escolher={(empresa) => setFiltros((f) => ({ ...f, empresa }))} />
-        <select value={filtros.enfermeira} onChange={(e) => setFiltros((f) => ({ ...f, enfermeira: e.target.value }))} className={`${caixa} min-w-0 lg:max-w-[11rem]`} aria-label="Enfermeira">
-          <option value="">Todas as enfermeiras</option>
-          {resumo.enfermeiras.map((e) => (
-            <option key={e}>{e}</option>
-          ))}
-        </select>
+        <Filtro
+          rotulo="Enfermeira"
+          Icone={UserRound}
+          textoTodos="Enfermeira"
+          largura="lg:w-44"
+          valor={filtros.enfermeira}
+          aoMudar={(v) => setFiltros((f) => ({ ...f, enfermeira: v as string }))}
+          opcoes={resumo.enfermeiras.map((e) => ({ valor: e, rotulo: e }))}
+        />
+        <Filtro<number>
+          multiplo
+          rotulo="Risco"
+          Icone={HeartPulse}
+          textoTodos="Risco"
+          largura="lg:w-36"
+          valor={filtros.risco}
+          aoMudar={(v) => setFiltros((f) => ({ ...f, risco: v as number[] }))}
+          opcoes={([1, 2, 3, 4] as const).map((r) => ({ valor: r, rotulo: `Risco ${r}`, detalhe: ROTULO_RISCO[r].split(' · ')[1] }))}
+          rodape="Classificação clínica do S+. Define o prazo do retorno."
+        />
+        <Filtro<NivelRiscoFalta>
+          multiplo
+          rotulo="Risco de falta"
+          Icone={Radar}
+          textoTodos="Risco de falta"
+          largura="lg:w-44"
+          valor={filtros.riscoFalta}
+          aoMudar={(v) => setFiltros((f) => ({ ...f, riscoFalta: v as NivelRiscoFalta[] }))}
+          opcoes={(['alto', 'medio', 'baixo'] as const).map((n) => ({ valor: n, rotulo: ROTULO_RISCO_FALTA[n], quantidade: resumo.porRiscoFalta[n] }))}
+          rodape="Pontuação nossa, por regras explicáveis: quem tende a sair do cuidado."
+        />
       </div>
-      <div className="flex items-center gap-1 overflow-x-auto" role="group" aria-label="Risco clínico">
-        <span className="shrink-0 px-1 text-xs font-semibold text-slate-500">Risco</span>
-        {[1, 2, 3, 4].map((r) => (
-          <Chip key={r} ativo={filtros.risco.includes(r)} onClick={() => setFiltros((f) => ({ ...f, risco: alternar(f.risco, r) }))}>
-            {r}
-          </Chip>
-        ))}
-        <span className="ml-2 shrink-0 px-1 text-xs font-semibold text-slate-500">Falta</span>
-        {(['alto', 'medio', 'baixo'] as const).map((n) => (
-          <Chip key={n} ativo={filtros.riscoFalta.includes(n)} onClick={() => setFiltros((f) => ({ ...f, riscoFalta: alternar(f.riscoFalta, n) }))}>
-            {ROTULO_RISCO_FALTA[n]} <span className="opacity-70">{numero(resumo.porRiscoFalta[n])}</span>
-          </Chip>
-        ))}
-      </div>
-      <div className="flex items-center gap-2">
-        <select value={ordem} onChange={(e) => setOrdem(e.target.value as OrdemDaFila)} className={`${caixa} flex-1 lg:flex-none`} aria-label="Ordenar por">
-          {(Object.keys(ROTULO_ORDEM) as OrdemDaFila[]).map((o) => (
-            <option key={o} value={o}>
-              ↕ {ROTULO_ORDEM[o]}
-            </option>
-          ))}
-        </select>
+      <div className="flex items-center gap-2 lg:ml-auto">
+        <Filtro<OrdemDaFila>
+          neutro
+          alinhar="direita"
+          rotulo="Ordenar por"
+          Icone={ArrowUpDown}
+          textoTodos="Prioridade"
+          largura="flex-1 lg:w-44 lg:flex-none"
+          valor={ordem}
+          aoMudar={(v) => setOrdem((v || 'prioridade') as OrdemDaFila)}
+          opcoes={(Object.keys(ROTULO_ORDEM) as OrdemDaFila[]).map((o) => ({ valor: o, rotulo: ROTULO_ORDEM[o] }))}
+        />
         {algum ? (
           <button
             onClick={() => {
@@ -479,15 +497,15 @@ function SeletorDeEmpresa({ empresas, valor, escolher }: { empresas: string[]; v
     setBusca('')
   }
   return (
-    <div className="relative min-w-0 lg:w-60">
+    <div className="relative min-w-0 lg:w-52">
       <button
         type="button"
         onClick={() => setAberto((a) => !a)}
         aria-expanded={aberto}
         aria-haspopup="listbox"
-        className={`flex w-full items-center gap-2 rounded-xl bg-white px-2.5 py-2 text-left text-sm shadow-sm ring-1 ${valor ? 'font-semibold text-navy ring-tech' : 'text-slate-500 ring-slate-200'}`}
+        className={ESTILO_BOTAO_FILTRO(Boolean(valor), aberto)}
       >
-        <Building2 className="size-4 shrink-0 text-slate-500" />
+        <Building2 className={`size-4 shrink-0 ${valor ? 'text-tech' : 'text-slate-500'}`} />
         <span className="min-w-0 flex-1 truncate">{valor ? semSufixo(valor) : `Todas as empresas (${empresas.length})`}</span>
         <ChevronDown className="size-4 shrink-0 text-slate-500" />
       </button>
@@ -799,7 +817,7 @@ function Lista({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                      <BotaoIcone titulo="Enviar lembrete pelo WhatsApp" onClick={() => acoes.enviarLembrete(t.id)} Icone={Send} />
+                      <BotaoIcone titulo="Enviar lembrete pelo WhatsApp" onClick={() => acoes.pedirEnvio({ trabalhadorId: t.id, nome: t.nome, tipo: 'lembrete' })} Icone={Send} />
                       <BotaoIcone titulo="Abrir detalhes" onClick={() => abrir(p)} Icone={Eye} />
                     </div>
                   </td>
@@ -948,16 +966,16 @@ function Gaveta({ t, s, r, fechar }: { t: LinhaDaFila; s: Situacao; r: RiscoFalt
                 Registrar monitoramento
               </button>
               <div className="grid grid-cols-2 gap-2">
-                <BotaoPilula onClick={() => acoes.enviarLembrete(pessoa.id)} Icone={Send}>
+                <BotaoPilula onClick={() => acoes.pedirEnvio({ trabalhadorId: pessoa.id, nome: pessoa.nome, tipo: 'lembrete' })} Icone={Send}>
                   Lembrete
                 </BotaoPilula>
-                <BotaoPilula onClick={() => acoes.enviarPlano(pessoa.id)} Icone={FileWarning}>
+                <BotaoPilula onClick={() => acoes.pedirEnvio({ trabalhadorId: pessoa.id, nome: pessoa.nome, tipo: 'plano' })} Icone={FileWarning}>
                   {t.plano.status === 'nao_enviado' ? 'Plano' : 'Reenviar'}
                 </BotaoPilula>
-                <BotaoPilula onClick={() => acoes.enviarCheckinHabito(pessoa.id)} Icone={MessageCircleWarning}>
+                <BotaoPilula onClick={() => acoes.pedirEnvio({ trabalhadorId: pessoa.id, nome: pessoa.nome, tipo: 'checkin_habito' })} Icone={MessageCircleWarning}>
                   Check-in
                 </BotaoPilula>
-                <BotaoPilula onClick={() => acoes.enviarCheckin(pessoa.id)} Icone={HeartHandshake}>
+                <BotaoPilula onClick={() => acoes.pedirEnvio({ trabalhadorId: pessoa.id, nome: pessoa.nome, tipo: 'checkin' })} Icone={HeartHandshake}>
                   Como está?
                 </BotaoPilula>
               </div>
