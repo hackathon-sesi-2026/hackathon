@@ -12,6 +12,12 @@
       "runtimeExecutable": "api/.venv/Scripts/python",
       "runtimeArgs": ["-m", "uvicorn", "selo_saude.main:app", "--app-dir", "api/src", "--port", "8000"],
       "port": 8000
+    },
+    {
+      "name": "revisao-pitch",
+      "runtimeExecutable": "api/.venv/Scripts/python",
+      "runtimeArgs": ["revisao-pitch/servidor.py"],
+      "port": 5180
     }
   ]
 }

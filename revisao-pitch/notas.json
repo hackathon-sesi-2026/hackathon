@@ -1,0 +1,166 @@
+{
+  "heroEscolhida": null,
+  "notas": {
+    "quebra": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Falta icones, falta deixar mais atrativo",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:29:24.865Z"
+      }
+    ],
+    "capa": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Eu gostei dessa imagem da hero, mas esse não deveria ter esse circulo \"neon\" que ta no trabalhor \"foco\" da imagem, pode remover",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:08:17.664Z"
+      }
+    ],
+    "marcos": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Eu acredito que esse slide nao deveria vir agora, e a Persona ficou muito vago, a persona, deveria vir depois de \"quebra\" / do \"Por que acontece\" e a gnt trazer essa visualização do processo da persona, tipo \"Como o marcos vai utilizar o ecosistema\", dai a gnt colocar a persona tem o acompanhamento e pós a instalação do Selo Saude. e gerar imagens com o codex dele usando o totem, sendo atendido e etc",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:08:32.621Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "Profissional \"Operador Industrial\", e a parte de \"HOJE, SEM O SELO SAÚDE\" precisa que melhore isso do \"perde o fretado.\" ficou ruim, nao é claro os problemas que esse profissional passa, e existem problemas maiores, ele alta as consultas, e NÃO está engajado, e coloca icones tbm  -------- \"Para quem fazemos\" é ruim de falar, e está pequeno e sem identidade (icone);",
+        "feita": false,
+        "criadaEm": "2026-11-15T03:19:29.559Z"
+      }
+    ],
+    "punch": [
+      {
+        "tipo": "Ajuste",
+        "texto": "96% de satisfação de quem é atendido nao sei de onde tu tirou, pode remover, e isso \"ATENÇÃO PRIMÁRIA A SAÚDE - SESI SAUDE ACOLHE\" pode remover\n\nE esses 94% dos casos que chegam na APS são resolvidos apenas com o APS (a copy deve ser boa) -------- e tira isso dos 96%",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:11:59.950Z"
+      }
+    ],
+    "metrica": [
+      {
+        "tipo": "Ajuste",
+        "texto": "A copy de \"termina com a cadeira vazia, a equipe a espera e o cuidado interrompido\" melhora pq nem sempre a equipe vai realmente esperar ou a cadeira vai ficar vazia, pq esses 50% nao sobre nao comparecer em atendimentos agendados, checka o MIRO pfv, que eles tem as certeza, e o roteiro tem tbm onde esse dado dos 50% vem",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:22:38.631Z"
+      }
+    ],
+    "efeitos": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Precisa ficar mais organizado, mais bonito tbm",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:23:05.839Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "Que diacho é presenteismo, troca esse nome",
+        "feita": false,
+        "criadaEm": "2026-11-15T03:14:42.229Z"
+      }
+    ],
+    "ciclo": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Sinto que o ecosistema precisa estar mais real, tipo a etapa 3 nao faz sentido real isso se encaixa por meio aonde? e quero que isso seja conectado aos nossos entregáveis.",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:29:08.158Z"
+      }
+    ],
+    "solucao": [
+      {
+        "tipo": "Ajuste",
+        "texto": "O totem fisico precisa de uma visualização melhor, um preview mais proximo do real, e preciso que nisso de \"O que entregamos\" quero que tenha os usuários de cada sistema, totem fisico vai ser \"Trabalhadores / Pacientes\" e App do trabalhador também, o Dashboard vai ser \"Liderança e RH\" e \"Equipe de APS\"",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:31:16.225Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "A imagem do totem nao fcou muito interessante nao, tipo assim, a estrutura do totem está boa, porém, a imagem que tu botou desses 3 emojis nao ficaram interessanes para visualizar nao, e a imagem ficou em 9:16, ao inves de ser um horizontal 16:9",
+        "feita": false,
+        "criadaEm": "2026-11-15T03:29:31.088Z"
+      }
+    ],
+    "automacoes": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Essa parte de \"A IA TRADUZ, A EQUIPE DECIDE\" REMOVE, e \"Antes\" \"exame pedido\" \"resultando pronto\" \"depois\" preciso que voce deixe mais próximo do real/ o que seriam essas msgs, e tipo, envio de cards tambem, isso de \"Preparo de exame\" quero que tenha tipo um card em anexo com recomendações, quero que essa parte de automações e I.A tenha a logo do whatsapp para ficar mais nitido que vai ser mensagens",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:32:28.337Z"
+      }
+    ],
+    "resultados": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Precisa melhorar isso, por que sinceramente nao esta nítido, precisamos de objetivos claros",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:33:39.122Z"
+      }
+    ],
+    "validacao": [
+      {
+        "tipo": "Ajuste",
+        "texto": "REMOVE",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:36:16.838Z"
+      }
+    ],
+    "empresa": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Precisa melhorar",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:37:51.304Z"
+      }
+    ],
+    "acesso": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Essa parte de segurança no totem queremos imagens\n\nValidação pelo CPF seria o Marcos digitando o CPF no totem na parede da fabrica, Cracha NFC seria uma imagem (Remove isso de Face-ID por enquanto deixa só cracha e coloca como evolução futura do projeto \n\nA validação pelo CPF já entregue, \n\nDai tu coloca 1 (primeiro acesso), \"2 na tela\" e \"3 melhorias futuras na segurança\" que seria isso do cracha NFC\n\n------",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:40:54.779Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "A imagem dele no cracha NFC, quero que tenha um \"CHECK\" verde na tela para que signifique que foi autorizado e quero ele olhando para a tela, gera novamente com o codex essa 3 imagem",
+        "feita": false,
+        "criadaEm": "2026-11-15T03:31:40.241Z"
+      }
+    ],
+    "impacto": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Remove esta bom nao, queremos medir os resultados de uma maneira mais analitica (mas sem numeros) algo mais factivel",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:41:25.583Z"
+      }
+    ],
+    "negocio": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Nao gostei disso de paga por vida, mas isso é bom mostrar para eles que a nossa solução tem o intuito de fazer o SESI recuperar dinheiro, ou deixar de perder, tipo assim, se eles tem 10.000 pacientes, e 50% faltam, eles tem 50% a menos de pacientes, o que pode ocasionar na baixa perceção de valor do serviço, clientes (B2B) desangajados, e etc, isso é o que ele perde, com o SeloSaude ele recuperaria valores",
+        "feita": true,
+        "criadaEm": "2026-11-15T01:43:02.295Z"
+      }
+    ],
+    "jornada": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Ficou com um degrade na esquerda, poderia ser bem menor esse degrade, deixa uns 15% de degrade, e coloca esse degrade na horizontal, e nao na vertifical, por isso ai vai ficar uma \"transição smooth\" da imagem pro card",
+        "feita": false,
+        "criadaEm": "2026-11-15T03:28:35.169Z"
+      }
+    ],
+    "diferencial": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Remove",
+        "feita": false,
+        "criadaEm": "2026-11-15T03:37:10.081Z"
+      }
+    ]
+  },
+  "novos": []
+}

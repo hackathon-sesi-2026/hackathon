@@ -1,0 +1,20 @@
+{
+  "v": 5,
+  "createdOnFiles": { "v": 1, "at": "2026-11-14T19:30:00Z" },
+  "lists": "css",
+  "format": { "v": 1, "shared": ["project/deck.css"] },
+  "title": "Selo Saúde · Pitch Hackathon+ SESI Saúde 2026",
+  "order": ["capa", "punch", "metrica", "escala", "efeitos", "virada", "quebra", "marcos", "jornada", "ciclo", "solucao", "automacoes", "resultados", "recompensas", "gatilhos", "demo", "diferencial", "empresa", "acesso", "impacto", "negocio", "viavel", "time", "fechamento"],
+  "sections": {
+    "abertura": { "description": "Quem somos e o que o Selo Saúde faz.", "start": "capa" },
+    "problema": { "description": "A pergunta, o tamanho do problema, o que ele causa e por quê.", "start": "punch" },
+    "solucao": { "description": "O ecossistema que se autoalimenta, as três pontas, as automações e a demo.", "start": "ciclo" },
+    "engajamento": { "description": "O valor para cada ponta, recompensas e gatilhos éticos.", "start": "resultados" },
+    "valor": { "description": "Diferencial, privacidade, impacto medido e viabilidade.", "start": "diferencial" },
+    "fecho": { "description": "O resultado: “a empresa se preocupa com a minha saúde”.", "start": "fechamento" }
+  },
+  "faces": {
+    "inter": { "family": "Inter", "href": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" }
+  },
+  "designSystems": []
+}

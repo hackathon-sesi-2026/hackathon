@@ -1,0 +1,1083 @@
+/* Identidade visual SeloSaúde — "Cuidado em Evolução" (Painel de Identidade Visual SeloSaúde.png)
+   Primária #0B1F44 · Apoio #2563EB · Ação #10B981 · Destaque #22D3A6 · Neutra #E5EDF6 · Fundo #F8FAFC · Inter */
+:root {
+  --primaria: #0b1f44;
+  --primaria2: #0e2754;
+  --apoio: #2563eb;
+  --acao: #10b981;
+  --destaque: #22d3a6;
+  --neutra: #e5edf6;
+  --fundo: #f8fafc;
+  --texto: #b8c6dc;
+  --suave: #7f8fab;
+  --vidro: #13305f;
+  --borda: #1f4a7a;
+}
+
+section {
+  counter-increment: page;
+  font-family: 'Inter', Arial, sans-serif;
+  padding: 128px 128px 160px;
+  background: linear-gradient(160deg, #0e2754 0%, #0b1f44 55%, #081834 100%);
+  color: var(--fundo);
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+h1 {
+  font-size: 140px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -4px;
+}
+
+h2 {
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -1.5px;
+}
+
+h3 {
+  font-size: 38px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--fundo);
+}
+
+p {
+  font-size: 32px;
+  line-height: 1.4;
+}
+
+.eyebrow {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--destaque);
+}
+
+.lead {
+  font-size: 38px;
+  line-height: 1.35;
+  color: var(--texto);
+}
+
+.destaque {
+  color: var(--destaque);
+}
+
+/* Cartões de vidro, borda fina (como os painéis da identidade) */
+.cards {
+  display: flex;
+  gap: 28px;
+  flex: 1;
+}
+
+.card {
+  flex: 1;
+  background: var(--vidro);
+  border: 2px solid var(--borda);
+  border-radius: 28px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.card p {
+  font-size: 28px;
+  color: var(--texto);
+}
+
+.card .num {
+  font-size: 100px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: var(--destaque);
+}
+
+.card .rotulo {
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--fundo);
+}
+
+/* Número do passo: anel em destaque, como os ícones de contorno */
+.passo {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+  border: 3px solid var(--destaque);
+  color: var(--destaque);
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.citacao {
+  font-size: 42px;
+  font-weight: 600;
+  line-height: 1.3;
+  border-left: 6px solid var(--destaque);
+  padding-left: 40px;
+  color: var(--fundo);
+}
+
+.fonte {
+  position: absolute;
+  left: 128px;
+  bottom: 64px;
+  width: 1664px;
+  font-size: 24px;
+  color: var(--suave);
+}
+
+table {
+  font-size: 28px;
+  color: var(--neutra);
+}
+
+/* Linha do tempo */
+.trilha {
+  display: flex;
+  gap: 24px;
+}
+
+.etapa {
+  flex: 1;
+  border-top: 6px solid var(--destaque);
+  padding-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.etapa p {
+  font-size: 28px;
+  color: var(--texto);
+}
+
+.etapa .quando {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--destaque);
+}
+
+/* Ciclo do ecossistema */
+.ciclo {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.no {
+  flex: 1;
+  background: var(--vidro);
+  border: 2px solid var(--borda);
+  border-radius: 24px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.no p {
+  font-size: 28px;
+  color: var(--texto);
+}
+
+.seta {
+  align-self: center;
+  width: 44px;
+  height: 26px;
+  background: var(--destaque);
+}
+
+.base {
+  display: flex;
+  gap: 24px;
+}
+
+.volta {
+  flex: 1;
+  border: 2px dashed var(--borda);
+  border-radius: 20px;
+  padding: 24px 32px;
+}
+
+.volta p {
+  font-size: 28px;
+  color: var(--texto);
+}
+
+.recompensa {
+  flex: 1;
+  background: #0f3d4d;
+  border: 2px solid var(--destaque);
+  border-radius: 20px;
+  padding: 24px 32px;
+}
+
+.recompensa p {
+  font-size: 28px;
+  color: var(--neutra);
+}
+
+/* Resultados no fechamento: botão primário da identidade */
+.resultados {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.resultado {
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--primaria);
+  background: var(--destaque);
+  border-radius: 999px;
+  padding: 14px 34px;
+}
+
+/* Ecossistema visual: totem, app, dashboard */
+.pecas {
+  display: flex;
+  gap: 28px;
+}
+
+.peca {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.peca p {
+  font-size: 27px;
+  color: var(--texto);
+}
+
+.vitrine {
+  height: 340px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-bottom: 2px solid var(--borda);
+  padding-bottom: 12px;
+}
+
+.conexao {
+  background: #0f3d4d;
+  border: 2px solid var(--destaque);
+  border-radius: 999px;
+  padding: 16px 40px;
+}
+
+.conexao p {
+  font-size: 28px;
+  color: var(--neutra);
+  text-align: center;
+}
+
+/* Ciclo autoalimentado */
+.etapa-ciclo {
+  position: absolute;
+  width: 360px;
+  box-sizing: border-box;
+  background: var(--vidro);
+  border: 2px solid var(--borda);
+  border-radius: 20px;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.etapa-ciclo p {
+  font-size: 24px;
+  line-height: 1.35;
+  color: var(--texto);
+}
+
+.etapa-ciclo .nome {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--destaque);
+}
+
+.etapa-ciclo .gatilho {
+  align-self: flex-start;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primaria);
+  background: var(--destaque);
+  border-radius: 999px;
+  padding: 4px 16px;
+}
+
+.lado {
+  position: absolute;
+  left: 1230px;
+  width: 562px;
+  box-sizing: border-box;
+  background: #0f3d4d;
+  border: 2px solid var(--destaque);
+  border-radius: 24px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lado p {
+  font-size: 28px;
+  color: var(--neutra);
+}
+
+.lado .nome {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--destaque);
+}
+
+/* Linha de cartões com altura pelo conteúdo (sem flex:0, que o editor lê como altura zero) */
+.linha {
+  display: flex;
+  align-items: stretch;
+  gap: 28px;
+}
+
+/* Passos da autenticação do totem */
+.chave {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--destaque);
+}
+
+/* Abertura do problema: selo de origem e dois números */
+.selo-tag {
+  align-self: flex-start;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--primaria);
+  background: var(--destaque);
+  border-radius: 999px;
+  padding: 12px 32px;
+}
+
+.duo {
+  display: flex;
+  gap: 96px;
+}
+
+.duo-num {
+  font-size: 180px;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -5px;
+  color: var(--destaque);
+}
+
+.duo-rotulo {
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--neutra);
+  max-width: 420px;
+}
+
+/* Ecossistema: nós do ciclo */
+.no-ciclo {
+  position: absolute;
+  width: 380px;
+  box-sizing: border-box;
+  background: var(--vidro);
+  border: 2px solid var(--borda);
+  border-radius: 24px;
+  padding: 20px 24px;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.no-ciclo .no-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: var(--destaque);
+  color: var(--primaria);
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.no-ciclo .nome {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--fundo);
+}
+
+.no-ciclo p {
+  font-size: 24px;
+  line-height: 1.35;
+  color: var(--texto);
+}
+
+/* Automações: jornada com mensagens */
+.jornada {
+  display: flex;
+  gap: 24px;
+  border-top: 4px dashed var(--borda);
+  padding-top: 36px;
+}
+
+.marco {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.marco-quando {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--destaque);
+}
+
+.bolha {
+  font-size: 28px;
+  color: var(--primaria);
+  background: var(--neutra);
+  border-radius: 28px 28px 28px 6px;
+  padding: 24px 28px;
+}
+
+.ia {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  background: #0f3d4d;
+  border: 2px solid var(--destaque);
+  border-radius: 28px;
+  padding: 28px 36px;
+}
+
+.ia p {
+  font-size: 30px;
+  color: var(--neutra);
+}
+
+.ia .ia-selo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 48px;
+  background: var(--destaque);
+  color: var(--primaria);
+  font-size: 38px;
+  font-weight: 800;
+}
+
+/* Resultados por ponta */
+.ganho h3 {
+  font-size: 42px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chips p {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--neutra);
+  border: 2px solid var(--destaque);
+  border-radius: 999px;
+  padding: 6px 18px;
+}
+
+/* Recompensas em escada */
+.escada {
+  display: flex;
+  gap: 24px;
+  align-items: flex-end;
+  flex: 1;
+}
+
+.degrau {
+  flex: 1;
+  box-sizing: border-box;
+  background: var(--vidro);
+  border: 2px solid var(--borda);
+  border-top: 8px solid var(--destaque);
+  border-radius: 24px 24px 0 0;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.degrau p {
+  font-size: 27px;
+  color: var(--texto);
+}
+
+.degrau.topo {
+  background: #0f3d4d;
+  border-color: var(--destaque);
+}
+
+.degrau.coletivo {
+  border-style: dashed;
+  border-top: 8px solid var(--apoio);
+}
+
+/* Listas de gatilhos */
+.lista {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.lista li {
+  font-size: 32px;
+  color: var(--fundo);
+  padding-left: 52px;
+  position: relative;
+}
+
+.lista li::before {
+  position: absolute;
+  left: 0;
+  font-weight: 800;
+}
+
+.lista.sim li::before {
+  content: "✓";
+  color: var(--destaque);
+}
+
+.lista.nao li::before {
+  content: "✕";
+  color: #ef8f6b;
+}
+
+/* Ícone em anel (traço no estilo lucide) */
+.icone {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 44px;
+  background: rgba(34, 211, 166, 0.12);
+  border: 2px solid var(--destaque);
+  color: var(--destaque);
+}
+
+.icone svg {
+  width: 44px;
+  height: 44px;
+}
+
+/* Painel de vidro sobre foto */
+.vidro-foto {
+  position: relative;
+  max-width: 1080px;
+  background: rgba(11, 31, 68, 0.72);
+  border: 2px solid var(--borda);
+  border-radius: 28px;
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.efeito-linha {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+}
+
+.efeito-linha + .efeito-linha {
+  border-top: 1px solid var(--borda);
+  padding-top: 28px;
+}
+
+.efeito-linha h3 {
+  font-size: 40px;
+}
+
+.efeito-linha p {
+  font-size: 26px;
+  color: var(--texto);
+}
+
+.quem {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--destaque);
+}
+
+/* Etiqueta do entregável que executa a etapa */
+.tag {
+  align-self: flex-start;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primaria);
+  background: var(--destaque);
+  border-radius: 999px;
+  padding: 3px 12px;
+}
+
+p.tag,
+p.status {
+  color: var(--primaria) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+
+p.status.futuro {
+  color: #93c5fd !important;
+}
+
+.tag.azul {
+  background: #60a5fa;
+}
+
+.tag.verde-zap {
+  background: #25d366;
+}
+
+/* Para quem é cada entregável */
+.usuarios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.usuarios span {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--neutra);
+  border: 2px solid var(--borda);
+  border-radius: 999px;
+  padding: 4px 14px;
+}
+
+/* Conversa no WhatsApp */
+.zap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 2px solid #1f4a3f;
+  background: #0b141a;
+}
+
+.zap-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1f2c33;
+  padding: 14px 18px;
+}
+
+.zap-topo p {
+  font-size: 22px;
+  font-weight: 700;
+  color: #e9edef;
+}
+
+.zap-topo span {
+  font-size: 18px;
+  font-weight: 500;
+  color: #8696a0;
+}
+
+.zap-corpo {
+  flex: 1;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #0b141a;
+}
+
+.msg {
+  align-self: flex-start;
+  max-width: 100%;
+  background: #202c33;
+  color: #e9edef;
+  border-radius: 4px 16px 16px 16px;
+  padding: 12px 16px;
+  font-size: 22px;
+  line-height: 1.35;
+}
+
+.msg small {
+  display: block;
+  text-align: right;
+  font-size: 16px;
+  color: #8696a0;
+  margin-top: 4px;
+}
+
+.zap-botao {
+  background: #202c33;
+  color: #53bdeb;
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 21px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.anexo {
+  background: #f8fafc;
+  color: var(--primaria);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 6px solid var(--destaque);
+}
+
+.anexo b {
+  font-size: 21px;
+}
+
+.anexo p {
+  font-size: 19px;
+  line-height: 1.3;
+  color: #334155;
+}
+
+.momento {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--destaque);
+}
+
+/* Objetivos por ponta */
+.objetivo {
+  flex: 1;
+  background: var(--vidro);
+  border: 2px solid var(--borda);
+  border-radius: 28px;
+  padding: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.objetivo h3 {
+  font-size: 40px;
+}
+
+.objetivo .medida {
+  margin-top: auto;
+  border-top: 1px solid var(--borda);
+  padding-top: 16px;
+  font-size: 24px;
+  color: var(--texto);
+}
+
+.objetivo .medida b {
+  display: block;
+  font-size: 20px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--destaque);
+  margin-bottom: 6px;
+}
+
+/* Funil de medição, sem números */
+.funil {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.funil-etapa {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: linear-gradient(90deg, #22d3a6, #2563eb);
+  color: var(--primaria);
+  border-radius: 14px;
+  padding: 14px 24px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.funil-etapa span {
+  font-size: 22px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* Quem vê o quê */
+.matriz {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.matriz-linha {
+  display: grid;
+  grid-template-columns: 340px 1fr 1fr;
+  gap: 20px;
+  align-items: center;
+  background: var(--vidro);
+  border: 2px solid var(--borda);
+  border-radius: 20px;
+  padding: 18px 26px;
+}
+
+.matriz-linha.cabeca {
+  background: none;
+  border: 0;
+  padding: 0 26px;
+}
+
+.matriz-linha.cabeca p {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--suave);
+}
+
+.matriz-linha h3 {
+  font-size: 32px;
+}
+
+.matriz-linha p {
+  font-size: 25px;
+  color: var(--neutra);
+}
+
+.matriz-linha .nunca {
+  color: #f5b49c;
+}
+
+/* Cartão com foto */
+.foto-card {
+  flex: 1;
+  background: var(--vidro);
+  border: 2px solid var(--borda);
+  border-radius: 28px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.foto-card img {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  object-position: 72% center;
+  -webkit-mask-image: linear-gradient(to bottom, #000 85%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 85%, transparent 100%);
+}
+
+.persona-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  align-self: flex-start;
+  background: rgba(34, 211, 166, 0.14);
+  border: 2px solid var(--destaque);
+  border-radius: 999px;
+  padding: 10px 26px 10px 14px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #e5edf6;
+}
+
+.persona-pill svg, .dor svg {
+  flex: none;
+}
+
+.dor {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.dor p {
+  font-size: 29px;
+}
+
+.foto-card .texto {
+  padding: 26px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.foto-card .texto p {
+  font-size: 25px;
+  color: var(--texto);
+}
+
+.foto-card .texto h3 {
+  font-size: 34px;
+}
+
+.status {
+  align-self: flex-start;
+  font-size: 20px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 14px;
+  color: var(--primaria);
+  background: var(--destaque);
+}
+
+.status.futuro {
+  background: none;
+  color: #93c5fd;
+  border: 2px dashed #60a5fa;
+}
+
+/* Hoje x com o Selo Saúde */
+.comparar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  flex: 1;
+}
+
+.coluna {
+  border-radius: 28px;
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.coluna.hoje {
+  background: rgba(239, 143, 107, 0.08);
+  border: 2px solid rgba(239, 143, 107, 0.5);
+}
+
+.coluna.selo {
+  background: #0f3d4d;
+  border: 2px solid var(--destaque);
+}
+
+.coluna p {
+  font-size: 28px;
+  color: var(--neutra);
+}
+
+/* Slides de foto: uma ideia por slide sobre imagem em tela cheia */
+section.foto {
+  justify-content: center;
+  gap: 28px;
+}
+
+/* O texto fica acima da foto e do véu, que são absolutos */
+section.foto > :not(img):not(svg):not(.fonte) {
+  position: relative;
+}
+
+.card .chave {
+  color: var(--destaque);
+}
+
+.frase {
+  font-size: 84px;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -2px;
+  max-width: 1150px;
+}
+
+.metrica-num {
+  font-size: 220px;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -6px;
+  color: var(--fundo);
+}
+
+.metrica-texto {
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 1.25;
+  max-width: 1000px;
+  color: var(--fundo);
+}
+
+.efeito {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  max-width: 1150px;
+  color: var(--fundo);
+}
+
+/* Marca */
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.marca-nome {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-left: 40px;
+  border-left: 3px solid var(--borda);
+}
+
+.tagline {
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: 14px;
+  text-transform: uppercase;
+  color: var(--neutra);
+}
+
+/* Entrada suave ao chegar no slide */
+.entra {
+  animation: subir 600ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 140ms);
+}
+
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}

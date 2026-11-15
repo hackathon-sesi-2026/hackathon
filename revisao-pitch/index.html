@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revisão do pitch · Selo Saúde</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primaria: #0b1f44; --painel: #0e2754; --vidro: #13305f; --borda: #1f4a7a;
+    --destaque: #22d3a6; --apoio: #2563eb; --texto: #e5edf6; --suave: #8fa0bd; --alerta: #ef8f6b;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Inter, Arial, sans-serif; background: #081834; color: var(--texto); height: 100vh; display: flex; flex-direction: column; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  header { display: flex; align-items: center; gap: 24px; padding: 12px 20px; background: var(--primaria); border-bottom: 1px solid var(--borda); }
+  header h1 { font-size: 17px; font-weight: 700; }
+  header h1 span { color: var(--destaque); }
+  .abas { display: flex; gap: 6px; }
+  .aba { background: none; border: 1px solid var(--borda); border-radius: 999px; padding: 6px 16px; font-size: 14px; color: var(--suave); }
+  .aba.ativa { background: var(--destaque); border-color: var(--destaque); color: var(--primaria); font-weight: 700; }
+  .estado { margin-left: auto; font-size: 13px; color: var(--suave); }
+
+  main { flex: 1; display: grid; grid-template-columns: 250px 1fr 380px; min-height: 0; }
+  main.oculto, #heros.oculto { display: none; }
+
+  /* Lista de slides */
+  #lista { overflow-y: auto; border-right: 1px solid var(--borda); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 10px; padding: 8px 10px; font-size: 14px; }
+  .item:hover { background: var(--vidro); }
+  .item.ativo { background: var(--vidro); border-color: var(--destaque); }
+  .item .n { width: 24px; color: var(--suave); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .item .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .c { font-size: 11px; font-weight: 700; background: var(--alerta); color: var(--primaria); border-radius: 999px; padding: 1px 7px; }
+  .item.novo .t { color: var(--destaque); font-style: italic; }
+
+  /* Palco */
+  #centro { display: flex; flex-direction: column; min-width: 0; padding: 16px 20px; gap: 12px; overflow-y: auto; }
+  .barra { display: flex; align-items: center; gap: 10px; }
+  .barra .titulo { font-size: 16px; font-weight: 700; flex: 1; }
+  .btn { background: var(--vidro); border: 1px solid var(--borda); border-radius: 10px; padding: 8px 14px; font-size: 14px; }
+  .btn:hover { border-color: var(--destaque); }
+  .btn.prim { background: var(--destaque); color: var(--primaria); border-color: var(--destaque); font-weight: 700; }
+  .palco { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--borda); }
+  .palco iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; pointer-events: none; }
+  .vazio { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 6%; background: repeating-linear-gradient(135deg, #0e2754 0 24px, #0b1f44 24px 48px); }
+  .vazio .selo { align-self: flex-start; font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; background: var(--destaque); color: var(--primaria); border-radius: 999px; padding: 4px 12px; }
+  .vazio input { font-size: 30px; font-weight: 800; background: transparent; border: 0; border-bottom: 2px dashed var(--borda); padding: 6px 0; }
+  .vazio textarea { font-size: 17px; line-height: 1.5; min-height: 140px; background: rgba(8,24,52,.7); border: 1px solid var(--borda); border-radius: 10px; padding: 12px; resize: vertical; }
+  .fala { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; font-size: 14px; line-height: 1.55; color: var(--suave); }
+  .fala b { color: var(--texto); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; }
+
+  /* Notas */
+  #notas { border-left: 1px solid var(--borda); padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; background: var(--primaria); }
+  #notas h2 { font-size: 15px; }
+  .nova-nota { display: flex; flex-direction: column; gap: 8px; }
+  .tipos { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tipo { border: 1px solid var(--borda); background: none; border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--suave); }
+  .tipo.ativo { border-color: var(--destaque); color: var(--destaque); font-weight: 700; }
+  .nova-nota textarea { min-height: 96px; background: var(--vidro); border: 1px solid var(--borda); border-radius: 10px; padding: 10px; font-size: 14px; resize: vertical; }
+  .nota { background: var(--vidro); border: 1px solid var(--borda); border-left: 4px solid var(--destaque); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .nota.Falta { border-left-color: var(--alerta); }
+  .nota.Copy { border-left-color: #f2c14e; }
+  .nota.Visual { border-left-color: var(--apoio); }
+  .nota.feita { opacity: .5; }
+  .nota.feita p { text-decoration: line-through; }
+  .nota .topo { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--suave); }
+  .nota .topo strong { color: var(--texto); text-transform: uppercase; letter-spacing: 1px; }
+  .nota .topo .acoes { margin-left: auto; display: flex; gap: 6px; }
+  .nota .topo button { background: none; border: 0; color: var(--suave); font-size: 12px; }
+  .nota .topo button:hover { color: var(--texto); }
+  .nota p { font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
+  .dica { font-size: 12px; color: var(--suave); line-height: 1.5; }
+
+  /* Heros */
+  #heros { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .hero { background: var(--painel); border: 2px solid var(--borda); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .hero.escolhida { border-color: var(--destaque); box-shadow: 0 0 0 4px rgba(34,211,166,.15); }
+  .hero h3 { font-size: 15px; }
+  .hero p { font-size: 13px; color: var(--suave); line-height: 1.45; }
+  .hero .palco { cursor: zoom-in; }
+  .zoom { position: fixed; inset: 0; background: rgba(4,12,28,.92); display: none; align-items: center; justify-content: center; padding: 3vw; z-index: 9; cursor: zoom-out; }
+  .zoom.aberto { display: flex; }
+  .zoom .palco { max-width: 94vw; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } #lista { flex-direction: row; overflow-x: auto; border-right: 0; } .grade { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Revisão do pitch · <span>Selo Saúde</span></h1>
+  <div class="abas">
+    <button class="aba ativa" data-aba="slides">Slides</button>
+    <button class="aba" data-aba="heros">Comparar heros</button>
+  </div>
+  <p class="estado" id="estado">Carregando…</p>
+</header>
+
+<main id="slides">
+  <nav id="lista"></nav>
+  <section id="centro">
+    <div class="barra">
+      <button class="btn" id="ant" title="Anterior (←)">←</button>
+      <p class="titulo" id="titulo"></p>
+      <button class="btn" id="maisSlide">+ Slide depois deste</button>
+      <button class="btn" id="removerNovo" hidden>Remover slide novo</button>
+      <button class="btn" id="prox" title="Próximo (→)">→</button>
+    </div>
+    <div class="palco" id="palco"></div>
+    <div class="fala" id="fala"></div>
+  </section>
+  <aside id="notas">
+    <h2 id="notasTitulo">Anotações</h2>
+    <div class="nova-nota">
+      <div class="tipos" id="tipos"></div>
+      <textarea id="texto" placeholder="O que ajustar, o que falta ou qual a ideia para este slide… (Ctrl+Enter salva)"></textarea>
+      <button class="btn prim" id="salvar">Adicionar anotação</button>
+    </div>
+    <div id="listaNotas"></div>
+    <p class="dica">As anotações ficam salvas em <b>revisao-pitch/notas.json</b>. É de lá que o Claude lê para revisar e melhorar a deck.</p>
+  </aside>
+</main>
+
+<section id="heros" class="oculto">
+  <div class="barra"><p class="titulo">Escolha a hero da capa. Clique na imagem para ver em tela cheia.</p></div>
+  <div class="grade" id="grade"></div>
+  <div class="nova-nota" style="max-width:720px;">
+    <p class="dica">Comentário sobre as heros (vai para as anotações da capa):</p>
+    <textarea id="textoHero" placeholder="Ex.: gostei da B, mas o rosto da A é mais humano…"></textarea>
+    <button class="btn prim" id="salvarHero" style="align-self:flex-start;">Adicionar comentário</button>
+  </div>
+</section>
+<div class="zoom" id="zoom"><div class="palco" id="zoomPalco" style="width:94vw;"></div></div>
+
+<script>
+const HEROS = [
+  { id: 'a', blob: '1290f942ed95599196ca785e33db1c1e', nome: 'A · Operador no portão', desc: 'Close no rosto, celular iluminando. Mais humano e próximo do Marcos.' },
+  { id: 'b', blob: 'e0d2d3924bd14b54f27ae65801eac225', nome: 'B · Anel de cuidado na troca de turno', desc: 'Planta grande, um trabalhador dentro de um anel verde como um selo. A que está na deck.' },
+  { id: 'c', blob: '9c1c49541586d85eeeef151e47021c1a', nome: 'C · Mãos, luva e celular', desc: 'Íntima, sem rosto. Foco no gesto de se cuidar no meio da fábrica.' },
+];
+const BLOB_CAPA = 'e0d2d3924bd14b54f27ae65801eac225';
+const TIPOS = ['Ajuste', 'Falta', 'Copy', 'Visual', 'Ideia'];
+const BASE = `*{margin:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#0b1f44}body{font:32px/1.2 sans-serif}section{width:1920px!important;height:1080px!important;box-sizing:border-box!important;position:relative;overflow:hidden}aside{display:none!important}`;
+
+let deck, css, slides = {}, dados = { heroEscolhida: null, notas: {}, novos: [] }, seq = [], atual = 0, tipo = 'Ajuste';
+const $ = (s) => document.querySelector(s);
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+function srcdoc(html) {
+  return `<!doctype html><html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>${BASE}</style><style>${css}</style></head><body>${html}</body></html>`;
+}
+function montarPalco(el, html) {
+  el.innerHTML = '';
+  const f = document.createElement('iframe');
+  f.setAttribute('aria-hidden', 'true');
+  f.srcdoc = srcdoc(html);
+  el.appendChild(f);
+  const ajustar = () => { f.style.transform = `scale(${el.clientWidth / 1920})`; };
+  ajustar();
+  new ResizeObserver(ajustar).observe(el);
+}
+
+function montarSeq() {
+  seq = [];
+  for (const id of deck.order) {
+    seq.push({ tipo: 'deck', id });
+    let ancora = id, novo;
+    while ((novo = dados.novos.find((n) => n.depoisDe === ancora))) { seq.push({ tipo: 'novo', id: novo.id }); ancora = novo.id; }
+  }
+}
+function nomeSlide(item) {
+  if (item.tipo === 'novo') { const n = dados.novos.find((x) => x.id === item.id); return n.titulo || 'Slide novo'; }
+  const doc = new DOMParser().parseFromString(slides[item.id] || '', 'text/html');
+  const t = doc.querySelector('h1, h2, .metrica-num, .frase');
+  return item.id + (t ? ' · ' + t.textContent.trim() : '');
+}
+
+let salvando;
+function salvar() {
+  $('#estado').textContent = 'Salvando…';
+  clearTimeout(salvando);
+  salvando = setTimeout(async () => {
+    try {
+      await fetch('/api/notas', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
+      $('#estado').textContent = 'Salvo em notas.json · ' + new Date().toLocaleTimeString('pt-BR');
+    } catch { $('#estado').textContent = 'Não salvou: o servidor está rodando?'; }
+  }, 300);
+}
+
+function desenharLista() {
+  $('#lista').innerHTML = seq.map((item, i) => {
+    const qtd = (dados.notas[item.id] || []).filter((n) => !n.feita).length;
+    return `<button class="item ${item.tipo === 'novo' ? 'novo' : ''} ${i === atual ? 'ativo' : ''}" data-i="${i}">
+      <span class="n">${i + 1}</span><span class="t">${esc(nomeSlide(item))}</span>${qtd ? `<span class="c">${qtd}</span>` : ''}</button>`;
+  }).join('');
+  $('#lista .ativo')?.scrollIntoView({ block: 'nearest' });
+}
+
+function desenharSlide() {
+  const item = seq[atual];
+  $('#titulo').textContent = `${atual + 1} / ${seq.length} · ${nomeSlide(item)}`;
+  $('#removerNovo').hidden = item.tipo !== 'novo';
+  if (item.tipo === 'deck') {
+    let html = slides[item.id];
+    if (item.id === 'capa' && dados.heroEscolhida) html = html.replaceAll(BLOB_CAPA, HEROS.find((h) => h.id === dados.heroEscolhida).blob);
+    montarPalco($('#palco'), html);
+    const fala = new DOMParser().parseFromString(html, 'text/html').querySelector('aside');
+    $('#fala').innerHTML = `<b>Fala</b>${esc(fala ? fala.textContent : 'Sem notas de fala.')}`;
+  } else {
+    const n = dados.novos.find((x) => x.id === item.id);
+    $('#palco').innerHTML = `<div class="vazio"><p class="selo">Slide novo, a criar</p>
+      <input id="novoTitulo" placeholder="Título ou ideia do slide" value="${esc(n.titulo)}">
+      <textarea id="novoDesc" placeholder="Explique o que precisa ter neste slide: mensagem, dados, imagem, onde entra na fala…">${esc(n.descricao)}</textarea></div>`;
+    $('#novoTitulo').oninput = (e) => { n.titulo = e.target.value; salvar(); desenharLista(); $('#titulo').textContent = `${atual + 1} / ${seq.length} · ${nomeSlide(item)}`; };
+    $('#novoDesc').oninput = (e) => { n.descricao = e.target.value; salvar(); };
+    $('#fala').innerHTML = '<b>Fala</b>Descreva acima. O Claude transforma isso em slide na próxima revisão.';
+  }
+  desenharNotas();
+  desenharLista();
+}
+
+function desenharNotas() {
+  const item = seq[atual];
+  const lista = dados.notas[item.id] || [];
+  $('#notasTitulo').textContent = `Anotações · ${lista.length ? lista.filter((n) => !n.feita).length + ' abertas' : 'nenhuma ainda'}`;
+  $('#listaNotas').innerHTML = lista.map((n, i) => `<div class="nota ${n.tipo} ${n.feita ? 'feita' : ''}">
+      <div class="topo"><strong>${n.tipo}</strong>${new Date(n.criadaEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+        <span class="acoes"><button data-feita="${i}">${n.feita ? 'Reabrir' : 'Feita'}</button><button data-apagar="${i}">Apagar</button></span></div>
+      <p>${esc(n.texto)}</p></div>`).join('');
+}
+
+function addNota(slideId, tipoNota, texto) {
+  if (!texto.trim()) return;
+  (dados.notas[slideId] ||= []).push({ tipo: tipoNota, texto: texto.trim(), feita: false, criadaEm: new Date().toISOString() });
+  salvar();
+}
+
+function ir(i) { atual = Math.max(0, Math.min(seq.length - 1, i)); desenharSlide(); }
+
+function desenharHeros() {
+  $('#grade').innerHTML = HEROS.map((h) => `<div class="hero ${dados.heroEscolhida === h.id ? 'escolhida' : ''}">
+      <div class="palco" data-hero="${h.id}"></div><h3>${h.nome}</h3><p>${h.desc}</p>
+      <button class="btn ${dados.heroEscolhida === h.id ? 'prim' : ''}" data-escolher="${h.id}">${dados.heroEscolhida === h.id ? 'Escolhida ✓' : 'Escolher esta'}</button></div>`).join('');
+  document.querySelectorAll('[data-hero]').forEach((el) => montarPalco(el, slides.capa.replaceAll(BLOB_CAPA, HEROS.find((h) => h.id === el.dataset.hero).blob)));
+}
+
+async function iniciar() {
+  deck = await (await fetch('/deck/deck.json')).json();
+  css = await (await fetch('/deck/deck.css')).text();
+  await Promise.all(deck.order.map(async (id) => { slides[id] = await (await fetch(`/deck/slides/${id}.html`)).text(); }));
+  try { dados = await (await fetch('/api/notas')).json(); } catch {}
+  dados.notas ||= {}; dados.novos ||= [];
+  $('#tipos').innerHTML = TIPOS.map((t) => `<button class="tipo ${t === tipo ? 'ativo' : ''}" data-tipo="${t}">${t}</button>`).join('');
+  montarSeq();
+  const h = parseInt(location.hash.slice(1), 10);
+  ir(Number.isFinite(h) ? h - 1 : 0);
+  $('#estado').textContent = 'Pronto · ← → para navegar';
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button, [data-hero]');
+  if (!t) return;
+  if (t.dataset.i) ir(+t.dataset.i);
+  if (t.dataset.tipo) { tipo = t.dataset.tipo; document.querySelectorAll('.tipo').forEach((b) => b.classList.toggle('ativo', b === t)); }
+  if (t.dataset.feita) { const n = dados.notas[seq[atual].id][+t.dataset.feita]; n.feita = !n.feita; salvar(); desenharNotas(); desenharLista(); }
+  if (t.dataset.apagar && confirm('Apagar esta anotação?')) { dados.notas[seq[atual].id].splice(+t.dataset.apagar, 1); salvar(); desenharNotas(); desenharLista(); }
+  if (t.dataset.aba) {
+    document.querySelectorAll('.aba').forEach((b) => b.classList.toggle('ativa', b === t));
+    $('#slides').classList.toggle('oculto', t.dataset.aba !== 'slides');
+    $('#heros').classList.toggle('oculto', t.dataset.aba !== 'heros');
+    if (t.dataset.aba === 'heros') desenharHeros(); else desenharSlide();
+  }
+  if (t.dataset.escolher) { dados.heroEscolhida = t.dataset.escolher; addNota('capa', 'Visual', `Hero escolhida: ${HEROS.find((h) => h.id === t.dataset.escolher).nome}`); desenharHeros(); }
+  if (t.dataset.hero) { $('#zoom').classList.add('aberto'); montarPalco($('#zoomPalco'), slides.capa.replaceAll(BLOB_CAPA, HEROS.find((h) => h.id === t.dataset.hero).blob)); }
+});
+$('#zoom').onclick = () => $('#zoom').classList.remove('aberto');
+$('#ant').onclick = () => ir(atual - 1);
+$('#prox').onclick = () => ir(atual + 1);
+$('#salvar').onclick = () => { addNota(seq[atual].id, tipo, $('#texto').value); $('#texto').value = ''; desenharNotas(); desenharLista(); };
+$('#texto').onkeydown = (e) => { if (e.key === 'Enter' && e.ctrlKey) $('#salvar').click(); };
+$('#salvarHero').onclick = () => { addNota('capa', 'Visual', 'Heros: ' + $('#textoHero').value); $('#textoHero').value = ''; $('#estado').textContent = 'Comentário salvo nas anotações da capa'; };
+$('#maisSlide').onclick = () => {
+  const novo = { id: 'novo-' + Date.now().toString(36), depoisDe: seq[atual].id, titulo: '', descricao: '' };
+  const ocupado = dados.novos.find((n) => n.depoisDe === novo.depoisDe);
+  if (ocupado) ocupado.depoisDe = novo.id;
+  dados.novos.push(novo); salvar(); montarSeq(); ir(atual + 1); $('#novoTitulo')?.focus();
+};
+$('#removerNovo').onclick = () => {
+  const item = seq[atual]; if (!confirm('Remover este slide novo e as anotações dele?')) return;
+  const n = dados.novos.find((x) => x.id === item.id);
+  dados.novos.filter((x) => x.depoisDe === n.id).forEach((x) => { x.depoisDe = n.depoisDe; });
+  dados.novos = dados.novos.filter((x) => x !== n); delete dados.notas[n.id];
+  salvar(); montarSeq(); ir(atual - 1);
+};
+document.addEventListener('keydown', (e) => {
+  if (e.target.matches('input, textarea')) return;
+  if (e.key === 'ArrowRight') ir(atual + 1);
+  if (e.key === 'ArrowLeft') ir(atual - 1);
+});
+window.addEventListener('hashchange', () => {});
+iniciar();
+</script>
+</body>
+</html>
