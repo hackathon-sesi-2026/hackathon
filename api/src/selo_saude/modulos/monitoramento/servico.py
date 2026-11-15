@@ -1,11 +1,12 @@
 """Interface pública do monitoramento: a fila da enfermagem e o registro do que foi feito."""
 
 import asyncio
+import logging
 import time
 import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Literal
 
 from sqlalchemy import select
@@ -20,10 +21,11 @@ from selo_saude.modulos.exames.servico import AndamentoDoExame
 from selo_saude.modulos.plano import servico as plano
 from selo_saude.modulos.plano.servico import DadosPlano
 from selo_saude.nucleo import relogio
+from selo_saude.nucleo.banco import fabrica_de_sessoes
 from selo_saude.nucleo.erros import NaoEncontrado
 from selo_saude.nucleo.esquema import Esquema, Instante, novo_id
 from selo_saude.nucleo.eventos import publicar
-from selo_saude.nucleo.tempo_real import TUDO, mudancas_desde, versao_dos_dados
+from selo_saude.nucleo.tempo_real import TUDO, avisar, efetivar, mudancas_desde, versao_dos_dados
 
 from .eventos import CheckinRespondido, MonitoramentoRegistrado
 from .modelos import Acompanhamento, Registro
@@ -38,12 +40,14 @@ from .regras import (
     Retrato,
     RiscoFalta,
     Situacao,
+    _envio_ativo,
     doenca_cronica,
     engajamento,
     mensagem_do_dia,
     prazo_retorno,
     risco_falta,
     situacao,
+    ultimo_envio,
 )
 
 
@@ -91,10 +95,14 @@ class _Item:
 
 # A carteira inteira (10 mil pessoas) leva segundos para calcular, então o cálculo fica guardado, uma pessoa por
 # chave. Cada gravação avisa quem mudou (canal "trabalhador:<id>", pelo NOTIFY do Postgres, que chega a todas as
-# instâncias): só essas pessoas são recalculadas. Reinício dos dados, aviso perdido ou validade vencida recalculam
-# tudo. Não é estado de negócio: é um derivado do banco, sempre descartável.
-_VALIDADE_DA_CARTEIRA = 15 * 60  # segundos
+# instâncias): só essas pessoas são recalculadas, na hora. Quando é preciso recalcular tudo (reinício dos dados,
+# aviso perdido, validade vencida, virada do dia), a tela recebe a carteira guardada na hora e o cálculo novo roda
+# em segundo plano; ao terminar, um aviso no canal do painel faz as telas buscarem de novo.
+# Não é estado de negócio: é um derivado do banco, sempre descartável.
+_VALIDADE_DA_CARTEIRA = 30 * 60  # segundos
 _PREFIXO_DA_PESSOA = "trabalhador:"
+_CANAL_DO_PAINEL = "aps"  # o mesmo de publicos/canais.py: as telas da APS buscam de novo ao receber
+registro = logging.getLogger(__name__)
 
 
 @dataclass
@@ -107,10 +115,10 @@ class _CarteiraGuardada:
 
 _guardada: _CarteiraGuardada | None = None
 _calculando = asyncio.Lock()
+_recalculo: asyncio.Task | None = None
 
 
 async def _carteira(sessao: AsyncSession) -> list[_Item]:
-    # Uma conta por vez: quem chega enquanto a carteira está sendo calculada espera e reaproveita o resultado.
     async with _calculando:
         return await _carteira_atual(sessao)
 
@@ -119,21 +127,46 @@ async def _carteira_atual(sessao: AsyncSession) -> list[_Item]:
     global _guardada
     versao, dia, agora = versao_dos_dados(), relogio.local(relogio.agora()).date(), time.monotonic()
     g = _guardada
-    if g is not None and g.dia == dia and agora - g.calculada_em < _VALIDADE_DA_CARTEIRA:
-        mudou = mudancas_desde(g.versao)
-        if mudou is not None and TUDO not in mudou:
-            pessoas = {d.removeprefix(_PREFIXO_DA_PESSOA) for d in mudou if d.startswith(_PREFIXO_DA_PESSOA)}
-            for trabalhador_id in pessoas:
-                item = await _item_de(sessao, trabalhador_id)
-                if item is None:
-                    g.itens.pop(trabalhador_id, None)
-                else:
-                    g.itens[trabalhador_id] = item
-            g.versao = versao
-            return list(g.itens.values())
-    itens = await _calcular_carteira(sessao)
-    _guardada = _CarteiraGuardada(versao, dia, agora, {i.retrato.trabalhador.id: i for i in itens})
-    return itens
+    if g is None:  # a primeira vez (a API acabou de subir): não há o que mostrar, então espera
+        itens = await _calcular_carteira(sessao)
+        _guardada = _CarteiraGuardada(versao, dia, agora, {i.retrato.trabalhador.id: i for i in itens})
+        return itens
+
+    mudou = mudancas_desde(g.versao)
+    precisa_de_tudo = mudou is None or TUDO in mudou or g.dia != dia or agora - g.calculada_em > _VALIDADE_DA_CARTEIRA
+    if mudou and not precisa_de_tudo:  # com recálculo completo a caminho, não vale recalcular pessoa por pessoa
+        pessoas = {d.removeprefix(_PREFIXO_DA_PESSOA) for d in mudou if d.startswith(_PREFIXO_DA_PESSOA)}
+        for trabalhador_id in pessoas:
+            item = await _item_de(sessao, trabalhador_id)
+            if item is None:
+                g.itens.pop(trabalhador_id, None)
+            else:
+                g.itens[trabalhador_id] = item
+    g.versao = versao
+    if precisa_de_tudo:
+        _recalcular_em_segundo_plano()
+    return list(g.itens.values())
+
+
+def _recalcular_em_segundo_plano() -> None:
+    global _recalculo
+    if _recalculo is None or _recalculo.done():
+        _recalculo = asyncio.create_task(_recalcular())
+
+
+async def _recalcular() -> None:
+    global _guardada
+    versao, dia = versao_dos_dados(), relogio.local(relogio.agora()).date()
+    try:
+        async with fabrica_de_sessoes() as sessao:
+            itens = await _calcular_carteira(sessao)
+        # Mudanças de pessoas durante o cálculo ficam registradas depois de `versao` e entram na próxima leitura.
+        _guardada = _CarteiraGuardada(versao, dia, time.monotonic(), {i.retrato.trabalhador.id: i for i in itens})
+        async with fabrica_de_sessoes() as sessao:
+            avisar(sessao, _CANAL_DO_PAINEL)
+            await efetivar(sessao)
+    except Exception:
+        registro.exception("Não foi possível recalcular a carteira da APS")
 
 
 async def aquecer(sessao: AsyncSession) -> None:
@@ -211,6 +244,9 @@ class PessoaNaCarteira(Esquema):
     prazo_retorno: Instante
     situacao: Situacao
     risco_falta: RiscoFalta
+    ultimo_envio: RegistroHistorico | None
+    """A última mensagem que o SESI mandou (lembrete, check-in, plano, resultado), com data e tipo."""
+    ultimo_contato_enfermagem: Instante | None
 
 
 def _pessoas(itens: list[_Item]) -> list[PessoaNaCarteira]:
@@ -222,9 +258,50 @@ def _pessoas(itens: list[_Item]) -> list[PessoaNaCarteira]:
             prazo_retorno=i.prazo,
             situacao=i.situacao,
             risco_falta=i.risco_falta,
+            ultimo_envio=ultimo_envio(i.retrato.historico),
+            ultimo_contato_enfermagem=i.acompanhamento.ultimo_contato_enfermagem,
         )
         for i in itens
     ]
+
+
+class EmpresaNaCarteira(Esquema):
+    """Uma indústria parceira, com os números que ajudam a enfermagem a decidir por onde começar."""
+
+    empresa: str
+    total: int
+    precisam_acao: int
+    pediram_ajuda: int
+    faltaram: int
+    fora_do_prazo: int
+    alto_risco: int
+    em_dia: int
+
+
+async def empresas(sessao: AsyncSession, filtros: "FiltrosDaFila") -> list[EmpresaNaCarteira]:
+    """As empresas da carteira, das que mais precisam de ação para as que menos precisam."""
+    sem_empresa = filtros.model_copy(update={"empresa": None})
+    por_empresa: dict[str, list[_Item]] = defaultdict(list)
+    for i in _filtrar(await _carteira(sessao), sem_empresa, com_situacao=False):
+        por_empresa[i.retrato.trabalhador.empresa].append(i)
+
+    def conta(itens: list[_Item], *codigos: str) -> int:
+        return sum(i.situacao.codigo in codigos for i in itens)
+
+    lista = [
+        EmpresaNaCarteira(
+            empresa=nome,
+            total=len(itens),
+            precisam_acao=sum(i.situacao.precisa_acao for i in itens),
+            pediram_ajuda=conta(itens, "dificuldade", "pediu_ajuda"),
+            faltaram=conta(itens, "faltou", "remarcar"),
+            fora_do_prazo=conta(itens, "fora_do_prazo"),
+            alto_risco=sum(i.risco_falta.nivel == "alto" for i in itens),
+            em_dia=conta(itens, "em_dia", "em_contato"),
+        )
+        for nome, itens in por_empresa.items()
+    ]
+    return sorted(lista, key=lambda e: (-e.precisam_acao, e.empresa))
 
 
 async def ficha(sessao: AsyncSession, trabalhador_id: str) -> LinhaDaFila:
@@ -423,6 +500,79 @@ async def pipeline(
         for codigo in ROTULO_SITUACAO
     ]
     return PipelineDaFila(colunas=colunas, resumo=_resumo_de(filtrados, todos))
+
+
+# ---------------------------------------------------------------- mensagens no WhatsApp
+
+TIPOS_DE_RESPOSTA = {
+    "confirmou", "pediu_remarcar", "agendou", "checkin_ok", "checkin_ajuda", "passo_feito", "dificuldade",
+    "compromisso", "plano_recebido", "resultado_visto",
+}  # fmt: skip
+
+
+class EnvioRecente(Esquema):
+    trabalhador_id: str
+    nome: str
+    empresa: str
+    tipo: str
+    data: Instante
+
+
+class MetricasDasMensagens(Esquema):
+    """O que o SESI mandou pelo WhatsApp nos últimos 30 dias e quanto voltou de resposta. Uso do canal, não adesão."""
+
+    envios: int
+    respostas: int
+    pessoas_alcancadas: int
+    pessoas_que_responderam: int
+    """Das alcançadas, quantas responderam ao menos uma vez nos 30 dias."""
+    por_tipo: dict[str, int]
+    por_dia: list[int]
+    """Envios por dia, dos últimos 14 dias, do mais antigo para hoje."""
+    ultimos: list[EnvioRecente]
+
+
+async def metricas_das_mensagens(sessao: AsyncSession) -> MetricasDasMensagens:
+    hoje = relogio.agora()
+    dia_de_hoje = relogio.local(hoje).date()
+    desde = hoje - timedelta(days=30)
+    por_tipo: dict[str, int] = defaultdict(int)
+    por_dia = [0] * 14
+    envios = respostas = 0
+    alcancadas = set()
+    responderam = set()
+    recentes: list[tuple[datetime, EnvioRecente]] = []
+    for i in await _carteira(sessao):
+        t = i.retrato.trabalhador
+        for r in i.retrato.historico:
+            if r.data < desde:
+                continue
+            if r.tipo in TIPOS_DE_RESPOSTA:
+                respostas += 1
+                responderam.add(t.id)
+            elif _envio_ativo(r):
+                envios += 1
+                por_tipo[r.tipo] += 1
+                alcancadas.add(t.id)
+                atras = (dia_de_hoje - relogio.local(r.data).date()).days
+                if 0 <= atras < 14:
+                    por_dia[13 - atras] += 1
+                recentes.append(
+                    (
+                        r.data,
+                        EnvioRecente(trabalhador_id=t.id, nome=t.nome, empresa=t.empresa, tipo=r.tipo, data=r.data),
+                    )
+                )
+    recentes.sort(key=lambda x: x[0], reverse=True)
+    return MetricasDasMensagens(
+        envios=envios,
+        respostas=respostas,
+        pessoas_alcancadas=len(alcancadas),
+        pessoas_que_responderam=len(responderam & alcancadas),
+        por_tipo=dict(por_tipo),
+        por_dia=por_dia,
+        ultimos=[e for _, e in recentes[:12]],
+    )
 
 
 class EnvioDaCadencia(Esquema):

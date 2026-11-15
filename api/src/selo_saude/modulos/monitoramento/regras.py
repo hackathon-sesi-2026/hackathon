@@ -224,6 +224,11 @@ def _envio_ativo(r: RegistroHistorico) -> bool:
     return r.tipo in {"lembrete", "lembrete_auto", "checkin_enviado", "plano_enviado", "resultado_liberado"}
 
 
+def ultimo_envio(historico: list[RegistroHistorico]) -> RegistroHistorico | None:
+    """A última mensagem que o SESI mandou à pessoa por iniciativa própria: o "último contato" da fila."""
+    return next((r for r in reversed(historico) if _envio_ativo(r)), None)
+
+
 def _enviado_ha_menos_de(historico: list[RegistroHistorico], hoje: datetime, dias: int, tipo: str) -> bool:
     return any(_envio_ativo(r) and r.tipo == tipo and 0 <= dias_entre(r.data, hoje) < dias for r in historico)
 

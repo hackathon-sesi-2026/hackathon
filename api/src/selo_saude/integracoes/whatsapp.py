@@ -17,6 +17,7 @@ Se a Mega-API recusar o botão, a mensagem sai como texto simples, com as opçõ
 """
 
 import logging
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -105,6 +106,15 @@ def montar_texto_simples(
 
 # ---------------------------------------------------------------- Mega-API: envio
 
+destino_do_teste: ContextVar[str | None] = ContextVar("destino_do_teste", default=None)
+"""Na demonstração, o número que o avaliador digitou no painel: vale só para o pedido em que foi definido."""
+resultado_do_envio: ContextVar[bool | None] = ContextVar("resultado_do_envio", default=None)
+"""Se o último envio real deste pedido deu certo (None quando não houve envio real)."""
+
+
+def envio_real_ligado() -> bool:
+    return isinstance(whatsapp, WhatsAppMegaApi)
+
 
 class WhatsAppMegaApi:
     """Envio real pela Mega-API (https://apistart01.megaapi.com.br/docs/). Falha no envio não derruba a ação:
@@ -118,24 +128,28 @@ class WhatsAppMegaApi:
         self._apenas = set(apenas)
 
     async def enviar(self, destinatario: Destinatario, texto: str, botoes: list[Botao]) -> None:
-        if self._apenas and destinatario.matricula not in self._apenas:
+        numero = destino_do_teste.get() or self._numero
+        if not destino_do_teste.get() and self._apenas and destinatario.matricula not in self._apenas:
             registro.info("Mega-API: %s fora de SELO_MEGAAPI_APENAS, não enviado", destinatario.trabalhador_id)
             return
-        envio = montar_envio(destinatario, texto, botoes, self._numero, self._url_publica)
+        envio = montar_envio(destinatario, texto, botoes, numero, self._url_publica)
         try:
             async with httpx.AsyncClient(timeout=10) as cliente:
                 if await self._postar(cliente, envio):
                     registro.info("Mega-API: %s para %s enviada", envio.rota, destinatario.trabalhador_id)
+                    resultado_do_envio.set(True)
                     return
                 if envio.rota != "text":
                     registro.warning("Mega-API: %s recusada, indo como texto", envio.rota)
-                    simples = montar_texto_simples(destinatario, texto, botoes, self._numero, self._url_publica)
+                    simples = montar_texto_simples(destinatario, texto, botoes, numero, self._url_publica)
                     if await self._postar(cliente, simples):
                         registro.info("Mega-API: texto para %s enviado", destinatario.trabalhador_id)
+                        resultado_do_envio.set(True)
                         return
             registro.warning("Mega-API: não foi possível enviar para %s", destinatario.trabalhador_id)
         except httpx.HTTPError as erro:
             registro.warning("Mega-API: falha ao enviar para %s: %r", destinatario.trabalhador_id, erro)
+        resultado_do_envio.set(False)
 
     async def _postar(self, cliente: httpx.AsyncClient, envio: Envio) -> bool:
         resposta = await cliente.post(

@@ -266,7 +266,7 @@ async def semear(sessao: AsyncSession, hoje: datetime | None = None) -> None:
         sessao.add_all(_registros_da_pessoa(indice, pessoa, hoje))
         await sessao.flush()  # mantém a ordem das mensagens e dos registros de cada pessoa
     # A carteira em escala: em blocos, para o reinício da demonstração levar segundos, não minutos.
-    geradas = populacao.gerar(populacao.TOTAL_DE_PACIENTES - len(PESSOAS), EMPRESAS)
+    geradas = populacao.gerar(populacao.TOTAL_DE_PACIENTES - len(PESSOAS), populacao.empresas_parceiras(EMPRESAS))
     for inicio in range(0, len(geradas), 500):
         for deslocamento, pessoa in enumerate(geradas[inicio : inicio + 500]):
             indice = len(PESSOAS) + inicio + deslocamento
@@ -541,6 +541,8 @@ def _pulsos(hoje: datetime) -> list[Pulso]:
                 continue
             quantidade = int(por_dia * (0.6 + sorteio() * 0.8) * (1.25 if d < 14 else 1) + 0.5)
             for _ in range(quantidade):
+                local = local_da_dor() if sorteio() < com_dor else None
+                intensidade = 0 if local is None else (1 if sorteio() < 0.5 else 2 if sorteio() < 0.7 else 3)
                 pulsos.append(
                     Pulso(
                         id=f"p{len(pulsos)}",
@@ -548,7 +550,8 @@ def _pulsos(hoje: datetime) -> list[Pulso]:
                         turno=turno,
                         data=em_dias(hoje, -d, 6 + int(sorteio() * 12)),
                         bem_estar=bem_estar(cansado, mais_ou_menos),
-                        local_dor=local_da_dor() if sorteio() < com_dor else None,
+                        intensidade_dor=intensidade,
+                        local_dor=local,
                     )
                 )
     return pulsos

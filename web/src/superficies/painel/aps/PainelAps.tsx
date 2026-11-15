@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
+  ArrowRight,
+  Building2,
+  Factory,
+  MessageCircle,
+  MessageSquareText,
   Briefcase,
   Cake,
   CalendarX,
@@ -27,8 +32,8 @@ import {
 } from 'lucide-react'
 import type {
   CodigoSituacao,
+  EmpresaNaCarteira,
   LinhaDaFila,
-  MotivoDificuldade,
   NivelRiscoFalta,
   OrdemDaFila,
   PaginaDaFila,
@@ -39,6 +44,7 @@ import type {
   Situacao,
   TipoRegistro,
 } from '../../../api/tipos'
+import { Link } from 'react-router'
 import { useRecurso } from '../../../api/useRecurso'
 import { IconeCategoria } from '../../../componentes/IconeCategoria'
 import { AvisoDeFalha } from '../../../componentes/TelaCheia'
@@ -100,7 +106,7 @@ const ROTULO_REGISTRO: Record<TipoRegistro, string> = {
   selo: 'Ganhou selo',
 }
 
-type Visao = 'pipeline' | 'lista'
+type Visao = 'lista' | 'pipeline' | 'empresas'
 
 /** Atalhos dos números do topo: cada um vira um filtro de situação na lista. */
 type Atalho = 'todos' | 'acao' | 'ajuda' | 'faltou_remarcar' | 'fora_do_prazo' | 'plano_nao_recebido' | 'sem_resposta' | 'vence_logo' | 'em_dia'
@@ -148,7 +154,18 @@ const ROTULO_ORDEM: Record<OrdemDaFila, string> = {
   nome: 'Nome',
 }
 
+/** Como o último envio aparece na coluna "Último contato". */
+const ENVIO_CURTO: Partial<Record<TipoRegistro, string>> = {
+  lembrete: 'Lembrete do retorno',
+  lembrete_auto: 'Lembrete automático',
+  checkin_enviado: '"Como você está?"',
+  checkin_habito: 'Pergunta do plano',
+  plano_enviado: 'Plano de cuidado',
+  resultado_liberado: 'Aviso de resultado',
+}
+
 const numero = (n: number) => n.toLocaleString('pt-BR')
+const semSufixo = (empresa: string) => empresa.replace(/ (Ltda|S\.A\.)$/, '')
 
 interface Filtros {
   busca: string
@@ -172,7 +189,7 @@ function parametros(f: Filtros, ordem: OrdemDaFila, extra: Record<string, string
 
 /** Carteira da enfermagem: quem saiu do ritmo do cuidado e o que fazer por cada pessoa. Substitui a planilha. */
 export function PainelAps() {
-  // A lista é a visão principal: é onde a enfermeira trabalha a fila do dia. O pipeline mostra o todo.
+  // A lista é a visão principal: é onde a enfermeira trabalha a fila do dia.
   const [visao, setVisao] = useState<Visao>('lista')
   const [atalho, setAtalho] = useState<Atalho>('acao')
   const [filtros, setFiltros] = useState<Filtros>(SEM_FILTROS)
@@ -195,7 +212,7 @@ export function PainelAps() {
       ? `/aps/pipeline?${parametros(filtros, ordem, { porColuna: '12' })}`
       : `/aps/lista?${parametros(filtros, ordem, {
           pagina: String(pagina),
-          porPagina: String(porPagina),
+          porPagina: String(visao === 'empresas' ? 1 : porPagina),
           ...(atalho === 'acao' ? { precisaAcao: 'true' } : {}),
           ...(situacoes.length ? { situacao: situacoes.join(',') } : {}),
         })}`
@@ -206,33 +223,55 @@ export function PainelAps() {
   if (!dados) return <p className="p-6 text-sm text-slate-500">{erro ? `Não foi possível carregar a carteira: ${erro}` : 'Carregando a carteira…'}</p>
 
   const resumo = dados.resumo
-  const filtrando = filtros.busca || filtros.risco.length || filtros.riscoFalta.length || filtros.empresa || filtros.enfermeira
   const irParaLista = (a: Atalho) => {
     setAtalho(a)
+    setVisao('lista')
+  }
+  const escolherEmpresa = (empresa: string) => {
+    setFiltros((f) => ({ ...f, empresa }))
+    setAtalho('acao')
     setVisao('lista')
   }
 
   return (
     <ContextoDasAcoes.Provider value={acoes}>
       <div className="relative flex h-full min-h-0 flex-col">
-        {/* Título e troca de visão */}
+        {/* Título, empresa escolhida e troca de visão */}
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-navy">Acompanhamento do cuidado</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
-              {numero(resumo.total)} pessoas na carteira{filtrando ? ' com estes filtros' : ''} · {numero(resumo.precisamAcao)} precisam de ação
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold tracking-tight text-navy sm:text-2xl">Acompanhamento do cuidado</h2>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-slate-500">
+              <span>
+                {numero(resumo.total)} pessoas · {numero(resumo.precisamAcao)} precisam de ação
+              </span>
+              {filtros.empresa && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-navy px-2.5 py-0.5 text-xs font-semibold text-white">
+                  <Building2 className="size-3.5" /> {semSufixo(filtros.empresa)}
+                  <button onClick={() => setFiltros((f) => ({ ...f, empresa: '' }))} aria-label="Ver todas as empresas" className="-mr-1 rounded-full p-0.5 hover:bg-white/20">
+                    <X className="size-3" />
+                  </button>
+                </span>
+              )}
               {carregando && (
-                <span className="ml-2 inline-flex items-center gap-1 text-tech">
+                <span className="inline-flex items-center gap-1 text-tech">
                   <Loader2 className="size-3.5 animate-spin" /> atualizando
                 </span>
               )}
             </p>
           </div>
-          <div className="flex rounded-full bg-white p-1 text-sm font-semibold shadow-sm ring-1 ring-slate-200" role="tablist" aria-label="Visão da carteira">
+          <div className="flex max-w-full flex-wrap items-center gap-2">
+          <Link
+            to="/painel/whatsapp"
+            className="flex items-center gap-1.5 rounded-full bg-[#25d366] px-4 py-2 text-sm font-bold text-[#073b24] shadow-[0_0.3rem_1rem_rgba(37,211,102,0.35)] transition hover:brightness-105"
+          >
+            <MessageCircle className="size-4" /> Testar no meu WhatsApp
+          </Link>
+          <div className="flex max-w-full overflow-x-auto rounded-full bg-white p-1 text-sm font-semibold shadow-sm ring-1 ring-slate-200" role="tablist" aria-label="Visão da carteira">
             {(
               [
-                ['pipeline', 'Pipeline', Columns3],
                 ['lista', 'Lista', ListIcon],
+                ['pipeline', 'Pipeline', Columns3],
+                ['empresas', 'Empresas', Building2],
               ] as const
             ).map(([v, rotulo, Icone]) => (
               <button
@@ -240,39 +279,44 @@ export function PainelAps() {
                 role="tab"
                 aria-selected={visao === v}
                 onClick={() => setVisao(v)}
-                className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 transition ${visao === v ? 'bg-navy text-white shadow' : 'text-slate-600 hover:text-navy'}`}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 transition sm:px-4 ${visao === v ? 'bg-navy text-white shadow' : 'text-slate-600 hover:text-navy'}`}
               >
                 <Icone className="size-4" /> {rotulo}
               </button>
             ))}
           </div>
+          </div>
         </div>
 
-        <ResumoDaCarteira resumo={resumo} atalho={visao === 'lista' ? atalho : null} escolher={irParaLista} />
-
-        <BarraDeFiltros
-          resumo={resumo}
-          filtros={filtros}
-          setFiltros={setFiltros}
-          buscaDigitada={buscaDigitada}
-          setBuscaDigitada={setBuscaDigitada}
-          ordem={ordem}
-          setOrdem={setOrdem}
-        />
-
-        {'colunas' in dados ? (
-          <Pipeline dados={dados} abrir={abrir} verTodos={irParaLista} />
+        {visao === 'empresas' ? (
+          <Empresas filtros={filtros} escolher={escolherEmpresa} />
         ) : (
-          <Lista
-            dados={dados}
-            atalho={atalho}
-            limparAtalho={() => setAtalho('todos')}
-            abrir={abrir}
-            aberta={aberta}
-            setPagina={setPagina}
-            porPagina={porPagina}
-            setPorPagina={setPorPagina}
-          />
+          <>
+            <NumerosDoTopo resumo={resumo} atalho={visao === 'lista' ? atalho : null} escolher={irParaLista} />
+            <BarraDeFiltros
+              resumo={resumo}
+              filtros={filtros}
+              setFiltros={setFiltros}
+              buscaDigitada={buscaDigitada}
+              setBuscaDigitada={setBuscaDigitada}
+              ordem={ordem}
+              setOrdem={setOrdem}
+            />
+            {'colunas' in dados ? (
+              <Pipeline dados={dados} abrir={abrir} verTodos={irParaLista} />
+            ) : (
+              <Lista
+                dados={dados}
+                atalho={atalho}
+                limparAtalho={() => setAtalho('todos')}
+                abrir={abrir}
+                aberta={aberta}
+                setPagina={setPagina}
+                porPagina={porPagina}
+                setPorPagina={setPorPagina}
+              />
+            )}
+          </>
         )}
 
         {aberta && <FichaAberta key={aberta} id={aberta} fechar={() => setAberta(null)} />}
@@ -287,7 +331,7 @@ function FichaAberta({ id, fechar }: { id: string; fechar: () => void }) {
   const { dados: t, erro } = useRecurso<LinhaDaFila>(`/aps/trabalhadores/${id}`, '/aps/eventos')
   if (!t)
     return (
-      <div className="absolute inset-y-0 right-0 z-20 grid w-full max-w-md place-items-center rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+      <div className="fixed inset-0 z-30 grid place-items-center bg-white/80 sm:absolute sm:inset-y-0 sm:left-auto sm:right-0 sm:w-full sm:max-w-md sm:rounded-3xl sm:bg-white sm:shadow-2xl sm:ring-1 sm:ring-slate-200">
         <p className="flex items-center gap-2 text-sm text-slate-500">
           {erro ? (
             `Não foi possível abrir a ficha: ${erro}`
@@ -302,8 +346,8 @@ function FichaAberta({ id, fechar }: { id: string; fechar: () => void }) {
   return <Gaveta t={t} s={t.situacao} r={t.riscoFalta} fechar={fechar} />
 }
 
-/** Os números do topo, clicáveis, e a carteira distribuída por situação numa barra só. */
-function ResumoDaCarteira({ resumo, atalho, escolher }: { resumo: ResumoDaFila; atalho: Atalho | null; escolher: (a: Atalho) => void }) {
+/** Os números do topo, clicáveis: cada um abre a lista já filtrada. */
+function NumerosDoTopo({ resumo, atalho, escolher }: { resumo: ResumoDaFila; atalho: Atalho | null; escolher: (a: Atalho) => void }) {
   const s = resumo.porSituacao
   const cartoes: { atalho: Atalho; valor: number; Icone: LucideIcon; cor: string }[] = [
     { atalho: 'todos', valor: resumo.total, Icone: Users, cor: 'bg-blue-50 text-tech' },
@@ -313,64 +357,26 @@ function ResumoDaCarteira({ resumo, atalho, escolher }: { resumo: ResumoDaFila; 
     { atalho: 'fora_do_prazo', valor: s.fora_do_prazo, Icone: Clock, cor: 'bg-red-50 text-alerta' },
     { atalho: 'plano_nao_recebido', valor: s.plano_nao_recebido, Icone: FileWarning, cor: 'bg-amber-50 text-amber-600' },
   ]
-  const total = Math.max(1, resumo.total)
-  const motivos = Object.entries(resumo.motivos).sort((a, b) => b[1] - a[1])
-
   return (
-    <div className="mt-4 space-y-3">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        {cartoes.map((c) => (
-          <button
-            key={c.atalho}
-            onClick={() => escolher(c.atalho)}
-            title={`Ver na lista: ${ROTULO_ATALHO[c.atalho]}`}
-            className={`flex items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow ${
-              atalho === c.atalho ? 'ring-2 ring-tech' : 'ring-1 ring-slate-200/70'
-            }`}
-          >
-            <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${c.cor}`}>
-              <c.Icone className="size-5" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-2xl font-bold tabular-nums leading-none text-navy">{numero(c.valor)}</span>
-              <span className="mt-1 block text-xs leading-tight text-slate-500">{ROTULO_ATALHO[c.atalho]}</span>
-            </span>
-          </button>
-        ))}
-      </div>
-
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/70">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-navy">Como está a carteira</p>
-          {motivos.length > 0 && (
-            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-              <span className="font-semibold text-slate-600">Não conseguiram por:</span>
-              {motivos.map(([m, n]) => (
-                <span key={m}>
-                  {ROTULO_MOTIVO[m as MotivoDificuldade]} <b className="text-navy">{numero(n)}</b>
-                </span>
-              ))}
-            </p>
-          )}
-        </div>
-        <div className="mt-3 flex h-3.5 overflow-hidden rounded-full bg-slate-100" role="img" aria-label="Carteira por situação">
-          {COLUNAS.map((c) => {
-            const n = c.codigos.reduce((soma, cod) => soma + s[cod], 0)
-            return n ? <span key={c.titulo} style={{ width: `${(n / total) * 100}%`, background: c.cor }} title={`${c.titulo}: ${numero(n)}`} /> : null
-          })}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-          {COLUNAS.map((c) => {
-            const n = c.codigos.reduce((soma, cod) => soma + s[cod], 0)
-            return (
-              <button key={c.titulo} onClick={() => escolher(c.atalho)} className="flex items-center gap-1.5 hover:text-navy">
-                <span className="size-2.5 rounded-full" style={{ background: c.cor }} /> {c.titulo} <b className="tabular-nums text-navy">{numero(n)}</b>
-                <span className="text-slate-400">({Math.round((n / total) * 100)}%)</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+    <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
+      {cartoes.map((c) => (
+        <button
+          key={c.atalho}
+          onClick={() => escolher(c.atalho)}
+          title={`Ver na lista: ${ROTULO_ATALHO[c.atalho]}`}
+          className={`flex items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow ${
+            atalho === c.atalho ? 'ring-2 ring-tech' : 'ring-1 ring-slate-200/70'
+          }`}
+        >
+          <span className={`grid size-9 shrink-0 place-items-center rounded-xl sm:size-10 ${c.cor}`}>
+            <c.Icone className="size-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-xl font-bold tabular-nums leading-none text-navy sm:text-2xl">{numero(c.valor)}</span>
+            <span className="mt-1 block text-xs leading-tight text-slate-500">{ROTULO_ATALHO[c.atalho]}</span>
+          </span>
+        </button>
+      ))}
     </div>
   )
 }
@@ -380,7 +386,7 @@ function Chip({ ativo, onClick, children }: { ativo: boolean; onClick: () => voi
     <button
       onClick={onClick}
       aria-pressed={ativo}
-      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${ativo ? 'bg-navy text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+      className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition ${ativo ? 'bg-navy text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
     >
       {children}
     </button>
@@ -406,60 +412,187 @@ function BarraDeFiltros({
 }) {
   const alternar = <T,>(lista: T[], valor: T) => (lista.includes(valor) ? lista.filter((x) => x !== valor) : [...lista, valor])
   const algum = filtros.busca || buscaDigitada || filtros.risco.length || filtros.riscoFalta.length || filtros.empresa || filtros.enfermeira
-  const seletor = 'max-w-[11rem] rounded-xl bg-white px-2.5 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 outline-none focus:ring-2 focus:ring-tech'
+  const caixa = 'rounded-xl bg-white px-2.5 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 outline-none focus:ring-2 focus:ring-tech'
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-white/70 p-2 ring-1 ring-slate-200/70">
-      <label className="flex min-w-52 flex-1 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-tech">
+    <div className="mt-3 grid gap-2 rounded-2xl bg-white/70 p-2 ring-1 ring-slate-200/70 lg:flex lg:flex-wrap lg:items-center">
+      <label className="flex min-w-0 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-tech lg:min-w-52 lg:flex-1">
         <Search className="size-4 shrink-0 text-slate-400" />
-        <input value={buscaDigitada} onChange={(e) => setBuscaDigitada(e.target.value)} placeholder="Nome, matrícula ou CPF" className="w-full bg-transparent outline-none" />
+        <input value={buscaDigitada} onChange={(e) => setBuscaDigitada(e.target.value)} placeholder="Nome, matrícula ou CPF" className="w-full min-w-0 bg-transparent outline-none" />
       </label>
-      <select value={filtros.empresa} onChange={(e) => setFiltros((f) => ({ ...f, empresa: e.target.value }))} className={seletor} aria-label="Empresa">
-        <option value="">Todas as empresas</option>
-        {resumo.empresas.map((e) => (
-          <option key={e}>{e}</option>
-        ))}
-      </select>
-      <select value={filtros.enfermeira} onChange={(e) => setFiltros((f) => ({ ...f, enfermeira: e.target.value }))} className={seletor} aria-label="Enfermeira">
-        <option value="">Todas as enfermeiras</option>
-        {resumo.enfermeiras.map((e) => (
-          <option key={e}>{e}</option>
-        ))}
-      </select>
-      <div className="flex items-center gap-1" role="group" aria-label="Risco clínico">
-        <span className="px-1 text-xs font-semibold text-slate-400">Risco</span>
+      <div className="grid grid-cols-2 gap-2 lg:flex">
+        <SeletorDeEmpresa empresas={resumo.empresas} valor={filtros.empresa} escolher={(empresa) => setFiltros((f) => ({ ...f, empresa }))} />
+        <select value={filtros.enfermeira} onChange={(e) => setFiltros((f) => ({ ...f, enfermeira: e.target.value }))} className={`${caixa} min-w-0 lg:max-w-[11rem]`} aria-label="Enfermeira">
+          <option value="">Todas as enfermeiras</option>
+          {resumo.enfermeiras.map((e) => (
+            <option key={e}>{e}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-center gap-1 overflow-x-auto" role="group" aria-label="Risco clínico">
+        <span className="shrink-0 px-1 text-xs font-semibold text-slate-400">Risco</span>
         {[1, 2, 3, 4].map((r) => (
           <Chip key={r} ativo={filtros.risco.includes(r)} onClick={() => setFiltros((f) => ({ ...f, risco: alternar(f.risco, r) }))}>
             {r}
           </Chip>
         ))}
-      </div>
-      <div className="flex items-center gap-1" role="group" aria-label="Risco de falta">
-        <span className="px-1 text-xs font-semibold text-slate-400">Risco de falta</span>
+        <span className="ml-2 shrink-0 px-1 text-xs font-semibold text-slate-400">Falta</span>
         {(['alto', 'medio', 'baixo'] as const).map((n) => (
           <Chip key={n} ativo={filtros.riscoFalta.includes(n)} onClick={() => setFiltros((f) => ({ ...f, riscoFalta: alternar(f.riscoFalta, n) }))}>
             {ROTULO_RISCO_FALTA[n]} <span className="opacity-70">{numero(resumo.porRiscoFalta[n])}</span>
           </Chip>
         ))}
       </div>
-      <select value={ordem} onChange={(e) => setOrdem(e.target.value as OrdemDaFila)} className={seletor} aria-label="Ordenar por">
-        {(Object.keys(ROTULO_ORDEM) as OrdemDaFila[]).map((o) => (
-          <option key={o} value={o}>
-            ↕ {ROTULO_ORDEM[o]}
-          </option>
-        ))}
-      </select>
-      {algum ? (
-        <button
-          onClick={() => {
-            setBuscaDigitada('')
-            setFiltros(() => SEM_FILTROS)
-          }}
-          className="flex items-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold text-slate-500 hover:text-navy"
-        >
-          <X className="size-3.5" /> Limpar filtros
-        </button>
-      ) : null}
+      <div className="flex items-center gap-2">
+        <select value={ordem} onChange={(e) => setOrdem(e.target.value as OrdemDaFila)} className={`${caixa} flex-1 lg:flex-none`} aria-label="Ordenar por">
+          {(Object.keys(ROTULO_ORDEM) as OrdemDaFila[]).map((o) => (
+            <option key={o} value={o}>
+              ↕ {ROTULO_ORDEM[o]}
+            </option>
+          ))}
+        </select>
+        {algum ? (
+          <button
+            onClick={() => {
+              setBuscaDigitada('')
+              setFiltros(() => SEM_FILTROS)
+            }}
+            className="flex shrink-0 items-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold text-slate-500 hover:text-navy"
+          >
+            <X className="size-3.5" /> Limpar
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+/** 104 empresas: um botão que abre uma caixa com busca e lista curta, rolável. Nada de lista gigante na tela. */
+function SeletorDeEmpresa({ empresas, valor, escolher }: { empresas: string[]; valor: string; escolher: (empresa: string) => void }) {
+  const [aberto, setAberto] = useState(false)
+  const [busca, setBusca] = useState('')
+  const q = busca.trim().toLowerCase()
+  const achadas = q ? empresas.filter((e) => e.toLowerCase().includes(q)) : empresas
+  const escolherE = (e: string) => {
+    escolher(e)
+    setAberto(false)
+    setBusca('')
+  }
+  return (
+    <div className="relative min-w-0 lg:w-60">
+      <button
+        type="button"
+        onClick={() => setAberto((a) => !a)}
+        aria-expanded={aberto}
+        aria-haspopup="listbox"
+        className={`flex w-full items-center gap-2 rounded-xl bg-white px-2.5 py-2 text-left text-sm shadow-sm ring-1 ${valor ? 'font-semibold text-navy ring-tech' : 'text-slate-500 ring-slate-200'}`}
+      >
+        <Building2 className="size-4 shrink-0 text-slate-400" />
+        <span className="min-w-0 flex-1 truncate">{valor ? semSufixo(valor) : `Todas as empresas (${empresas.length})`}</span>
+        <ChevronDown className="size-4 shrink-0 text-slate-400" />
+      </button>
+      {aberto && (
+        <>
+          <button className="fixed inset-0 z-30 cursor-default" onClick={() => setAberto(false)} aria-label="Fechar" tabIndex={-1} />
+          <div className="absolute left-0 top-full z-40 mt-1 w-[min(22rem,85vw)] overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200">
+            <label className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5 text-sm">
+              <Search className="size-4 text-slate-400" />
+              <input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar empresa" className="w-full bg-transparent outline-none" />
+            </label>
+            <ul role="listbox" className="max-h-64 overflow-y-auto py-1 text-sm">
+              <li>
+                <button onClick={() => escolherE('')} className={`w-full px-3 py-2 text-left hover:bg-slate-50 ${!valor ? 'font-semibold text-tech' : 'text-slate-600'}`}>
+                  Todas as empresas
+                </button>
+              </li>
+              {achadas.map((e) => (
+                <li key={e}>
+                  <button onClick={() => escolherE(e)} className={`w-full truncate px-3 py-2 text-left hover:bg-slate-50 ${e === valor ? 'font-semibold text-tech' : 'text-slate-700'}`} title={e}>
+                    {semSufixo(e)}
+                  </button>
+                </li>
+              ))}
+              {achadas.length === 0 && <li className="px-3 py-3 text-xs text-slate-400">Nenhuma empresa com esse nome.</li>}
+            </ul>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+/** As 104 indústrias da carteira, das que mais precisam de ação para as que menos. Tocar abre a lista dela. */
+function Empresas({ filtros, escolher }: { filtros: Filtros; escolher: (empresa: string) => void }) {
+  const [busca, setBusca] = useState('')
+  const { dados, erro } = useRecurso<EmpresaNaCarteira[]>(`/aps/empresas?${parametros(filtros, 'prioridade')}`, '/aps/eventos')
+  if (!dados) return <p className="mt-6 text-sm text-slate-500">{erro ? `Não foi possível carregar as empresas: ${erro}` : 'Carregando as empresas…'}</p>
+  const q = busca.trim().toLowerCase()
+  const visiveis = q ? dados.filter((e) => e.empresa.toLowerCase().includes(q)) : dados
+  const maior = Math.max(1, ...dados.map((e) => e.precisamAcao))
+
+  return (
+    <div className="mt-4 flex min-h-0 flex-1 flex-col">
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-tech sm:max-w-sm">
+          <Search className="size-4 shrink-0 text-slate-400" />
+          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar empresa" className="w-full min-w-0 bg-transparent outline-none" />
+        </label>
+        <p className="text-xs text-slate-500">
+          {numero(dados.length)} empresas parceiras · {numero(dados.reduce((s, e) => s + e.total, 0))} pessoas
+        </p>
+      </div>
+      <div className="mt-3 grid min-h-0 flex-1 auto-rows-max gap-2.5 overflow-y-auto pb-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        {visiveis.map((e) => {
+          const emDia = e.total ? Math.round((e.emDia / e.total) * 100) : 0
+          return (
+            <button
+              key={e.empresa}
+              onClick={() => escolher(e.empresa)}
+              className="rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-200/70 transition hover:-translate-y-0.5 hover:shadow hover:ring-tech/40"
+            >
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-tech">
+                  <Factory className="size-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-navy" title={e.empresa}>
+                    {semSufixo(e.empresa)}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {numero(e.total)} pessoas · {emDia}% em dia
+                  </p>
+                </div>
+                <ChevronRight className="mt-1 size-4 shrink-0 text-slate-300" />
+              </div>
+              <div className="mt-3">
+                <div className="flex items-baseline justify-between text-xs">
+                  <span className="font-semibold text-slate-600">Precisam de ação</span>
+                  <span className="font-bold tabular-nums text-alerta">{numero(e.precisamAcao)}</span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-alerta" style={{ width: `${(e.precisamAcao / maior) * 100}%` }} />
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-4 gap-1 text-center">
+                {(
+                  [
+                    ['Ajuda', e.pediramAjuda, 'text-violet-600'],
+                    ['Faltaram', e.faltaram, 'text-orange-600'],
+                    ['Fora prazo', e.foraDoPrazo, 'text-alerta'],
+                    ['Alto risco', e.altoRisco, 'text-rose-600'],
+                  ] as const
+                ).map(([rotulo, valor, cor]) => (
+                  <div key={rotulo} className="rounded-lg bg-slate-50 py-1.5">
+                    <p className={`text-sm font-bold tabular-nums ${cor}`}>{numero(valor)}</p>
+                    <p className="text-[10px] leading-tight text-slate-500">{rotulo}</p>
+                  </div>
+                ))}
+              </div>
+            </button>
+          )
+        })}
+        {visiveis.length === 0 && <p className="text-sm text-slate-500">Nenhuma empresa com esse nome.</p>}
+      </div>
     </div>
   )
 }
@@ -468,7 +601,7 @@ function BarraDeFiltros({
 function Pipeline({ dados, abrir, verTodos }: { dados: PipelineDaFila; abrir: (l: PessoaNaCarteira) => void; verTodos: (a: Atalho) => void }) {
   const porCodigo = Object.fromEntries(dados.colunas.map((c) => [c.situacao, c]))
   return (
-    <div className="mt-3 min-h-0 flex-1 overflow-x-auto pb-2">
+    <div className="mt-3 min-h-0 flex-1 snap-x overflow-x-auto pb-2">
       <div className="flex h-full min-h-[24rem] gap-3">
         {COLUNAS.map((c) => {
           const total = c.codigos.reduce((soma, cod) => soma + (porCodigo[cod]?.total ?? 0), 0)
@@ -477,7 +610,7 @@ function Pipeline({ dados, abrir, verTodos }: { dados: PipelineDaFila; abrir: (l
             .sort((a, b) => a.situacao.prioridade - b.situacao.prioridade || b.riscoFalta.pontos - a.riscoFalta.pontos)
             .slice(0, 12)
           return (
-            <section key={c.titulo} className="flex w-72 shrink-0 flex-col rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/70" aria-label={c.titulo}>
+            <section key={c.titulo} className="flex w-[85vw] max-w-72 shrink-0 snap-start flex-col rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/70 sm:w-72" aria-label={c.titulo}>
               <header className="rounded-t-2xl border-t-4 bg-white px-3 pb-2 pt-2.5" style={{ borderColor: c.cor }}>
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-semibold text-navy">{c.titulo}</p>
@@ -506,6 +639,31 @@ function Pipeline({ dados, abrir, verTodos }: { dados: PipelineDaFila; abrir: (l
   )
 }
 
+/** Próximo passo: o que a enfermagem faz agora por esta pessoa. É o destaque de cada linha. */
+function ProximoPasso({ s, compacto = false }: { s: Situacao; compacto?: boolean }) {
+  return (
+    <p className={`flex items-start gap-1.5 font-semibold ${s.precisaAcao ? 'text-navy' : 'text-slate-500'} ${compacto ? 'text-xs' : 'text-[13px]'}`}>
+      <ArrowRight className={`mt-0.5 shrink-0 ${compacto ? 'size-3' : 'size-3.5'} ${s.precisaAcao ? 'text-tech' : 'text-slate-400'}`} />
+      <span className="leading-snug">{s.sugestao}</span>
+    </p>
+  )
+}
+
+/** Último contato: a última mensagem que o SESI mandou, e quando. */
+function UltimoContato({ p, compacto = false }: { p: PessoaNaCarteira; compacto?: boolean }) {
+  const e = p.ultimoEnvio
+  if (!e) return <span className={`text-slate-400 ${compacto ? 'text-[11px]' : 'text-xs'}`}>Nenhuma mensagem enviada</span>
+  return (
+    <span className={`inline-flex items-start gap-1.5 ${compacto ? 'text-[11px]' : 'text-xs'}`} title={new Date(e.data).toLocaleString('pt-BR')}>
+      <MessageSquareText className={`mt-0.5 shrink-0 text-saude-700 ${compacto ? 'size-3' : 'size-3.5'}`} />
+      <span>
+        <span className="font-semibold text-slate-700">{relativo(e.data)}</span>
+        <span className="block text-slate-500">{ENVIO_CURTO[e.tipo] ?? ROTULO_REGISTRO[e.tipo]}</span>
+      </span>
+    </span>
+  )
+}
+
 function CartaoDaPessoa({ l, abrir }: { l: PessoaNaCarteira; abrir: () => void }) {
   const t = l.trabalhador
   return (
@@ -514,24 +672,23 @@ function CartaoDaPessoa({ l, abrir }: { l: PessoaNaCarteira; abrir: () => void }
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-navy text-[11px] font-bold text-white">{iniciais(t.nome)}</span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-slate-900">{t.nome}</p>
-          <p className="truncate text-[11px] text-slate-500">
-            {t.funcao} · {t.empresa.replace(/ (Ltda|S\.A\.)$/, '')}
-          </p>
+          <p className="truncate text-[11px] text-slate-500">{semSufixo(t.empresa)}</p>
         </div>
-      </div>
-      <p className="mt-2 line-clamp-2 text-xs leading-snug text-slate-600">{l.situacao.detalhe}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${COR_RISCO[t.risco]}`}>Risco {t.risco}</span>
         <ChipRiscoFalta r={l.riscoFalta} />
-        <span className="ml-auto text-[11px] text-slate-400" title="Prazo do retorno pelo risco">
-          {relativo(l.prazoRetorno)}
-        </span>
+      </div>
+      <p className="mt-2 text-xs leading-snug text-slate-600">{l.situacao.detalhe}</p>
+      <div className="mt-2 rounded-lg bg-blue-50/60 px-2 py-1.5">
+        <ProximoPasso s={l.situacao} compacto />
+      </div>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <UltimoContato p={l} compacto />
+        <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${COR_RISCO[t.risco]}`}>Risco {t.risco}</span>
       </div>
     </button>
   )
 }
 
-/** Visão em lista: a tabela da carteira, paginada no servidor. */
+/** Visão em lista: a tabela da carteira, paginada no servidor. No celular, vira uma lista de cartões. */
 function Lista({
   dados,
   atalho,
@@ -569,73 +726,90 @@ function Lista({
           {numero(de)}–{numero(ate)} de {numero(dados.total)}
         </span>
       </div>
-      <div className="mt-2 min-h-0 flex-1 overflow-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70">
-        <table className="w-full min-w-[900px] text-left text-sm">
+
+      {/* Celular: cartões */}
+      <div className="mt-2 space-y-2 md:hidden">
+        {dados.linhas.length === 0 && <p className="py-10 text-center text-sm text-slate-500">Ninguém nesta situação. 👏</p>}
+        {dados.linhas.map((p) => (
+          <CartaoDaPessoa key={p.trabalhador.id} l={p} abrir={() => abrir(p)} />
+        ))}
+      </div>
+
+      {/* Computador e tablet: tabela */}
+      <div className="mt-2 hidden min-h-0 flex-1 overflow-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70 md:block">
+        <table className="w-full min-w-[960px] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-white text-xs text-slate-500">
             <tr className="border-b border-slate-100">
               <th className="px-4 py-3 font-semibold">Paciente</th>
-              <th className="px-3 py-3 font-semibold">Médico de referência</th>
-              <th className="px-3 py-3 font-semibold">Risco</th>
-              <th className="px-3 py-3 font-semibold">Risco de falta</th>
+              <th className="px-3 py-3 font-semibold">Situação e próximo passo</th>
+              <th className="px-3 py-3 font-semibold">Riscos</th>
+              <th className="px-3 py-3 font-semibold">Último contato</th>
               <th className="px-3 py-3 font-semibold">Retorno previsto</th>
-              <th className="px-3 py-3 font-semibold">Plano de cuidado</th>
-              <th className="px-3 py-3 font-semibold">Situação</th>
               <th className="px-4 py-3 text-right font-semibold">Ações</th>
             </tr>
           </thead>
           <tbody>
             {dados.linhas.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
                   Ninguém nesta situação. 👏
                 </td>
               </tr>
             )}
-            {dados.linhas.map((t) => (
-              <tr
-                key={t.trabalhador.id}
-                onClick={() => abrir(t)}
-                className={`cursor-pointer border-b border-slate-50 align-middle hover:bg-slate-50 ${t.trabalhador.id === aberta ? 'bg-blue-50/60' : ''}`}
-              >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-navy text-xs font-bold text-white">{iniciais(t.trabalhador.nome)}</span>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-900">{t.trabalhador.nome}</p>
-                      <p className="truncate text-xs text-slate-500">
-                        Mat. {t.trabalhador.matricula} · {t.trabalhador.empresa}
-                      </p>
+            {dados.linhas.map((p) => {
+              const t = p.trabalhador
+              return (
+                <tr
+                  key={t.id}
+                  onClick={() => abrir(p)}
+                  className={`cursor-pointer border-b border-slate-50 align-top hover:bg-slate-50 ${t.id === aberta ? 'bg-blue-50/60' : ''}`}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-navy text-xs font-bold text-white">{iniciais(t.nome)}</span>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900">{t.nome}</p>
+                        <p className="max-w-[16rem] truncate text-xs text-slate-500" title={`${t.funcao} · ${t.empresa}`}>
+                          {t.funcao} · {semSufixo(t.empresa)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-3 py-3 text-slate-600">{t.trabalhador.medicoReferencia}</td>
-                <td className="px-3 py-3">
-                  <span className={`whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-semibold ${COR_RISCO[t.trabalhador.risco]}`} title={ROTULO_RISCO[t.trabalhador.risco]}>
-                    Risco {t.trabalhador.risco}
-                  </span>
-                </td>
-                <td className="px-3 py-3">
-                  <ChipRiscoFalta r={t.riscoFalta} />
-                </td>
-                <td className="whitespace-nowrap px-3 py-3">
-                  <p className="text-slate-800">{data(t.prazoRetorno)}</p>
-                  <p className="text-xs text-slate-500">{relativo(t.prazoRetorno)}</p>
-                </td>
-                <td className={`whitespace-nowrap px-3 py-3 text-xs font-medium ${COR_PLANO[t.statusPlano]}`}>{ROTULO_STATUS_PLANO[t.statusPlano]}</td>
-                <td className="px-3 py-3">
-                  <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${COR_SITUACAO[t.situacao.codigo]}`}>{t.situacao.rotulo}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                    <BotaoIcone titulo="Enviar lembrete pelo WhatsApp" onClick={() => acoes.enviarLembrete(t.trabalhador.id)} Icone={Send} />
-                    <BotaoIcone titulo="Abrir detalhes" onClick={() => abrir(t)} Icone={Eye} />
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="max-w-[22rem] px-3 py-3">
+                    <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${COR_SITUACAO[p.situacao.codigo]}`}>{p.situacao.rotulo}</span>
+                    <div className="mt-1.5">
+                      <ProximoPasso s={p.situacao} />
+                    </div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex flex-col items-start gap-1">
+                      <span className={`whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-semibold ${COR_RISCO[t.risco]}`} title={ROTULO_RISCO[t.risco]}>
+                        Risco {t.risco}
+                      </span>
+                      <ChipRiscoFalta r={p.riscoFalta} />
+                    </div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <UltimoContato p={p} />
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3">
+                    <p className="text-slate-800">{data(p.prazoRetorno)}</p>
+                    <p className="text-xs text-slate-500">{relativo(p.prazoRetorno)}</p>
+                    <p className={`mt-0.5 text-[11px] font-medium ${COR_PLANO[p.statusPlano]}`}>Plano {ROTULO_STATUS_PLANO[p.statusPlano].toLowerCase()}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                      <BotaoIcone titulo="Enviar lembrete pelo WhatsApp" onClick={() => acoes.enviarLembrete(t.id)} Icone={Send} />
+                      <BotaoIcone titulo="Abrir detalhes" onClick={() => abrir(p)} Icone={Eye} />
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
+
       <div className="mt-2 flex flex-wrap items-center justify-end gap-2 text-xs text-slate-500">
         <label className="flex items-center gap-1">
           Por página

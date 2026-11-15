@@ -3,6 +3,8 @@ import { CascaPainel } from './superficies/painel/CascaPainel'
 import { PainelAps } from './superficies/painel/aps/PainelAps'
 import { PainelLideranca } from './superficies/painel/lideranca/PainelLideranca'
 import { PainelRh } from './superficies/painel/rh/PainelRh'
+import { PainelTotens } from './superficies/painel/totens/PainelTotens'
+import { PainelWhatsapp } from './superficies/painel/whatsapp/PainelWhatsapp'
 import { EscolhaDeUnidade } from './superficies/totem/EscolhaDeUnidade'
 import { PaginaTotem } from './superficies/totem/PaginaTotem'
 import { PaginaTrabalhador } from './superficies/trabalhador/PaginaTrabalhador'
@@ -25,6 +27,8 @@ export const rotas = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="aps" replace /> },
       { path: 'aps', element: <PainelAps /> },
+      { path: 'whatsapp', element: <PainelWhatsapp /> },
+      { path: 'totens', element: <PainelTotens /> },
       { path: 'lideranca', element: <PainelLideranca /> },
       { path: 'rh', element: <PainelRh /> },
     ],

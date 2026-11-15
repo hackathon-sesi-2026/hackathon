@@ -337,6 +337,58 @@ export interface PessoaNaCarteira {
   prazoRetorno: string
   situacao: Situacao
   riscoFalta: RiscoFalta
+  /** A última mensagem que o SESI mandou (lembrete, check-in, plano, resultado). */
+  ultimoEnvio: RegistroHistorico | null
+  ultimoContatoEnfermagem: string | null
+}
+
+/** O que o SESI mandou pelo WhatsApp nos últimos 30 dias (GET /aps/mensagens). Uso do canal, não adesão. */
+export interface MetricasDasMensagens {
+  envios: number
+  respostas: number
+  pessoasAlcancadas: number
+  /** Das alcançadas, quantas responderam ao menos uma vez. */
+  pessoasQueResponderam: number
+  porTipo: Partial<Record<TipoRegistro, number>>
+  /** Envios por dia, dos últimos 14 dias, do mais antigo para hoje. */
+  porDia: number[]
+  ultimos: { trabalhadorId: string; nome: string; empresa: string; tipo: TipoRegistro; data: string }[]
+}
+
+/** Uso e respostas dos totens, agregados e anônimos (GET /aps/totens). */
+export interface MetricasDoTotem {
+  unidades: string[]
+  respostas: number
+  respostasHoje: number
+  porDia: { dia: string; respostas: number }[]
+  /** 24 posições: respostas por hora do dia. */
+  porHora: number[]
+  /** "1" cansado(a), "2" mais ou menos, "3" bem, "4" muito bem. */
+  bemEstar: Record<'1' | '2' | '3' | '4', number>
+  /** "0" nenhuma, "1" leve, "2" média, "3" forte. */
+  intensidade: Record<'0' | '1' | '2' | '3', number>
+  locaisDeDor: Partial<Record<LocalDor, number>>
+  porTurno: { unidade: string; turno: string; respostas: number; oculto: boolean; cansados: number | null; comDor: number | null }[]
+}
+
+/** "Testar no meu WhatsApp" (POST /demonstracao/whatsapp/teste). */
+export type MensagemDeTeste = 'lembrete' | 'como_voce_esta' | 'pergunta_da_semana' | 'link_pessoal'
+export interface ResultadoDoTeste {
+  envioReal: boolean
+  enviado: boolean
+  numeroMascarado: string
+}
+
+/** Uma indústria parceira na carteira da APS (GET /aps/empresas). */
+export interface EmpresaNaCarteira {
+  empresa: string
+  total: number
+  precisamAcao: number
+  pediramAjuda: number
+  faltaram: number
+  foraDoPrazo: number
+  altoRisco: number
+  emDia: number
 }
 
 /** Visão em lista: uma página da carteira filtrada (GET /aps/lista). */

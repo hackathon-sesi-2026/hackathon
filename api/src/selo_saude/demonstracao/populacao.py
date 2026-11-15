@@ -16,6 +16,31 @@ if TYPE_CHECKING:
     from .semente import Pessoa
 
 TOTAL_DE_PACIENTES = 10_303
+TOTAL_DE_EMPRESAS = 104
+"""A APS do SESI atende 104 indústrias parceiras (número real do desafio). Os nomes são inventados."""
+
+RAMOS = [
+    "Metalúrgica", "Siderúrgica", "Plásticos", "Alimentos", "Têxtil", "Cerâmica", "Química", "Bebidas",
+    "Calçados", "Móveis", "Embalagens", "Autopeças", "Papel e Celulose", "Vidros", "Borrachas", "Tintas",
+    "Laticínios", "Gráfica", "Fundição", "Cimentos",
+]  # fmt: skip
+LUGARES = [
+    "Paraguaçu", "Jacuípe", "Joanes", "Abaeté", "Itapuã", "Candeias", "Pojuca", "Sauípe", "Subaé", "Jequiriçá",
+    "Chapada", "Recôncavo", "Litoral Norte", "Baía Azul", "Vale do Sol", "Serra Verde", "Rio Vermelho", "Mata Sul",
+    "Pedra Branca", "Boa Vista", "Atalaia", "Estrela", "Aratu", "Ipitanga",
+]  # fmt: skip
+
+
+def empresas_parceiras(fixas: list[str]) -> list[str]:
+    """As 104 indústrias: as dos personagens do roteiro e mais nomes inventados, sempre os mesmos."""
+    s = random.Random(104)
+    nomes = list(fixas)
+    while len(nomes) < TOTAL_DE_EMPRESAS:
+        nome = f"{s.choice(RAMOS)} {s.choice(LUGARES)} {s.choice(['Ltda', 'Ltda', 'S.A.'])}"
+        if nome not in nomes:
+            nomes.append(nome)
+    return nomes
+
 
 PRIMEIROS_NOMES = [
     "Adriana", "Alex", "Amanda", "André", "Beatriz", "Bruno", "Camila", "Carlos", "Cíntia", "Cláudio",
@@ -113,6 +138,8 @@ def gerar(quantidade: int, empresas: list[str]) -> list["Pessoa"]:
     s = random.Random(2026)
     perfis = _perfis(s)
     pesos = [p for p, _ in perfis]
+    # Tamanhos desiguais, como na vida real: poucas plantas grandes e muitas pequenas.
+    tamanho_das_empresas = [s.lognormvariate(0, 0.9) for _ in empresas]
     pessoas = []
     for _ in range(quantidade):
         risco = s.choices([1, 2, 3, 4], weights=[35, 35, 22, 8])[0]
@@ -122,7 +149,7 @@ def gerar(quantidade: int, empresas: list[str]) -> list["Pessoa"]:
             Pessoa(
                 nome=nome,
                 funcao=s.choice(FUNCOES),
-                empresa=s.choice(empresas),
+                empresa=s.choices(empresas, weights=tamanho_das_empresas)[0],
                 turno=s.choices(TURNOS, weights=[35, 30, 20, 15])[0],
                 risco=risco,
                 **{"faltas": s.choice([0, 0, 0, 1]), **perfil(risco)},

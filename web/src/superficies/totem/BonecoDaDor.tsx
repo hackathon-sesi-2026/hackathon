@@ -230,6 +230,43 @@ function MapaDoCorpo({ escolhido, aoTocar }: { escolhido: LocalDor | null; aoToc
   )
 }
 
+/**
+ * Mapa de calor do corpo, só para ler (painel de RH): a mesma figura do totem, cada parte com a cor pela
+ * quantidade de relatos. Quanto mais relatos, mais forte o laranja. Sem toque.
+ */
+export function MapaDeCalor({ valores, className = '' }: { valores: Partial<Record<LocalDor, number>>; className?: string }) {
+  const maior = Math.max(1, ...Object.values(valores).map((v) => v ?? 0))
+  const cor = (local: LocalDor) => {
+    const v = valores[local] ?? 0
+    if (!v) return '#e8eef8'
+    const t = 0.25 + 0.75 * (v / maior)
+    return `rgba(249, 115, 22, ${t.toFixed(2)})`
+  }
+  return (
+    <svg viewBox="8 1 182 216" className={className} role="img" aria-label="Mapa do corpo com os locais de dor mais citados">
+      {(['frente', 'costas'] as const).map((vista, n) => (
+        <g key={vista} transform={`translate(${n === 0 ? X_DA_FRENTE : X_DAS_COSTAS} 0) translate(50 0) scale(${MAIS_CHEIO} 1) translate(-50 0)`}>
+          {PECAS[vista].map((p, i) =>
+            ambos(p.par, (t) => (
+              <path key={`${i}-${t ?? 'e'}`} d={p.d} transform={t} fill={cor(p.local)} stroke="#94a3b8" strokeWidth={0.9} strokeLinejoin="round">
+                <title>{`${ROTULO_LOCAL_DOR[p.local]}: ${valores[p.local] ?? 0} relato(s)`}</title>
+              </path>
+            )),
+          )}
+        </g>
+      ))}
+      <g fill="#64748b" fontSize="8" fontWeight="600" textAnchor="middle">
+        <text x={X_DA_FRENTE + 50} y={214}>
+          Frente
+        </text>
+        <text x={X_DAS_COSTAS + 50} y={214}>
+          Costas
+        </text>
+      </g>
+    </svg>
+  )
+}
+
 /** Etapa "Onde dói mais?" (só aparece com dor leve, média ou forte): toca a região e confirma. */
 export function BonecoDaDor({
   inicial = null,

@@ -1407,3 +1407,56 @@ section.foto > :not(img):not(svg):not(.fonte) {
 .fim-lista b { color: #fff; }
 
 .fim-txt { max-width: 820px; }
+
+.usuarios.us-ic span { display: inline-flex; align-items: center; gap: 8px; }
+.usuarios.us-ic svg { width: 22px; height: 22px; fill: none; stroke: #22d3a6; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#fluxo .fx-wrap { transform: scale(1.08) translateY(-170px); transform-origin: 960px 560px; }
+#fluxo .fx-no b { font-size: 31px; }
+#fluxo .fx-no span:not(.fx-ic) { font-size: 22px; }
+#fluxo .fx-rot { font-size: 24px; }
+#fluxo .fx-hub b { font-size: 44px; }
+#fluxo .fx-sub { font-size: 30px; }
+#fluxo .fx-volta-rot { font-size: 26px; }
+/* Por que importa: alturas fixas para alinhar */
+.cad-a { height: 200px; justify-content: center; box-sizing: border-box; }
+.cad-b { height: 210px; justify-content: center; box-sizing: border-box; }
+/* App do Trabalhador */
+.app-g { display: grid; grid-template-columns: 1fr 470px; gap: 40px; flex: 1; align-items: center; }
+.app-col { display: flex; flex-direction: column; gap: 20px; }
+.app-plano { background: rgba(34, 211, 166, 0.1); border: 2px solid var(--destaque); border-radius: 22px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+.app-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.app-3 div { display: flex; align-items: center; gap: 12px; }
+.app-3 b { font-size: 24px; color: #fff; line-height: 1.2; }
+.app-pers { display: flex; flex-direction: column; gap: 14px; }
+.app-c { display: flex; align-items: center; gap: 18px; background: var(--vidro); border: 2px solid var(--borda); border-radius: 18px; padding: 16px 20px; }
+.app-c div { display: flex; flex-direction: column; gap: 4px; }
+.app-c b { font-size: 28px; color: #fff; }
+.app-c span:not(.fx-ic) { font-size: 22px; color: var(--texto); }
+.app-cels { display: flex; gap: 18px; align-items: center; justify-content: center; }
+.app-cels .cel { width: 215px; height: 465px; }
+#fluxo .fx-wrap { transform: scale(1.08) translateY(-105px); }
+
+/* Engajar: alavancas + indicadores */
+.eg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.eg { background: var(--vidro); border: 2px solid var(--borda); border-radius: 22px; padding: 20px 22px; display: grid; grid-template-rows: auto 1fr auto; gap: 12px; }
+.eg-h { display: flex; align-items: center; gap: 14px; }
+.eg-h .en-ic { width: 60px; height: 60px; border-radius: 16px; }
+.eg-h .en-ic svg { width: 34px; height: 34px; }
+.eg .en-t { font-size: 30px; }
+.eg-o { font-size: 22px; color: #e5edf6; line-height: 1.35; }
+.eg-m { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border-top: 1px solid var(--borda); padding-top: 12px; }
+.eg-m b { font-size: 18px; letter-spacing: 2px; text-transform: uppercase; color: var(--destaque); margin-right: 4px; }
+.eg-m span { font-size: 19px; color: #fff; background: rgba(34, 211, 166, 0.14); border-radius: 999px; padding: 5px 12px; }
+.eg-ind { display: grid; grid-template-columns: 250px 1fr 250px; gap: 20px; align-items: center; background: rgba(34, 211, 166, 0.08); border: 2px solid var(--destaque); border-radius: 22px; padding: 18px 22px; }
+.eg-num { font-size: 50px; font-weight: 800; color: #fff; line-height: 1; margin-top: 6px; }
+.eg-barra { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.eg-barra div { background: rgba(34, 211, 166, 0.22); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.eg-barra b { font-size: 26px; color: var(--destaque); }
+.eg-barra span { font-size: 18px; color: #e5edf6; }
+.eg-fim { display: flex; flex-direction: column; gap: 2px; border-left: 2px solid var(--borda); padding-left: 20px; }
+.eg-fim p { font-size: 18px; letter-spacing: 2px; text-transform: uppercase; color: var(--destaque); font-weight: 800; }
+.eg-fim b { font-size: 32px; color: #fff; }
+.eg-fim span { font-size: 19px; color: var(--texto); }
+.eg-ind { grid-template-columns: 250px 1fr 300px; }
+.eg-fim b { font-size: 28px; }
+.eg-fim { min-width: 0; }

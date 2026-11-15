@@ -4,7 +4,7 @@
   "lists": "css",
   "format": { "v": 1, "shared": ["project/deck.css"] },
   "title": "Selo Saúde · Pitch Hackathon+ SESI Saúde 2026",
-  "order": ["capa", "punch", "metrica", "escala", "efeitos", "virada", "marcos", "pergunta", "oque", "engajar", "crm", "porque", "negocio", "viavel", "fechamento", "automacoes", "jornada", "acesso", "custos", "resultados", "fluxo", "time"],
+  "order": ["capa", "punch", "metrica", "escala", "efeitos", "virada", "marcos", "pergunta", "oque", "app", "engajar", "crm", "porque", "negocio", "viavel", "fechamento", "automacoes", "jornada", "acesso", "custos", "resultados", "fluxo", "time"],
   "sections": {
     "abertura": { "description": "Quem somos e a frase do Selo Saúde.", "start": "capa" },
     "problema": { "description": "O cuidado funciona, metade falta, o que isso causa e quem é o Marcos.", "start": "punch" },

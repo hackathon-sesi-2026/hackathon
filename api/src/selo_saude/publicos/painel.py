@@ -18,15 +18,19 @@ from selo_saude.modulos.indicadores.servico import PainelDaEmpresa, UnidadeDaLid
 from selo_saude.modulos.monitoramento import servico as monitoramento
 from selo_saude.modulos.monitoramento.servico import (
     Desfecho,
+    EmpresaNaCarteira,
     EnvioDaCadencia,
     FiltrosDaFila,
     LinhaDaFila,
+    MetricasDasMensagens,
     Ordem,
     PaginaDaFila,
     PipelineDaFila,
     ResumoDaFila,
 )
 from selo_saude.modulos.plano import servico as plano
+from selo_saude.modulos.pulso import servico as pulso
+from selo_saude.modulos.pulso.servico import MetricasDoTotem
 from selo_saude.nucleo.banco import Sessao
 from selo_saude.nucleo.esquema import Esquema
 from selo_saude.nucleo.tempo_real import resposta_sse, transacional
@@ -101,6 +105,24 @@ async def pipeline_da_carteira(
     sessao: Sessao, filtros: Filtros, ordem: Ordem = "prioridade", por_coluna: int = Query(12, alias="porColuna", le=50)
 ) -> PipelineDaFila:
     return await monitoramento.pipeline(sessao, filtros, ordem, por_coluna)
+
+
+@aps.get("/mensagens")
+async def metricas_das_mensagens(sessao: Sessao) -> MetricasDasMensagens:
+    """O que foi mandado pelo WhatsApp nos últimos 30 dias e quanto voltou de resposta."""
+    return await monitoramento.metricas_das_mensagens(sessao)
+
+
+@aps.get("/totens")
+async def metricas_dos_totens(sessao: Sessao, unidade: str | None = None) -> MetricasDoTotem:
+    """Uso e respostas dos totens, agregados e anônimos. Turno com menos de 5 respostas fica oculto."""
+    return await pulso.metricas(sessao, unidade or None)
+
+
+@aps.get("/empresas")
+async def empresas_da_carteira(sessao: Sessao, filtros: Filtros) -> list[EmpresaNaCarteira]:
+    """As indústrias da carteira com os números de cada uma, das que mais precisam de ação para as que menos."""
+    return await monitoramento.empresas(sessao, filtros)
 
 
 @aps.get("/trabalhadores/{trabalhador_id}")
