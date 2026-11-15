@@ -57,7 +57,7 @@ class RetornoNoTotem(Esquema):
     local: str
     modalidade: Modalidade
     status: Literal["agendada", "confirmada", "remarcar", "faltou"]
-    """"faltou": a consulta já passou e a pessoa não compareceu. Só data, hora e local: nada de tipo, motivo ou exame."""
+    """"faltou": a consulta já passou e a pessoa não compareceu. Só data, hora e local, nada de tipo ou exame."""
 
 
 class CuidadoNoTotem(Esquema):
