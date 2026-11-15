@@ -1,0 +1,154 @@
+# Integração contínua do Selo Saúde.
+#
+#   api  → lint, formatação e testes unitários da API (regras puras, sem banco)
+#   web  → checagem de tipos e build do front
+#   qa   → sobe Postgres, API e front de verdade e roda o QA ponta a ponta (qa/rodar.py),
+#          mais a validação do PRD contra a API (api/tests/test_prd_http.py)
+#
+# Veredito do QA: REPROVADO falha o pipeline; APROVADO COM RESSALVAS passa e mostra as ressalvas no resumo.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+jobs:
+  api:
+    name: API · lint e testes unitários
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: api/pyproject.toml
+      - name: Instalar dependências
+        run: pip install -e ".[dev]"
+      - name: Lint (ruff)
+        run: ruff check src tests
+      - name: Formatação (ruff format)
+        run: ruff format --check src tests
+      - name: Testes unitários
+        run: pytest -q
+
+  web:
+    name: Front · tipos e build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Instalar dependências
+        run: npm ci
+      - name: Checagem de tipos e build
+        run: npm run build
+
+  qa:
+    name: QA ponta a ponta
+    needs: [api, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      banco:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: selo
+          POSTGRES_PASSWORD: selo
+          POSTGRES_DB: selo_saude
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U selo -d selo_saude"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      SELO_URL_BANCO: postgresql://selo:selo@localhost:5433/selo_saude
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: api/pyproject.toml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Instalar dependências
+        run: |
+          python -m venv api/.venv
+          api/.venv/bin/pip install -e "api[dev,qa]"
+          npm ci --prefix web
+
+      - name: Criar as tabelas
+        working-directory: api
+        run: .venv/bin/alembic upgrade head
+
+      - name: Subir API e front
+        run: |
+          (cd api && nohup .venv/bin/uvicorn selo_saude.main:app --app-dir src --port 8000 > ../api.log 2>&1 &)
+          nohup npm --prefix web run dev -- --port 5173 --strictPort > web.log 2>&1 &
+          for i in $(seq 1 60); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5173/api/saude)" = "200" ]; then
+              echo "Sistema no ar."; exit 0
+            fi
+            sleep 1
+          done
+          echo "O sistema não subiu em 60 s."; cat api.log web.log; exit 1
+
+      # O runner do GitHub já tem o Google Chrome; o Playwright usa ele (channel="chrome").
+      - name: QA ponta a ponta
+        id: qa
+        run: |
+          set +e
+          api/.venv/bin/python qa/rodar.py
+          codigo=$?
+          echo "codigo=$codigo" >> "$GITHUB_OUTPUT"
+          cat qa/relatorio.md >> "$GITHUB_STEP_SUMMARY"
+          # 0 = APROVADO, 1 = APROVADO COM RESSALVAS (passa), 2 = REPROVADO (falha)
+          [ "$codigo" -lt 2 ]
+
+      - name: Validação do PRD contra a API
+        if: always() && steps.qa.outcome != 'skipped'
+        working-directory: api
+        env:
+          SELO_API_URL: http://127.0.0.1:8000
+        run: .venv/bin/pytest tests/test_prd_http.py -q
+
+      - name: Guardar relatório e logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-relatorio
+          path: |
+            qa/relatorio.md
+            api.log
+            web.log
+          if-no-files-found: ignore
