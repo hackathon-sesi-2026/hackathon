@@ -77,6 +77,15 @@ def _onde(c: DadosConsulta) -> str:
     return f"no {c.local}"
 
 
+def link_pessoal(t: DadosTrabalhador) -> Texto:
+    """Enviado quando a pessoa pede no totem. O link só chega ao WhatsApp dela, nunca aparece na tela pública."""
+    return Texto(
+        f"{_ola(t)} Você pediu no totem: por aqui você escolhe o horário com calma e em particular. "
+        "Este link é só seu.",
+        ["escolher_horario", "plano"],
+    )
+
+
 def lembrete(t: DadosTrabalhador, c: DadosConsulta | None) -> Texto:
     if c and c.em_aberto:
         return Texto(

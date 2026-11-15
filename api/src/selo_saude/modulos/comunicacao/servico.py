@@ -15,7 +15,7 @@ from selo_saude.nucleo.esquema import Esquema, Instante, novo_id
 from selo_saude.nucleo.eventos import publicar
 
 from . import textos
-from .eventos import CheckinHabitoEnviado, LembreteEnviado
+from .eventos import CheckinHabitoEnviado, LembreteEnviado, LinkPessoalEnviado
 from .modelos import Mensagem
 from .textos import Texto
 
@@ -63,6 +63,14 @@ async def enviar_checkin_habito(sessao: AsyncSession, trabalhador_id: str) -> No
         raise RegraViolada("Todos os passos do plano já foram feitos")
     await do_sesi(sessao, trabalhador_id, texto)
     await publicar(sessao, CheckinHabitoEnviado(trabalhador_id=trabalhador_id))
+
+
+async def enviar_link_pessoal(sessao: AsyncSession, trabalhador_id: str) -> None:
+    """Manda o link pessoal para o WhatsApp da própria pessoa. É o único jeito de o totem levar alguém ao celular:
+    quem souber a matrícula de um colega, no máximo, faz o link chegar ao celular do dono."""
+    trabalhador = await cadastro.obter(sessao, trabalhador_id)
+    await do_sesi(sessao, trabalhador_id, textos.link_pessoal(trabalhador))
+    await publicar(sessao, LinkPessoalEnviado(trabalhador_id=trabalhador_id))
 
 
 # ---------------------------------------------------------------- gravação (usada também pelos manipuladores)

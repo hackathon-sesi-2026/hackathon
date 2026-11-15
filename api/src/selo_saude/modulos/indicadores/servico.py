@@ -139,8 +139,14 @@ async def painel_da_empresa(sessao: AsyncSession, filtro: str = "todas") -> Pain
         raise NaoEncontrado("Unidade não encontrada")
 
     hoje = relogio.inicio_do_dia(relogio.agora())
-    respostas = await pulso.listar_desde(sessao, hoje - timedelta(days=DIAS_DO_PULSO), [u.unidade for u in visiveis])
-    do_filtro = [r for r in respostas if r.unidade in {u.unidade for u in selecionadas}]
+    todas_as_respostas = await pulso.listar_desde(
+        sessao, hoje - timedelta(days=DIAS_DO_PULSO), [u.unidade for u in visiveis]
+    )
+    do_filtro_bruto = [r for r in todas_as_respostas if r.unidade in {u.unidade for u in selecionadas}]
+    # Só entram nos totais as respostas de grupos (unidade + turno) com 5 ou mais. Assim nenhum agregado
+    # deixa descobrir um turno oculto por diferença, mesmo com uma unidade filtrada.
+    respostas = _so_grupos_visiveis(todas_as_respostas)
+    do_filtro = _so_grupos_visiveis(do_filtro_bruto)
     vidas = sum(u.vidas for u in selecionadas)
 
     def media(campo: str) -> int:
@@ -170,7 +176,7 @@ async def painel_da_empresa(sessao: AsyncSession, filtro: str = "todas") -> Pain
                 comparecimento_agora=u.comparecimento_agora,
                 planos_recebidos=u.planos_recebidos,
                 em_dia_com_risco=u.em_dia_com_risco,
-                motivos=u.motivos,
+                motivos=_motivos_visiveis(u.motivos),
                 respostas_no_totem=sum(1 for r in respostas if r.unidade == u.unidade),
             )
             for u in visiveis
@@ -182,8 +188,22 @@ async def painel_da_empresa(sessao: AsyncSession, filtro: str = "todas") -> Pain
         planos_recebidos=media("planos_recebidos"),
         pulso=_indicadores(do_filtro),
         semanas=semanas,
-        turnos=_por_turno(do_filtro),
+        turnos=_por_turno(do_filtro_bruto),
     )
+
+
+def _so_grupos_visiveis(respostas: list[DadosPulso]) -> list[DadosPulso]:
+    """Descarta as respostas de grupos (unidade + turno) com menos de MINIMO_DO_GRUPO respostas."""
+    tamanho: dict[tuple[str, str], int] = {}
+    for r in respostas:
+        tamanho[(r.unidade, r.turno)] = tamanho.get((r.unidade, r.turno), 0) + 1
+    return [r for r in respostas if tamanho[(r.unidade, r.turno)] >= MINIMO_DO_GRUPO]
+
+
+def _motivos_visiveis(motivos: dict[str, int]) -> dict[str, int]:
+    """Contagens de 1 a 4 de um motivo numa unidade podem apontar pessoas: saem do que a empresa vê.
+    Zero continua aparecendo (não identifica ninguém)."""
+    return {motivo: n for motivo, n in motivos.items() if n == 0 or n >= MINIMO_DO_GRUPO}
 
 
 def _por_turno(respostas: list[DadosPulso]) -> list[PulsoDoTurno]:

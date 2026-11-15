@@ -188,17 +188,23 @@ export function PainelRh() {
                 <div key={u.unidade}>
                   {unidade === 'todas' && <p className="mb-1 text-xs font-semibold text-navy">{u.unidade}</p>}
                   <div className="space-y-1">
-                    {MOTIVOS.map((m) => (
-                      <div key={m.motivo} className="flex items-center gap-2 text-xs">
-                        <span className="w-44 shrink-0 truncate text-slate-600">
-                          {m.emoji} {m.rotulo}
-                        </span>
-                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                          <div className="h-full rounded-full bg-violet-500" style={{ width: `${(u.motivos[m.motivo] / max) * 100}%` }} />
+                    {MOTIVOS.map((m) => {
+                      // A API omite contagens de 1 a 4: poderiam apontar pessoas.
+                      const n = u.motivos[m.motivo]
+                      return (
+                        <div key={m.motivo} className="flex items-center gap-2 text-xs">
+                          <span className="w-44 shrink-0 truncate text-slate-600">
+                            {m.emoji} {m.rotulo}
+                          </span>
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                            {n !== undefined && <div className="h-full rounded-full bg-violet-500" style={{ width: `${(n / max) * 100}%` }} />}
+                          </div>
+                          <span className="w-10 text-right font-semibold tabular-nums text-navy" title={n === undefined ? 'Menos de 5: oculto para proteger as pessoas' : undefined}>
+                            {n ?? '< 5'}
+                          </span>
                         </div>
-                        <span className="w-6 text-right font-semibold tabular-nums text-navy">{u.motivos[m.motivo]}</span>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               )

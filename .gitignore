@@ -1,5 +1,8 @@
 # Materiais pesados — ficam só localmente; usar as versões .md ao lado de cada arquivo
 *.pdf
+# Exceção: o PRD do time é leve e vai versionado
+!docs/prd-selo-saude.pdf
+!docs/validacao-prd.pdf
 *.mp4
 *.pptx
 *.docx

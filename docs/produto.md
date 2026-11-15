@@ -101,6 +101,9 @@ Nova oferta de saúde ou serviço paralelo à APS; prontuário ou ficha clínica
 - **14/11:** a privacidade por público é garantida no servidor: cada público tem as suas rotas e recebe só o que pode ver.
 - **14/11:** "Meus exames" no celular do trabalhador, com andamento e resultado em linguagem simples. O aviso pelo WhatsApp não leva nenhum detalhe. No protótipo os resultados são fictícios e ficam no banco da API; no produto viriam do S+ sob demanda.
 
+- **14/11:** o totem nunca devolve nem mostra o link pessoal. Com o crachá, a pessoa pede e o link é enviado ao WhatsApp dela (`POST /api/totem/{unidade}/identificacao/link`). Motivo: a matrícula não é segredo, e o link dá acesso aos exames.
+- **14/11:** grupo mínimo de 5 também nos totais do RH: o pulso agregado e as semanas só somam turnos visíveis, e motivos com 1 a 4 casos por unidade saem omitidos.
+
 A arquitetura e as convenções de código estão no `CLAUDE.md` da raiz.
 
 ## Decisões em aberto

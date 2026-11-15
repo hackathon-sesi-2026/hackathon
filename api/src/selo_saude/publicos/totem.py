@@ -1,6 +1,7 @@
 """Rotas do totem na unidade. É uma tela pública: o pulso é anônimo e a parte pessoal mostra o mínimo.
 
 Com o crachá, a pessoa vê só data e hora do retorno e quantos passos fez. Nunca o que é o atendimento.
+O link pessoal nunca sai por aqui: se a pessoa quiser ir ao celular, ele é enviado ao WhatsApp dela.
 """
 
 from typing import Literal
@@ -12,6 +13,7 @@ from selo_saude.configuracao import configuracao
 from selo_saude.modulos.agenda import servico as agenda
 from selo_saude.modulos.agenda.regras import Modalidade
 from selo_saude.modulos.cadastro import servico as cadastro
+from selo_saude.modulos.comunicacao import servico as comunicacao
 from selo_saude.modulos.indicadores import servico as indicadores
 from selo_saude.modulos.indicadores.servico import MetaDoTurno, UnidadeComTotem
 from selo_saude.modulos.plano import servico as plano
@@ -62,8 +64,8 @@ class CuidadoNoTotem(Esquema):
     passos_feitos: int
     passos_no_plano: int
     semanas_seguidas: int
-    token_acesso: str
-    """Vira o QR code que leva a pessoa para o próprio celular, onde ela resolve o resto em particular."""
+    # Sem token de acesso: a tela é pública e a matrícula não é segredo. Para ir ao celular, a pessoa pede o link
+    # e ele é enviado ao WhatsApp dela (rota /identificacao/link).
 
 
 @rota.get("/unidades")
@@ -115,8 +117,14 @@ async def identificar(unidade: str, corpo: Identificacao, sessao: Sessao) -> Cui
         passos_feitos=sum(1 for p in meu_plano.passos if p.feito),
         passos_no_plano=len(meu_plano.passos),
         semanas_seguidas=meu_plano.semanas_seguidas,
-        token_acesso=trabalhador.token_acesso,
     )
+
+
+@rota.post("/{unidade}/identificacao/link", status_code=204)
+@transacional
+async def mandar_link_para_o_celular(unidade: str, corpo: Identificacao, sessao: Sessao) -> None:
+    trabalhador = await _da_unidade(sessao, unidade, corpo.matricula)
+    await comunicacao.enviar_link_pessoal(sessao, trabalhador.id)
 
 
 @rota.post("/{unidade}/identificacao/confirmacao", status_code=204)

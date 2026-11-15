@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft, CalendarCheck, Flame, IdCard, Lock, MessageCircleHeart } from 'lucide-react'
+import { ArrowLeft, CalendarCheck, Flame, IdCard, Lock, MessageCircle, MessageCircleHeart } from 'lucide-react'
 import { useParams } from 'react-router'
 import { api } from '../../api/cliente'
 import type { Cracha, CuidadoNoTotem, TelaInicialDoTotem } from '../../api/tipos'
 import { useRecurso } from '../../api/useRecurso'
 import { LogoMarca } from '../../componentes/Logo'
 import { MetaTurno } from '../../componentes/MetaTurno'
-import { QrDoCelular } from '../../componentes/QrDoCelular'
 import { AvisoDeFalha, TelaCheia } from '../../componentes/TelaCheia'
 import { diaSemana, horaCurta } from '../../lib/datas'
 
@@ -103,6 +102,12 @@ export function PaginaTotem() {
     if (await enviar('post', `${base}/identificacao/confirmacao`, { matricula })) await identificar(matricula)
   }
 
+  /** O link pessoal vai para o WhatsApp da própria pessoa; a tela pública nunca mostra o link. */
+  async function mandarLink(): Promise<boolean> {
+    if (!matricula) return false
+    return enviar('post', `${base}/identificacao/link`, { matricula })
+  }
+
   return (
     <div className="flex h-dvh flex-col bg-navy text-white">
       <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col">
@@ -188,7 +193,7 @@ export function PaginaTotem() {
 
           {tela === 'cracha' && <LeitorDeCracha base={base} aoLer={identificar} />}
 
-          {tela === 'meu' && cuidado && <MeuCuidadoNoTotem c={cuidado} restante={restante} confirmar={confirmar} sair={sair} />}
+          {tela === 'meu' && cuidado && <MeuCuidadoNoTotem c={cuidado} restante={restante} confirmar={confirmar} mandarLink={mandarLink} sair={sair} />}
         </div>
       </div>
       <AvisoDeFalha mensagem={falha} />
@@ -249,8 +254,21 @@ function Obrigado({ r, unidade, turno, restante }: { r: Respostas; unidade: stri
 }
 
 /** Tela pessoal no totem: só data e hora, nunca o que é o atendimento. Os passos aparecem só em número. */
-function MeuCuidadoNoTotem({ c, restante, confirmar, sair }: { c: CuidadoNoTotem; restante: number; confirmar: () => void; sair: () => void }) {
+function MeuCuidadoNoTotem({
+  c,
+  restante,
+  confirmar,
+  mandarLink,
+  sair,
+}: {
+  c: CuidadoNoTotem
+  restante: number
+  confirmar: () => void
+  mandarLink: () => Promise<boolean>
+  sair: () => void
+}) {
   const [noCelular, setNoCelular] = useState(false)
+  const [linkEnviado, setLinkEnviado] = useState(false)
   const retorno = c.retorno
 
   return (
@@ -287,9 +305,22 @@ function MeuCuidadoNoTotem({ c, restante, confirmar, sair }: { c: CuidadoNoTotem
           </>
         )}
         {noCelular && (
-          <div className="mt-3 flex items-center gap-3 rounded-xl bg-cinza p-3">
-            <QrDoCelular token={c.tokenAcesso} tamanho={96} />
-            <p className="text-xs text-slate-600">Aponte a câmera do celular para escolher o horário com calma e em particular.</p>
+          <div className="mt-3 rounded-xl bg-cinza p-3">
+            {linkEnviado ? (
+              <p className="flex items-center gap-2 text-sm font-semibold text-saude-700">
+                <MessageCircle className="size-5" /> Pronto! O link chegou no seu WhatsApp. Escolha o horário por lá, em particular.
+              </p>
+            ) : (
+              <>
+                <p className="text-xs text-slate-600">Para escolher com calma e em particular, mandamos o seu link pessoal para o seu WhatsApp.</p>
+                <button
+                  onClick={async () => setLinkEnviado(await mandarLink())}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-saude py-3 font-semibold text-navy"
+                >
+                  <MessageCircle className="size-5" /> Mandar o link para o meu WhatsApp
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

@@ -193,7 +193,7 @@ export interface CuidadoNoTotem {
   passosFeitos: number
   passosNoPlano: number
   semanasSeguidas: number
-  tokenAcesso: string
+  // Sem token: o link pessoal nunca aparece na tela pública. Vai para o WhatsApp da pessoa (POST /identificacao/link).
 }
 
 // ---------------------------------------------------------------- painel da APS
@@ -362,7 +362,8 @@ export interface IndicadoresDaUnidade {
   comparecimentoAgora: number
   planosRecebidos: number
   emDiaComRisco: number
-  motivos: Record<MotivoDificuldade, number>
+  /** Contagens de 1 a 4 vêm omitidas (grupo mínimo): poderiam apontar pessoas. */
+  motivos: Partial<Record<MotivoDificuldade, number>>
   respostasNoTotem: number
 }
 
