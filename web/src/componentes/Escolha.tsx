@@ -93,10 +93,10 @@ export function Escolha({
           <Icone className="size-4" />
         </span>
         <span className="leading-tight">
-          <span className="block text-[11px] text-slate-400">{rotulo}</span>
+          <span className="block text-xs text-slate-500">{rotulo}</span>
           <span className="block text-sm font-semibold text-navy">{atual?.rotulo}</span>
         </span>
-        <ChevronDown className={`ml-2 size-4 text-slate-400 transition group-hover:text-navy ${aberta ? 'rotate-180 text-navy' : ''}`} />
+        <ChevronDown className={`ml-2 size-4 text-slate-500 transition group-hover:text-navy ${aberta ? 'rotate-180 text-navy' : ''}`} />
       </button>
 
       {aberta && (
@@ -110,7 +110,7 @@ export function Escolha({
           onKeyDown={teclaNaLista}
           className="absolute left-0 z-30 mt-2 min-w-full origin-top overflow-hidden rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-slate-200 outline-none"
         >
-          <li className="px-3 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400" role="presentation">
+          <li className="px-3 pb-1.5 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-500" role="presentation">
             {rotulo}
           </li>
           {opcoes.map((o, i) => {

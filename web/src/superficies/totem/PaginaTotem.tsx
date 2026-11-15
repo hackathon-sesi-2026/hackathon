@@ -76,12 +76,14 @@ export function PaginaTotem() {
   }, [restante, etapa, recomecar])
 
   // O rem acompanha a tela: 24rem é a largura do design, limitada pela altura (proporção 0,625).
-  // Com "Acessibilidade", tudo fica 12% maior.
+  // "Letras maiores" aumenta só o texto em 30% (--lm), sem mexer nas caixas: a tela não pode ganhar rolagem.
   useEffect(() => {
     const raiz = document.documentElement
-    raiz.style.fontSize = `calc(min(100vw, 62.5dvh) / 24 * ${acessivel ? 1.12 : 1})`
+    raiz.style.fontSize = 'calc(min(100vw, 62.5dvh) / 24)'
+    raiz.style.setProperty('--lm', acessivel ? '1.3' : '1')
     return () => {
       raiz.style.fontSize = ''
+      raiz.style.removeProperty('--lm')
     }
   }, [acessivel])
 
@@ -121,7 +123,7 @@ export function PaginaTotem() {
 
         {etapa === 'boas_vindas' && <BoasVindas aoComecar={() => setEtapa('cpf')} />}
 
-        {etapa === 'cpf' && <EntradaDeCpf aoEntrar={identificar} aoPular={() => setEtapa('intensidade')} />}
+        {etapa === 'cpf' && <EntradaDeCpf aoEntrar={identificar} />}
 
         {etapa === 'intensidade' && <PerguntaDaDor escolhida={intensidade} aoResponder={responderIntensidade} aoVoltar={() => setEtapa('cpf')} />}
 
@@ -153,12 +155,12 @@ export function PaginaTotem() {
                     <span className="grid h-[4.6rem] place-items-center">
                       <Rosto valor={valor} escolhido={escolhida} />
                     </span>
-                    <span className={`px-[0.2rem] text-[0.9rem] leading-[1.25] ${escolhida ? 'font-semibold' : ''}`}>{rotulo}</span>
+                    <span className={`px-[0.2rem] text-[calc(0.9rem*var(--lm))] leading-[1.25] ${escolhida ? 'font-semibold' : ''}`}>{rotulo}</span>
                   </button>
                 )
               })}
             </div>
-            <BotaoPrincipal onClick={enviarPulso} disabled={!bemEstar} className="mx-auto mt-[5.3rem] h-[3.5rem] w-[18.4rem] max-w-full text-[1.25rem]">
+            <BotaoPrincipal onClick={enviarPulso} disabled={!bemEstar} className="mx-auto mt-[5.3rem] h-[3.5rem] w-[18.4rem] max-w-full text-[calc(1.25rem*var(--lm))]">
               Continuar
             </BotaoPrincipal>
             <BotaoVoltar onClick={() => setEtapa(intensidade === 0 ? 'intensidade' : 'dor')} className="mt-[2.4rem]" />
@@ -178,16 +180,16 @@ function BoasVindas({ aoComecar }: { aoComecar: () => void }) {
     <div className="relative flex flex-1 flex-col">
       <LogoMarca className="pointer-events-none absolute -right-[0.4rem] top-[2.4rem] w-[7.2rem] drop-shadow-[0_0_1.6rem_rgba(31,224,176,0.45)]" />
       <h1 className="relative mt-[4.3rem] text-[4.1rem] font-bold leading-none tracking-tight">Olá!</h1>
-      <p className="relative mt-[1.3rem] text-[1.32rem] leading-[1.35]">
+      <p className="relative mt-[1.3rem] text-[calc(1.32rem*var(--lm))] leading-[1.35]">
         Este é um momento
         <br />
         para <span className="font-semibold text-[#1fe0b0]">cuidar de você.</span>
       </p>
-      <p className="relative mt-[1.7rem] max-w-[14.5rem] text-[0.9rem] leading-[1.4]">Responda algumas perguntas rápidas e ajude-nos a cuidar ainda melhor de você.</p>
-      <BotaoPrincipal onClick={aoComecar} className="mx-auto mt-[3.2rem] h-[4.06rem] w-[17.5rem] max-w-full text-[1.5rem]">
+      <p className="relative mt-[1.7rem] max-w-[14.5rem] text-[calc(0.9rem*var(--lm))] leading-[1.4]">Responda algumas perguntas rápidas e ajude-nos a cuidar ainda melhor de você.</p>
+      <BotaoPrincipal onClick={aoComecar} className="mx-auto mt-[3.2rem] h-[4.06rem] w-[17.5rem] max-w-full text-[calc(1.5rem*var(--lm))]">
         <Play className="size-[1.4rem] fill-[#06204f]" strokeWidth={0} /> Começar
       </BotaoPrincipal>
-      <p className="mt-[1.9rem] flex items-center justify-center gap-[0.45rem] text-[0.72rem]">
+      <p className="mt-[1.9rem] flex items-center justify-center gap-[0.45rem] text-[calc(0.72rem*var(--lm))]">
         <Lock className="size-[0.95rem]" /> Seus dados são protegidos
       </p>
     </div>
@@ -228,7 +230,7 @@ function PerguntaDaDor({
               type="button"
               onClick={() => tocar(valor)}
               aria-pressed={acesa}
-              className={`flex h-[3.6rem] items-center gap-[1rem] rounded-[1.1rem] px-[1.2rem] text-left text-[1.25rem] font-semibold ring-2 transition-all [-webkit-tap-highlight-color:transparent] active:scale-[0.98] ${
+              className={`flex h-[3.6rem] items-center gap-[1rem] rounded-[1.1rem] px-[1.2rem] text-left text-[calc(1.25rem*var(--lm))] font-semibold ring-2 transition-all [-webkit-tap-highlight-color:transparent] active:scale-[0.98] ${
                 acesa ? 'bg-white/15 ring-[#1fe0b0] shadow-[0_0_1.2rem_rgba(31,224,176,0.45)]' : 'bg-white/[0.06] ring-white/25'
               }`}
             >
@@ -286,8 +288,8 @@ function Obrigado() {
           <Check className="size-[4rem]" strokeWidth={3} />
         </span>
       </div>
-      <h1 className="mt-[1.7rem] text-[2.8rem] font-bold leading-none">Obrigado!</h1>
-      <p className="mt-[1.1rem] text-[1.3rem] leading-[1.3]">
+      <h1 className="mt-[1.7rem] text-[calc(2.8rem*var(--lm))] font-bold leading-none">Obrigado!</h1>
+      <p className="mt-[1.1rem] text-[calc(1.3rem*var(--lm))] leading-[1.3]">
         Sua participação
         <br />é muito importante.
       </p>
@@ -306,7 +308,7 @@ function Obrigado() {
           strokeLinejoin="round"
         />
       </svg>
-      <p className="mt-[3.2rem] text-[1.65rem] font-extrabold italic leading-none tracking-tight">SESI</p>
+      <p className="mt-[3.2rem] text-[calc(1.65rem*var(--lm))] font-extrabold italic leading-none tracking-tight">SESI</p>
     </div>
   )
 }

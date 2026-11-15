@@ -26,3 +26,8 @@ body {
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Multiplicador de texto do totem ("Letras maiores"). */
+:root {
+  --lm: 1;
+}

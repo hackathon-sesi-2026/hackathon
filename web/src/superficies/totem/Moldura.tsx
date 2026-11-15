@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Accessibility, ChevronLeft } from 'lucide-react'
+import { ChevronLeft, ZoomIn } from 'lucide-react'
 import { Logo } from '../../componentes/Logo'
 
 // Peças visuais do totem, medidas no design (tela de retrato de 24rem x 38.4rem).
@@ -50,7 +50,7 @@ export function Palco({ ondas, children }: { ondas: 'altas' | 'baixas'; children
   )
 }
 
-/** Logo do Selo Saúde e, nas etapas, o botão de acessibilidade (letras maiores). */
+/** Logo do Selo Saúde e, nas etapas, o botão "Letras maiores" (tudo 30% maior, para quem enxerga pouco). */
 export function Cabecalho({ acessivel, aoAlternarAcessibilidade }: { acessivel?: boolean; aoAlternarAcessibilidade?: () => void }) {
   return (
     <header className="flex shrink-0 items-center justify-between px-[1.5rem] pt-[1.6rem]">
@@ -59,15 +59,15 @@ export function Cabecalho({ acessivel, aoAlternarAcessibilidade }: { acessivel?:
         <button
           type="button"
           onClick={aoAlternarAcessibilidade}
-          aria-pressed={acessivel}
-          className={`flex h-[2.1rem] items-center gap-[0.4rem] rounded-full pl-[0.4rem] pr-[0.65rem] text-[0.58rem] font-medium ring-1 transition ${
+          aria-pressed={acessivel} aria-label="Letras maiores"
+          className={`flex h-[2.1rem] items-center gap-[0.4rem] rounded-full pl-[0.4rem] pr-[0.65rem] text-[calc(0.58rem*var(--lm))] font-medium ring-1 transition ${
             acessivel ? 'bg-white text-[#0a2a6e] ring-white' : 'bg-white/[0.06] text-white ring-white/30'
           }`}
         >
           <span className={`grid size-[1.3rem] place-items-center rounded-full ring-1 ${acessivel ? 'ring-[#0a2a6e]' : 'ring-white/70'}`}>
-            <Accessibility className="size-[0.8rem]" />
+            <ZoomIn className="size-[0.8rem]" />
           </span>
-          Acessibilidade
+          Letras maiores
         </button>
       )}
     </header>
@@ -81,7 +81,7 @@ export function Progresso({ passo, total }: { passo: number; total: number }) {
       <div className="h-[0.26rem] w-[4.5rem] overflow-hidden rounded-full bg-white/20">
         <div className="h-full rounded-full bg-[#19d3a2] transition-all" style={{ width: `${(passo / total) * 100}%` }} />
       </div>
-      <span className="text-[0.66rem] font-medium">
+      <span className="text-[calc(0.66rem*var(--lm))] font-medium">
         {passo} de {total}
       </span>
     </div>
@@ -91,8 +91,8 @@ export function Progresso({ passo, total }: { passo: number; total: number }) {
 export function Titulo({ children, apoio }: { children: ReactNode; apoio?: ReactNode }) {
   return (
     <>
-      <h1 className="mt-[0.75rem] text-[1.7rem] font-semibold leading-[1.1]">{children}</h1>
-      {apoio && <p className="mt-[0.4rem] text-[0.97rem] leading-[1.35] text-white/95">{apoio}</p>}
+      <h1 className="mt-[0.75rem] text-[calc(1.7rem*var(--lm))] font-semibold leading-[1.1]">{children}</h1>
+      {apoio && <p className="mt-[0.4rem] text-[calc(0.97rem*var(--lm))] leading-[1.35] text-white/95">{apoio}</p>}
     </>
   )
 }
@@ -117,7 +117,7 @@ export function BotaoVoltar({ onClick, className = '' }: { onClick: () => void; 
     <button
       type="button"
       onClick={onClick}
-      className={`mx-auto flex h-[2.2rem] shrink-0 items-center gap-[0.6rem] rounded-full pl-[0.1rem] pr-[0.9rem] text-[0.78rem] font-medium ring-1 ring-white/25 ${className}`}
+      className={`mx-auto flex h-[2.2rem] shrink-0 items-center gap-[0.6rem] rounded-full pl-[0.1rem] pr-[0.9rem] text-[calc(0.78rem*var(--lm))] font-medium ring-1 ring-white/25 ${className}`}
     >
       <span className="grid size-[2rem] place-items-center rounded-full ring-1 ring-white/60">
         <ChevronLeft className="size-[1.1rem]" strokeWidth={2.4} />

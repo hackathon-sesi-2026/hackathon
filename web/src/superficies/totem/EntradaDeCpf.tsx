@@ -3,7 +3,7 @@ import { Delete, Eye, EyeOff } from 'lucide-react'
 import { Titulo } from './Moldura'
 
 // Etapa 1 do totem: a pessoa se identifica com o CPF, num teclado grande. A tela é pública, então os números
-// ficam escondidos (•) até a pessoa tocar no olho. "Prefiro não informar" segue sem identificação.
+// ficam escondidos (•) até a pessoa tocar no olho. O CPF é a forma de entrar: não dá para pular (decisão de 15/11).
 
 const TAMANHO = 11
 
@@ -17,7 +17,7 @@ function formatar(digitos: string, esconder: boolean): string {
   return texto
 }
 
-export function EntradaDeCpf({ aoEntrar, aoPular }: { aoEntrar: (cpf: string) => Promise<string | null>; aoPular: () => void }) {
+export function EntradaDeCpf({ aoEntrar }: { aoEntrar: (cpf: string) => Promise<string | null> }) {
   const [digitos, setDigitos] = useState('')
   const [mostrar, setMostrar] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -58,7 +58,7 @@ export function EntradaDeCpf({ aoEntrar, aoPular }: { aoEntrar: (cpf: string) =>
   })
 
   const tecla = 'grid h-[3.1rem] place-items-center rounded-[0.75rem] transition active:scale-95'
-  const teclaEscura = `${tecla} bg-gradient-to-b from-[#1d409a] to-[#152f78] text-[1.4rem] font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-white/[0.06]`
+  const teclaEscura = `${tecla} bg-gradient-to-b from-[#1d409a] to-[#152f78] text-[calc(1.4rem*var(--lm))] font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-white/[0.06]`
 
   return (
     <div className="flex flex-1 flex-col">
@@ -68,7 +68,7 @@ export function EntradaDeCpf({ aoEntrar, aoPular }: { aoEntrar: (cpf: string) =>
         <output
           aria-live="polite"
           aria-label={`CPF digitado: ${digitos.length} de ${TAMANHO} números`}
-          className={`flex-1 text-[1.3rem] tracking-wide tabular-nums ${digitos ? 'font-medium text-white' : 'text-[#9db4e6]/80'}`}
+          className={`flex-1 text-[calc(1.3rem*var(--lm))] tracking-wide tabular-nums ${digitos ? 'font-medium text-white' : 'text-[#9db4e6]/80'}`}
         >
           {digitos ? formatar(digitos, !mostrar) : '000.000.000-00'}
         </output>
@@ -81,7 +81,7 @@ export function EntradaDeCpf({ aoEntrar, aoPular }: { aoEntrar: (cpf: string) =>
           {mostrar ? <Eye className="size-[1.35rem]" /> : <EyeOff className="size-[1.35rem]" />}
         </button>
       </div>
-      <p className="flex min-h-[1.25rem] items-center text-[0.72rem] font-medium text-[#ffc078]" role="alert">
+      <p className="flex min-h-[1.25rem] items-center text-[calc(0.72rem*var(--lm))] font-medium text-[#ffc078]" role="alert">
         {erro}
       </p>
 
@@ -97,14 +97,10 @@ export function EntradaDeCpf({ aoEntrar, aoPular }: { aoEntrar: (cpf: string) =>
         <button type="button" onClick={() => digitar('0')} className={teclaEscura}>
           0
         </button>
-        <button type="button" onClick={entrar} className={`${tecla} bg-gradient-to-r from-[#1fe0b0] to-[#10c795] text-[1.02rem] font-semibold text-[#06204f]`}>
+        <button type="button" onClick={entrar} className={`${tecla} bg-gradient-to-r from-[#1fe0b0] to-[#10c795] text-[calc(1.02rem*var(--lm))] font-semibold text-[#06204f]`}>
           {entrando ? '…' : 'Entrar'}
         </button>
       </div>
-
-      <button type="button" onClick={aoPular} className="mx-auto mt-[1.7rem] shrink-0 text-[0.75rem] underline underline-offset-[0.2rem]">
-        Prefiro não informar
-      </button>
     </div>
   )
 }

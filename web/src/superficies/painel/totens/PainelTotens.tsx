@@ -82,7 +82,7 @@ export function PainelTotens() {
               />
             ))}
           </div>
-          <div className="mt-1 flex justify-between text-[10px] text-slate-400">
+          <div className="mt-1 flex justify-between text-xs text-slate-500">
             <span>há 28 dias</span>
             <span>hoje</span>
           </div>
@@ -125,7 +125,7 @@ export function PainelTotens() {
               <ol className="space-y-2">
                 {locais.slice(0, 6).map(([local, n], i) => (
                   <li key={local} className="flex items-center gap-2 text-sm">
-                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-cinza text-[11px] font-bold text-navy">{i + 1}</span>
+                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-cinza text-xs font-bold text-navy">{i + 1}</span>
                     <span className="min-w-0 flex-1 truncate text-slate-700">{ROTULO_LOCAL_DOR[local]}</span>
                     <b className="tabular-nums text-navy">{numero(n)}</b>
                   </li>
@@ -153,7 +153,7 @@ export function PainelTotens() {
                     <td className="px-2 py-2 text-slate-700">{t.turno}</td>
                     <td className="px-2 py-2 text-right tabular-nums text-navy">{numero(t.respostas)}</td>
                     {t.oculto ? (
-                      <td colSpan={2} className="py-2 pl-2 text-right text-xs text-slate-400">
+                      <td colSpan={2} className="py-2 pl-2 text-right text-xs text-slate-500">
                         <EyeOff className="mr-1 inline size-3.5" /> menos de 5
                       </td>
                     ) : (

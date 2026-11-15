@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import {
   Activity,
   ArrowRight,
@@ -115,8 +115,8 @@ export function PainelRh() {
           {p.locaisDeDor.length === 0 ? (
             <p className="py-6 text-center text-sm text-slate-500">Ainda sem relatos suficientes para mostrar.</p>
           ) : (
-            <div className="grid items-center gap-4 sm:grid-cols-[minmax(0,11rem)_1fr]">
-              <MapaDeCalor valores={dor} className="mx-auto h-56 w-auto sm:h-64" />
+            <div className="grid items-center gap-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-8">
+              <MapaDeCalor valores={dor} className="mx-auto h-56 w-auto max-w-full shrink-0 sm:h-64" />
               <Ranking itens={p.locaisDeDor} cor="bg-orange-500" unidade="relatos" />
             </div>
           )}
@@ -131,42 +131,103 @@ export function PainelRh() {
       </div>
 
       {/* Acompanhamento */}
-      <Cartao titulo="Acompanhamento do cuidado" subtitulo="Quantas pessoas avançaram em cada etapa · últimos 30 dias">
-        <div className="space-y-5">
-          {unidadesFiltro.map((u) => {
-            const etapas = [
-              ['Respondeu o WhatsApp', u.funil.whatsapp],
-              ['Fez os exames', u.funil.exame],
-              ['Foi à consulta', u.funil.consulta],
-              ['Reavaliação', u.funil.reavaliacao],
-            ] as const
-            return (
-              <div key={u.unidade}>
-                {unidade === 'todas' && <p className="mb-2 text-sm font-semibold text-navy">{u.unidade}</p>}
-                <ol className="grid gap-2 sm:grid-cols-4">
-                  {etapas.map(([rotulo, valor], i) => (
-                    <li key={rotulo} className="relative rounded-xl bg-cinza p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        {i + 1}. {rotulo}
-                      </p>
-                      <p className="mt-1 text-2xl font-bold tabular-nums text-navy">{numero(valor)}</p>
-                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
-                        <div className="h-full rounded-full bg-tech" style={{ width: `${pct(valor, u.funil.whatsapp)}%` }} />
-                      </div>
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        {i === 0 ? 'ponto de partida' : `${pct(valor, etapas[i - 1][1])}% da etapa anterior`}
-                      </p>
-                      {i < etapas.length - 1 && (
-                        <ArrowRight className="absolute -right-2.5 top-1/2 z-10 hidden size-5 -translate-y-1/2 rounded-full bg-white p-0.5 text-slate-400 shadow sm:block" />
-                      )}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )
-          })}
+      <Cartao titulo="Acompanhamento do cuidado" subtitulo="De quem respondeu o WhatsApp, quantos seguiram até a reavaliação · últimos 30 dias">
+        <div className="space-y-6">
+          {unidadesFiltro.map((u) => (
+            <Funil key={u.unidade} titulo={unidade === 'todas' ? u.unidade : undefined} funil={u.funil} />
+          ))}
         </div>
       </Cartao>
+    </div>
+  )
+}
+
+const ETAPAS_DO_FUNIL = [
+  ['whatsapp', 'Respondeu o WhatsApp', MessagesSquare],
+  ['exame', 'Fez os exames', FileCheck2],
+  ['consulta', 'Foi à consulta', Stethoscope],
+  ['reavaliacao', 'Reavaliação', CalendarCheck],
+] as const
+
+/**
+ * Fluxo de uma unidade, da esquerda para a direita: um cartão por etapa e, na seta entre eles, quem ficou pelo
+ * caminho. A seta da maior perda (em proporção da etapa anterior) fica em destaque, porque é onde agir.
+ */
+function Funil({ titulo, funil }: { titulo?: string; funil: PainelDaEmpresa['unidades'][number]['funil'] }) {
+  const valores = ETAPAS_DO_FUNIL.map(([chave]) => funil[chave])
+  const base = valores[0] || 1
+  const perdasPct = valores.slice(1).map((v, i) => (valores[i] ? 1 - v / valores[i] : 0))
+  const maiorPerda = perdasPct.indexOf(Math.max(...perdasPct))
+  const chegaram = pct(valores[valores.length - 1], base)
+
+  const ultimo = valores[valores.length - 1]
+  const deCadaDez = Math.round(chegaram / 10)
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+        <div>
+          {titulo && <p className="text-sm font-semibold text-navy">{titulo}</p>}
+          <p className="text-sm text-slate-600">
+            De cada <b className="text-navy">10</b> pessoas que responderam o WhatsApp, <b className="text-navy">{deCadaDez}</b> chegaram à reavaliação.
+          </p>
+        </div>
+        <p className="flex items-baseline gap-1.5 text-sm text-slate-600">
+          <b className="text-2xl font-bold leading-none tabular-nums text-navy">{chegaram}%</b>
+          <span className="tabular-nums">
+            · {numero(ultimo)} de {numero(base)}
+          </span>
+        </p>
+      </div>
+
+      <ol className="grid gap-y-2 sm:grid-cols-[1fr_minmax(5.5rem,0.55fr)_1fr_minmax(5.5rem,0.55fr)_1fr_minmax(5.5rem,0.55fr)_1.1fr] sm:items-stretch">
+        {ETAPAS_DO_FUNIL.map(([chave, rotulo, Icone], i) => {
+          const valor = valores[i]
+          const doInicio = pct(valor, base)
+          const perda = i > 0 ? valores[i - 1] - valor : 0
+          const perdaPct = i > 0 ? Math.round(perdasPct[i - 1] * 100) : 0
+          const destaque = i > 0 && i - 1 === maiorPerda && perda > 0
+          const final = i === ETAPAS_DO_FUNIL.length - 1
+          return (
+            <Fragment key={chave}>
+              {i > 0 && (
+                <li
+                  aria-label={`${numero(perda)} pessoas não seguiram, ${perdaPct}% da etapa anterior${destaque ? ', maior perda' : ''}`}
+                  className={`relative flex flex-col items-center justify-center px-2 py-1 text-center text-xs leading-tight ${destaque ? 'text-amber-800' : 'text-slate-600'}`}
+                >
+                  {destaque && <span className="mb-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800">maior perda</span>}
+                  <span className={`font-bold tabular-nums ${destaque ? 'text-base' : 'text-sm'}`}>−{numero(perda)}</span>
+                  <span className="relative my-1 flex h-4 w-full items-center" aria-hidden>
+                    <span className={`h-0.5 flex-1 rounded-full ${destaque ? 'bg-amber-400' : 'bg-slate-300'}`} />
+                    <ArrowRight className={`-ml-2 size-4 rotate-90 sm:rotate-0 ${destaque ? 'text-amber-500' : 'text-slate-400'}`} strokeWidth={2.5} />
+                  </span>
+                  <span className="tabular-nums">{perdaPct}% não seguiram</span>
+                </li>
+              )}
+              <li
+                className={`flex flex-col rounded-xl p-3.5 ring-1 ${
+                  final ? 'bg-navy text-white ring-navy shadow-md' : destaque ? 'bg-amber-50/70 ring-amber-200' : 'bg-cinza ring-slate-200/60'
+                }`}
+              >
+                <p className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${final ? 'text-blue-100' : 'text-slate-500'}`}>
+                  <Icone className={`size-3.5 shrink-0 ${final ? 'text-saude' : 'text-tech'}`} aria-hidden />
+                  {i + 1}. {rotulo}
+                </p>
+                <p className={`mt-1.5 flex items-baseline gap-1.5 ${final ? 'text-white' : 'text-navy'}`}>
+                  <span className="text-3xl font-bold leading-none tabular-nums">{numero(valor)}</span>
+                  {i > 0 && <span className={`text-sm font-semibold tabular-nums ${final ? 'text-saude' : 'text-slate-500'}`}>{doInicio}%</span>}
+                </p>
+                <div className={`mt-auto pt-3`}>
+                  <div className={`h-1.5 overflow-hidden rounded-full ${final ? 'bg-white/20' : 'bg-white'}`} title={`${doInicio}% de quem respondeu o WhatsApp`}>
+                    <div className={`h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none ${final ? 'bg-saude' : 'bg-tech'}`} style={{ width: `${doInicio}%` }} />
+                  </div>
+                  <p className={`mt-1 text-[11px] ${final ? 'text-blue-100' : 'text-slate-500'}`}>{i === 0 ? '100% · ponto de partida' : 'do total que respondeu'}</p>
+                </div>
+              </li>
+            </Fragment>
+          )
+        })}
+      </ol>
     </div>
   )
 }
@@ -198,7 +259,7 @@ function Barra({ valor, cor }: { valor: number; cor: string }) {
 /** Antes e depois lado a lado, com a diferença em pontos percentuais. */
 function AntesEDepois({ antes, depois }: { antes: number; depois: number }) {
   return (
-    <div className="space-y-1.5 text-[11px] text-slate-500">
+    <div className="space-y-1.5 text-xs text-slate-500">
       <div className="flex items-center gap-2">
         <span className="w-12">Antes</span>
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
@@ -257,7 +318,7 @@ function Semanas({ semanas }: { semanas: { rotulo: string; respostas: number }[]
             className="w-full rounded-t-lg bg-gradient-to-t from-tech to-sky-400"
             style={{ height: `${(s.respostas / maior) * 75}%`, opacity: 0.55 + (0.45 * (i + 1)) / semanas.length }}
           />
-          <span className="text-[10px] text-slate-400">{s.rotulo}</span>
+          <span className="text-xs text-slate-500">{s.rotulo}</span>
         </div>
       ))}
     </div>

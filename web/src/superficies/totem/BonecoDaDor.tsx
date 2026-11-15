@@ -278,7 +278,7 @@ export function BonecoDaDor({
   aoVoltar: () => void
 }) {
   const [escolhido, setEscolhido] = useState<LocalDor | null>(inicial)
-  const pilula = 'flex h-[1.9rem] items-center gap-[0.4rem] rounded-full px-[0.85rem] text-[0.68rem] font-medium ring-1 ring-white/35 disabled:opacity-45'
+  const pilula = 'flex h-[1.9rem] items-center gap-[0.4rem] rounded-full px-[0.85rem] text-[calc(0.68rem*var(--lm))] font-medium ring-1 ring-white/35 disabled:opacity-45'
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -290,7 +290,7 @@ export function BonecoDaDor({
       </div>
 
       {/* A parte escolhida, em texto grande: confirma o toque para quem não tem certeza do que acendeu. */}
-      <p aria-live="polite" className="mt-[0.4rem] flex h-[1.7rem] shrink-0 items-center justify-center gap-[0.4rem] text-[0.95rem] font-semibold">
+      <p aria-live="polite" className="mt-[0.4rem] flex h-[1.7rem] shrink-0 items-center justify-center gap-[0.4rem] text-[calc(0.95rem*var(--lm))] font-semibold">
         {escolhido && (
           <>
             <Check className="size-[1rem] text-[#22d3a6]" /> {ROTULO_LOCAL_DOR[escolhido]}
@@ -303,7 +303,7 @@ export function BonecoDaDor({
           <RotateCcw className="size-[0.85rem]" /> Desfazer seleção
         </button>
       </div>
-      <BotaoPrincipal onClick={() => escolhido && aoResponder(escolhido)} disabled={!escolhido} className="mt-[0.5rem] h-[2.8rem] w-full text-[1.06rem]">
+      <BotaoPrincipal onClick={() => escolhido && aoResponder(escolhido)} disabled={!escolhido} className="mt-[0.5rem] h-[2.8rem] w-full text-[calc(1.06rem*var(--lm))]">
         Confirmar
       </BotaoPrincipal>
       <BotaoVoltar onClick={aoVoltar} className="mt-[1.15rem]" />

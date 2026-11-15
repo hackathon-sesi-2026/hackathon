@@ -70,7 +70,7 @@ function Barra({ recolhida, alternar, fechar }: { recolhida: boolean; alternar?:
           </button>
         )}
       </div>
-      {!recolhida && <p className="relative mt-3 px-2 text-[11px] text-blue-100/70">com a APS do SESI Saúde Acolhe</p>}
+      {!recolhida && <p className="relative mt-3 px-2 text-xs text-blue-100/70">com a APS do SESI Saúde Acolhe</p>}
 
       <nav className={`relative mt-6 space-y-1 ${recolhida ? 'flex flex-col items-center' : ''}`}>
         {PAINEIS.map(({ grupo, para, rotulo, Icone }, i) => (
@@ -79,7 +79,7 @@ function Barra({ recolhida, alternar, fechar }: { recolhida: boolean; alternar?:
               (recolhida ? (
                 <span className="my-2 h-px w-8 bg-white/15" aria-hidden />
               ) : (
-                <p className="mb-1.5 mt-5 px-3 text-[11px] font-semibold uppercase tracking-wider text-blue-100/55">{grupo}</p>
+                <p className="mb-1.5 mt-5 px-3 text-xs font-semibold uppercase tracking-wider text-blue-100/55">{grupo}</p>
               ))}
             <NavLink
               to={para}
@@ -106,7 +106,7 @@ function Barra({ recolhida, alternar, fechar }: { recolhida: boolean; alternar?:
         <button onClick={reiniciarDemonstracao} title={recolhida ? 'Reiniciar demonstração' : undefined} className={`${item} ${forma} text-blue-50/85 hover:bg-white/10`}>
           <RotateCcw className="size-4 shrink-0" /> {!recolhida && 'Reiniciar demonstração'}
         </button>
-        {!recolhida && <p className="px-4 pt-2 text-[10px] text-blue-100/50">Café com Bugs · Hackathon+ SESI Saúde 2026</p>}
+        {!recolhida && <p className="px-4 pt-2 text-xs text-blue-100/50">Café com Bugs · Hackathon+ SESI Saúde 2026</p>}
       </div>
     </>
   )
