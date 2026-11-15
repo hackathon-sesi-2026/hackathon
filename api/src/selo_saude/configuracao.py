@@ -13,6 +13,9 @@ class Configuracao(BaseSettings):
     fuso: str = "America/Bahia"
     # Endereço do front que o celular abre: vai no link das mensagens enviadas de verdade.
     url_publica: str = "http://localhost:5173"
+    # WhatsApp da equipe de saúde, para o botão "Falar com a equipe" do app (DDI + DDD + número, só dígitos).
+    # Vazio: o botão só registra o pedido de contato, que aparece como "pediu ajuda" na fila da enfermagem.
+    whatsapp_equipe: str = ""
 
     # WhatsApp: "simulado" ou "megaapi" (envio real para um número de teste; ver integracoes/whatsapp.py).
     whatsapp: str = "simulado"

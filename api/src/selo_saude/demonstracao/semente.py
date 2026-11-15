@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from selo_saude.modulos.agenda.modelos import Consulta, Liberacao
 from selo_saude.modulos.agenda.servico import DadosConsulta
+from selo_saude.modulos.beneficios.modelos import Resgate
 from selo_saude.modulos.cadastro.modelos import Trabalhador
 from selo_saude.modulos.cadastro.regras import digitos_verificadores
 from selo_saude.modulos.cadastro.servico import TURNOS, DadosTrabalhador, Turno
@@ -31,6 +32,7 @@ from selo_saude.nucleo.relogio import em_dias
 from . import populacao
 
 TABELAS = [
+    Resgate,
     Mensagem,
     Exame,
     Registro,

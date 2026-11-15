@@ -9,9 +9,12 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
+from selo_saude.configuracao import configuracao
 from selo_saude.modulos.agenda import servico as agenda
 from selo_saude.modulos.agenda.regras import Horario, Modalidade
 from selo_saude.modulos.agenda.servico import DadosConsulta
+from selo_saude.modulos.beneficios import servico as beneficios
+from selo_saude.modulos.beneficios.servico import MeusBeneficios
 from selo_saude.modulos.cadastro import servico as cadastro
 from selo_saude.modulos.cadastro.servico import TURNOS, DadosTrabalhador, Motivacao, Turno
 from selo_saude.modulos.comunicacao import servico as comunicacao
@@ -24,7 +27,7 @@ from selo_saude.modulos.plano.regras import Motivo, Selo
 from selo_saude.modulos.plano.servico import DadosPasso
 from selo_saude.nucleo.banco import Sessao
 from selo_saude.nucleo.esquema import Esquema
-from selo_saude.nucleo.tempo_real import resposta_sse, transacional
+from selo_saude.nucleo.tempo_real import avisar, resposta_sse, transacional
 
 from . import canais
 
@@ -36,6 +39,10 @@ async def _trabalhador_do_link(token: str, sessao: Sessao) -> DadosTrabalhador:
 
 
 Eu = Annotated[DadosTrabalhador, Depends(_trabalhador_do_link)]
+
+
+def _passos_feitos(passos: list[DadosPasso]) -> int:
+    return sum(1 for p in passos if p.feito)
 
 
 class MinhaDificuldade(Esquema):
@@ -66,6 +73,9 @@ class MeuCuidado(Esquema):
     resultado_nao_visto: bool
     """Há resultado novo que a pessoa ainda não abriu."""
     mensagens: list[DadosMensagem]
+    beneficios: MeusBeneficios
+    contato_equipe: str | None
+    """WhatsApp da equipe de saúde (só dígitos), quando configurado."""
 
 
 class HorariosDisponiveis(Esquema):
@@ -134,6 +144,8 @@ async def meu_cuidado(eu: Eu, sessao: Sessao) -> MeuCuidado:
         exames=meus_exames,
         resultado_nao_visto=any(not e.resultado_visto for e in meus_exames),
         mensagens=await comunicacao.listar(sessao, eu.id),
+        beneficios=await beneficios.resumo(sessao, eu.id, _passos_feitos(meu_plano.passos), meu_plano.semanas_seguidas),
+        contato_equipe=configuracao.whatsapp_equipe or None,
     )
 
 
@@ -217,6 +229,14 @@ async def responder_checagem(eu: Eu, corpo: RespostaDaChecagem, sessao: Sessao) 
 @transacional
 async def ver_resultados(eu: Eu, sessao: Sessao) -> None:
     await exames.ver_resultados(sessao, eu.id)
+
+
+@rota.post("/beneficios/{beneficio_id}/resgate", status_code=204)
+@transacional
+async def resgatar_beneficio(eu: Eu, beneficio_id: str, sessao: Sessao) -> None:
+    meu_plano = await plano.obter(sessao, eu.id)
+    await beneficios.resgatar(sessao, eu.id, beneficio_id, _passos_feitos(meu_plano.passos), meu_plano.semanas_seguidas)
+    avisar(sessao, canais.do_trabalhador(eu.id))  # a tela do celular busca o saldo e o código de novo
 
 
 @rota.post("/checkin", status_code=204)

@@ -1,32 +1,39 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, BadgeCheck, CalendarClock, CheckCircle2, ChevronDown, Factory, Flame, Lock, MapPin, ShieldCheck, Sparkles, Video } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, CalendarClock, CheckCircle2, ChevronDown, ChevronRight, Factory, Flame, Gift, Lock, MapPin, MessageSquare, ShieldCheck, Sparkles, Video } from 'lucide-react'
 import type { Acao, Horario, Mensagem, MeuCuidado, Modalidade, Motivacao, MotivoDificuldade, StatusExame, Turno } from '../../api/tipos'
 import { IconeCategoria } from '../../componentes/IconeCategoria'
 import { LogoMarca } from '../../componentes/Logo'
 import { dataCurta, diaSemana, faixaTurno, hora, horaCurta, relativo, semanaCurta } from '../../lib/datas'
 import { MOTIVOS, ROTULO_ACAO, ROTULO_MOTIVO, primeiroNome } from '../../lib/rotulos'
 import { useAcoes } from './acoes'
+import { BarraDeAbas, CabecalhoDaAba, type Destino } from './BarraDeAbas'
+import { AbaBeneficios } from './Beneficios'
 
-type Tela = 'chat' | 'plano' | 'horarios' | 'exames'
-
-/** A conversa (o canal que o SESI já usa) e as duas páginas leves que ela abre: plano e horários. */
+/**
+ * O app do trabalhador: quatro abas na parte de baixo (Início, Plano, Consultas e Benefícios) e, por cima delas, as
+ * páginas de mensagens, horários e exames. É a mesma página leve que abre pelo link do WhatsApp.
+ */
 export function CelularTrabalhador({ trabalhador }: { trabalhador: MeuCuidado }) {
-  const [tela, setTela] = useState<Tela>('chat')
+  const [tela, setTela] = useState<Destino>('inicio')
   const [pedindoMotivo, setPedindoMotivo] = useState<PedidoMotivo | null>(null)
   const acoes = useAcoes()
   return (
     <div className="relative flex h-full flex-col bg-white">
-      {tela === 'chat' && <Chat t={trabalhador} irPara={setTela} pedirMotivo={setPedindoMotivo} />}
-      {tela === 'plano' && <Plano t={trabalhador} irPara={setTela} pedirMotivo={setPedindoMotivo} />}
+      {tela === 'inicio' && <Inicio t={trabalhador} irPara={setTela} />}
+      {tela === 'mensagens' && <Chat t={trabalhador} irPara={setTela} pedirMotivo={setPedindoMotivo} />}
+      {tela === 'plano' && <Plano t={trabalhador} pedirMotivo={setPedindoMotivo} />}
+      {tela === 'consultas' && <Consultas t={trabalhador} irPara={setTela} />}
+      {tela === 'beneficios' && <AbaBeneficios t={trabalhador} />}
       {tela === 'horarios' && <Horarios t={trabalhador} irPara={setTela} />}
       {tela === 'exames' && <Exames t={trabalhador} irPara={setTela} />}
+      {tela !== 'horarios' && <BarraDeAbas tela={tela} irPara={setTela} t={trabalhador} />}
       {pedindoMotivo && (
         <FolhaMotivo
           fechar={() => setPedindoMotivo(null)}
           escolher={async (m) => {
             await acoes.relatarDificuldade(m, pedindoMotivo.origem, pedindoMotivo.passoId)
             setPedindoMotivo(null)
-            setTela('chat')
+            setTela('plano')
           }}
         />
       )}
@@ -60,9 +67,169 @@ function FolhaMotivo({ fechar, escolher }: { fechar: () => void; escolher: (m: M
   )
 }
 
+// ---------------------------------------------------------------- Início
+
+/** O resumo do dia: situação, pontos, próximo compromisso e próximo passo. */
+function Inicio({ t, irPara }: { t: MeuCuidado; irPara: (d: Destino) => void }) {
+  const motivacao = t.motivacao ? MOTIVACOES.find((m) => m.valor === t.motivacao) : undefined
+  const c = t.consulta && t.consulta.status !== 'faltou' ? t.consulta : null
+  const proximoPasso = t.passos.find((p) => !p.feito)
+
+  const status =
+    c?.status === 'confirmada'
+      ? { texto: 'Seu cuidado em dia', cor: 'bg-emerald-50 text-saude-700 ring-emerald-200' }
+      : c
+        ? { texto: 'Retorno a confirmar', cor: 'bg-amber-50 text-amber-700 ring-amber-200' }
+        : { texto: 'Retorno a marcar', cor: 'bg-blue-50 text-tech ring-blue-200' }
+
+  return (
+    <>
+      <CabecalhoDaAba t={t} titulo={`Olá, ${primeiroNome(t.nome)}! 👋`} subtitulo="Vamos continuar cuidando da sua saúde?" />
+      <div className="flex-1 space-y-4 overflow-y-auto bg-cinza px-4 py-4">
+        <div className="flex flex-wrap gap-1.5">
+          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${status.cor}`}>
+            <CheckCircle2 className="size-3.5" /> {status.texto}
+          </span>
+          {t.semanasSeguidas > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">
+              <Flame className="size-3.5" /> {t.semanasSeguidas} {t.semanasSeguidas === 1 ? 'semana' : 'semanas seguidas'} se cuidando
+            </span>
+          )}
+          {t.selos.map((s) => (
+            <span key={s.nome} className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200" title="Selo por manter o acompanhamento">
+              {s.emoji} Selo {s.nome}
+            </span>
+          ))}
+        </div>
+        {motivacao && (
+          <p className="text-xs text-slate-600">
+            Você se cuida por: <b className="text-navy">{motivacao.rotulo.toLowerCase()} {motivacao.emoji}</b>
+          </p>
+        )}
+
+        {!t.motivacao && <EscolhaMotivacao />}
+
+        <button
+          onClick={() => irPara('beneficios')}
+          className="flex w-full items-center gap-3 rounded-2xl bg-gradient-to-br from-navy-700 to-navy p-4 text-left text-white shadow-sm active:scale-[0.99]"
+        >
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/15">
+            <Gift className="size-6 text-saude" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-semibold uppercase tracking-wide text-blue-100/80">Seus pontos</span>
+            <span className="block text-2xl font-bold leading-tight">{t.beneficios.saldo}</span>
+            <span className="block text-xs text-blue-100/90">{t.beneficios.catalogo.some((b) => b.podeResgatar) ? 'Já dá para resgatar um benefício' : 'Faça passos do plano para ganhar mais'}</span>
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-blue-100/80" aria-hidden />
+        </button>
+
+        <CartaoConsulta t={t} irPara={irPara} />
+
+        {proximoPasso && (
+          <section className="rounded-2xl bg-white p-4 shadow-sm">
+            <p className="mb-2 text-sm font-bold text-navy">Seu próximo passo</p>
+            <div className="flex gap-3">
+              <IconeCategoria categoria={proximoPasso.categoria} />
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold leading-snug text-slate-900">{proximoPasso.titulo}</p>
+                <p className="mt-1 flex items-start gap-1 text-xs font-medium text-saude-700">
+                  <Sparkles className="mt-0.5 size-3 shrink-0" /> O que você ganha: {proximoPasso.ganho}
+                </p>
+              </div>
+            </div>
+            <button onClick={() => irPara('plano')} className="mt-3 w-full rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-navy">
+              Ver meu plano
+            </button>
+          </section>
+        )}
+
+        {t.checagem && <ChecagemPlano opcoes={t.checagem} />}
+
+        <ResumoExames t={t} abrir={() => irPara('exames')} />
+
+        <button onClick={() => irPara('mensagens')} className="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left shadow-sm hover:ring-1 hover:ring-tech">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-tech">
+            <MessageSquare className="size-5" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-navy">Mensagens do SESI</span>
+            <span className="block text-xs text-slate-600">As conversas que chegaram pelo WhatsApp</span>
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-slate-400" aria-hidden />
+        </button>
+
+        <p className="flex gap-2 rounded-2xl bg-navy/5 p-3 text-xs text-navy">
+          <ShieldCheck className="size-4 shrink-0 text-saude-700" />
+          Só você e a equipe de saúde do SESI veem esta página. Sua empresa e sua liderança não têm acesso, e o cuidado é separado do exame ocupacional.
+        </p>
+      </div>
+    </>
+  )
+}
+
+/** O próximo compromisso: confirmar, remarcar ou escolher um horário. Aparece no Início e em Consultas. */
+function CartaoConsulta({ t, irPara }: { t: MeuCuidado; irPara: (d: Destino) => void }) {
+  const acoes = useAcoes()
+  const c = t.consulta && t.consulta.status !== 'faltou' ? t.consulta : null
+  const perdida = t.consulta?.status === 'faltou' ? t.consulta : null
+  return (
+    <section className="rounded-2xl bg-white p-4 shadow-sm">
+      <p className="mb-3 text-sm font-bold text-navy">Próximo compromisso</p>
+      {c ? (
+        <>
+          <div className="flex items-center gap-3">
+            <div className="grid w-14 shrink-0 place-items-center rounded-xl bg-navy py-2 text-white">
+              <span className="text-xs">{semanaCurta(c.data)}</span>
+              <span className="text-base font-bold leading-tight">{dataCurta(c.data)}</span>
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-slate-900">Retorno com a enfermagem</p>
+              <p className="flex items-center gap-1 text-xs text-slate-500">
+                {c.modalidade === 'online' ? <Video className="size-3.5" /> : c.modalidade === 'no_turno' ? <Factory className="size-3.5" /> : <MapPin className="size-3.5" />}
+                Às {horaCurta(c.data)} · {c.modalidade === 'online' ? 'por vídeo' : c.modalidade === 'no_turno' ? 'no turno, 20 min' : c.local}
+              </p>
+              {c.status === 'remarcar' && <p className="mt-0.5 text-xs font-medium text-amber-600">Você pediu para remarcar</p>}
+            </div>
+          </div>
+          {c.status === 'confirmada' && (
+            <p className="mt-3 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-saude-700">
+              ✅ Horário garantido: atendimento na hora marcada, sem fila.
+              {c.compromisso && <span className="block font-medium text-slate-600">Você combinou: {c.compromisso}.</span>}
+            </p>
+          )}
+          {c.status === 'agendada' && <p className="mt-3 text-xs text-slate-500">Confirme para garantir seu horário sem fila.</p>}
+          <div className="mt-3 flex gap-2">
+            {c.status === 'agendada' && (
+              <button onClick={() => acoes.confirmarConsulta()} className="flex-1 rounded-xl bg-navy py-2.5 text-sm font-semibold text-white">
+                Confirmar presença
+              </button>
+            )}
+            <button
+              onClick={() => irPara('horarios')}
+              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold ${c.status === 'agendada' ? 'border border-slate-200 text-navy' : 'bg-navy text-white'}`}
+            >
+              {c.status === 'remarcar' ? 'Escolher novo horário' : 'Remarcar'}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-sm text-slate-600">
+            {perdida ? `A consulta do dia ${dataCurta(perdida.data)} não aconteceu. Sem problema: vamos achar um horário que caiba no seu turno.` : 'Você ainda não tem retorno marcado.'}
+          </p>
+          <button onClick={() => irPara('horarios')} className="mt-3 w-full rounded-xl bg-navy py-2.5 text-sm font-semibold text-white">
+            Escolher horário fora do meu turno
+          </button>
+        </>
+      )}
+    </section>
+  )
+}
+
 // ---------------------------------------------------------------- Chat (canal WhatsApp que o SESI já usa)
 
-function Chat({ t, irPara, pedirMotivo }: { t: MeuCuidado; irPara: (t: Tela) => void; pedirMotivo: (p: PedidoMotivo) => void }) {
+function Chat({ t, irPara, pedirMotivo }: { t: MeuCuidado; irPara: (d: Destino) => void; pedirMotivo: (p: PedidoMotivo) => void }) {
   const acoes = useAcoes()
   const fim = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -101,6 +268,9 @@ function Chat({ t, irPara, pedirMotivo }: { t: MeuCuidado; irPara: (t: Tela) => 
   return (
     <>
       <header className="flex items-center gap-3 bg-navy px-4 pb-3 pt-4 text-white">
+        <button onClick={() => irPara('inicio')} className="rounded-lg p-1 text-blue-100 hover:bg-white/10" aria-label="Voltar para o início">
+          <ArrowLeft className="size-5" />
+        </button>
         <span className="grid size-10 place-items-center rounded-full bg-white">
           <LogoMarca className="size-7" />
         </span>
@@ -147,11 +317,8 @@ function Chat({ t, irPara, pedirMotivo }: { t: MeuCuidado; irPara: (t: Tela) => 
         <div ref={fim} />
       </div>
 
-      <footer className="flex items-center gap-2 bg-[#ece7df] px-3 pb-5 pt-1">
-        <div className="flex-1 rounded-full bg-white px-4 py-2 text-sm text-slate-400">Responda pelos botões acima</div>
-        <button onClick={() => irPara('plano')} className="rounded-full bg-navy px-3 py-2 text-xs font-semibold text-white">
-          Meu plano
-        </button>
+      <footer className="bg-[#ece7df] px-3 pb-3 pt-1">
+        <div className="rounded-full bg-white px-4 py-2 text-sm text-slate-400">Responda pelos botões acima</div>
       </footer>
     </>
   )
@@ -166,7 +333,7 @@ function CabecalhoPagina({ titulo, voltar }: { titulo: string; voltar: () => voi
         <Lock className="size-3" /> link pessoal · abre sem instalar app
       </div>
       <div className="flex items-center gap-2">
-        <button onClick={voltar} className="rounded-lg p-1 text-blue-100 hover:bg-white/10" aria-label="Voltar para a conversa">
+        <button onClick={voltar} className="rounded-lg p-1 text-blue-100 hover:bg-white/10" aria-label="Voltar">
           <ArrowLeft className="size-5" />
         </button>
         <LogoMarca className="size-6" />
@@ -178,7 +345,8 @@ function CabecalhoPagina({ titulo, voltar }: { titulo: string; voltar: () => voi
 
 // ---------------------------------------------------------------- Plano (tradução do Plano de Cuidados)
 
-function Plano({ t, irPara, pedirMotivo }: { t: MeuCuidado; irPara: (t: Tela) => void; pedirMotivo: (p: PedidoMotivo) => void }) {
+/** O plano de cuidado simplificado: os próximos 3 passos, um de cada vez, com "Já fiz" e "Não consegui". */
+function Plano({ t, pedirMotivo }: { t: MeuCuidado; pedirMotivo: (p: PedidoMotivo) => void }) {
   const acoes = useAcoes()
   const [aberto, setAberto] = useState<string | null>(null)
   const [comemoracao, setComemoracao] = useState<string | null>(null)
@@ -197,106 +365,19 @@ function Plano({ t, irPara, pedirMotivo }: { t: MeuCuidado; irPara: (t: Tela) =>
 
   async function jaFiz(passoId: string) {
     await acoes.marcarPasso(passoId, true)
-    setComemoracao(motivacao ? `Boa! +1 passo ${motivacao.porque}.` : 'Boa! +1 passo no seu cuidado.')
+    setComemoracao(motivacao ? `Boa! +1 passo ${motivacao.porque}. +10 pontos.` : 'Boa! +1 passo no seu cuidado. +10 pontos.')
   }
 
   const pendentes = t.passos.filter((p) => !p.feito)
   const proximos = pendentes.slice(0, 3)
   const depois = pendentes.length - proximos.length
   const feitos = t.passos.filter((p) => p.feito)
-  const c = t.consulta && t.consulta.status !== 'faltou' ? t.consulta : null
-
-  const status = c?.status === 'confirmada'
-    ? { texto: 'Seu cuidado em dia', cor: 'bg-emerald-50 text-saude-700 ring-emerald-200' }
-    : c
-      ? { texto: 'Retorno a confirmar', cor: 'bg-amber-50 text-amber-700 ring-amber-200' }
-      : { texto: 'Retorno a marcar', cor: 'bg-blue-50 text-tech ring-blue-200' }
 
   return (
     <>
-      <CabecalhoPagina titulo="Meu cuidado" voltar={() => irPara('chat')} />
+      <CabecalhoDaAba t={t} titulo="Meu plano" subtitulo="Um passo de cada vez." />
       <div className="flex-1 space-y-5 overflow-y-auto bg-cinza px-4 py-4">
-        <section>
-          <p className="text-lg font-bold text-navy">Olá, {primeiroNome(t.nome)}! 👋</p>
-          <p className="text-sm text-slate-600">Vamos continuar cuidando da sua saúde?</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${status.cor}`}>
-              <CheckCircle2 className="size-3.5" /> {status.texto}
-            </span>
-            {t.semanasSeguidas > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">
-                <Flame className="size-3.5" /> {t.semanasSeguidas} {t.semanasSeguidas === 1 ? 'semana' : 'semanas seguidas'} se cuidando
-              </span>
-            )}
-            {t.selos.map((s) => (
-              <span key={s.nome} className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200" title="Selo por manter o acompanhamento">
-                {s.emoji} Selo {s.nome}
-              </span>
-            ))}
-          </div>
-          {motivacao && (
-            <p className="mt-2 text-xs text-slate-600">
-              Você se cuida por: <b className="text-navy">{motivacao.rotulo.toLowerCase()} {motivacao.emoji}</b>
-            </p>
-          )}
-        </section>
-
         {comemoracao && <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-saude-700 ring-1 ring-emerald-200">🎉 {comemoracao}</p>}
-
-        {!t.motivacao && <EscolhaMotivacao />}
-
-        <section className="rounded-2xl bg-white p-4 shadow-sm">
-          <p className="mb-3 text-sm font-bold text-navy">Próximo compromisso</p>
-          {c ? (
-            <>
-              <div className="flex items-center gap-3">
-                <div className="grid w-14 shrink-0 place-items-center rounded-xl bg-navy py-2 text-white">
-                  <span className="text-xs">{semanaCurta(c.data)}</span>
-                  <span className="text-base font-bold leading-tight">{dataCurta(c.data)}</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-900">Retorno com a enfermagem</p>
-                  <p className="flex items-center gap-1 text-xs text-slate-500">
-                    {c.modalidade === 'online' ? <Video className="size-3.5" /> : c.modalidade === 'no_turno' ? <Factory className="size-3.5" /> : <MapPin className="size-3.5" />}
-                    Às {horaCurta(c.data)} · {c.modalidade === 'online' ? 'por vídeo' : c.modalidade === 'no_turno' ? 'no turno, 20 min' : c.local}
-                  </p>
-                  {c.status === 'remarcar' && <p className="mt-0.5 text-xs font-medium text-amber-600">Você pediu para remarcar</p>}
-                </div>
-              </div>
-              {c.status === 'confirmada' && (
-                <p className="mt-3 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-saude-700">
-                  ✅ Horário garantido: atendimento na hora marcada, sem fila.
-                  {c.compromisso && <span className="block font-medium text-slate-600">Você combinou: {c.compromisso}.</span>}
-                </p>
-              )}
-              {c.status === 'agendada' && <p className="mt-3 text-xs text-slate-500">Confirme para garantir seu horário sem fila.</p>}
-              <div className="mt-3 flex gap-2">
-                {c.status === 'agendada' && (
-                  <button onClick={() => acoes.confirmarConsulta()} className="flex-1 rounded-xl bg-navy py-2.5 text-sm font-semibold text-white">
-                    Confirmar presença
-                  </button>
-                )}
-                <button
-                  onClick={() => irPara('horarios')}
-                  className={`flex-1 rounded-xl py-2.5 text-sm font-semibold ${c.status === 'agendada' ? 'border border-slate-200 text-navy' : 'bg-navy text-white'}`}
-                >
-                  {c.status === 'remarcar' ? 'Escolher novo horário' : 'Remarcar'}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-slate-600">Você ainda não tem retorno marcado.</p>
-              <button onClick={() => irPara('horarios')} className="mt-3 w-full rounded-xl bg-navy py-2.5 text-sm font-semibold text-white">
-                Escolher horário fora do meu turno
-              </button>
-            </>
-          )}
-        </section>
-
-        <ResumoExames t={t} abrir={() => irPara('exames')} />
-
-        {t.checagem && <ChecagemPlano opcoes={t.checagem} />}
 
         <section>
           <div className="mb-2 flex items-baseline justify-between">
@@ -306,7 +387,7 @@ function Plano({ t, irPara, pedirMotivo }: { t: MeuCuidado; irPara: (t: Tela) =>
             </p>
           </div>
           <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-200">
-            <div className="h-full rounded-full bg-saude transition-all" style={{ width: `${(feitos.length / t.passos.length) * 100}%` }} />
+            <div className="h-full rounded-full bg-saude transition-all" style={{ width: `${t.passos.length ? (feitos.length / t.passos.length) * 100 : 0}%` }} />
           </div>
           {proximos.length === 0 && <p className="rounded-2xl bg-white p-4 text-sm text-slate-600 shadow-sm">Tudo feito por enquanto. 🎉</p>}
           <ol className="space-y-2">
@@ -379,7 +460,27 @@ function Plano({ t, irPara, pedirMotivo }: { t: MeuCuidado; irPara: (t: Tela) =>
 
         <p className="flex gap-2 rounded-2xl bg-navy/5 p-3 text-xs text-navy">
           <ShieldCheck className="size-4 shrink-0 text-saude-700" />
-          Só você e a equipe de saúde do SESI veem esta página. Sua empresa e sua liderança não têm acesso, e o cuidado é separado do exame ocupacional.
+          Cada passo feito vira pontos para resgatar em Benefícios. Só você e a equipe de saúde do SESI veem este plano.
+        </p>
+      </div>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------- Consultas
+
+/** Aba "Consultas": o próximo compromisso e os exames. */
+function Consultas({ t, irPara }: { t: MeuCuidado; irPara: (d: Destino) => void }) {
+  return (
+    <>
+      <CabecalhoDaAba t={t} titulo="Minhas consultas" subtitulo="Seus compromissos de saúde." />
+      <div className="flex-1 space-y-4 overflow-y-auto bg-cinza px-4 py-4">
+        <CartaoConsulta t={t} irPara={irPara} />
+        <ResumoExames t={t} abrir={() => irPara('exames')} />
+        {t.exames.length === 0 && <p className="rounded-2xl bg-white p-4 text-sm text-slate-600 shadow-sm">Nenhum exame pedido por enquanto.</p>}
+        <p className="flex gap-2 rounded-2xl bg-navy/5 p-3 text-xs text-navy">
+          <ShieldCheck className="size-4 shrink-0 text-saude-700" />
+          Dá para remarcar fora do seu turno, por vídeo ou, quando a empresa libera, 20 minutos dentro do turno. A empresa nunca vê o motivo.
         </p>
       </div>
     </>
@@ -417,7 +518,7 @@ function ResumoExames({ t, abrir }: { t: MeuCuidado; abrir: () => void }) {
   )
 }
 
-function Exames({ t, irPara }: { t: MeuCuidado; irPara: (t: Tela) => void }) {
+function Exames({ t, irPara }: { t: MeuCuidado; irPara: (d: Destino) => void }) {
   const acoes = useAcoes()
   const [aberto, setAberto] = useState<string | null>(t.exames.find((e) => e.status === 'resultado')?.id ?? null)
   // Abrir a página some com o aviso de resultado novo.
@@ -427,7 +528,7 @@ function Exames({ t, irPara }: { t: MeuCuidado; irPara: (t: Tela) => void }) {
 
   return (
     <>
-      <CabecalhoPagina titulo="Meus exames" voltar={() => irPara('plano')} />
+      <CabecalhoPagina titulo="Meus exames" voltar={() => irPara('consultas')} />
       <div className="flex-1 space-y-3 overflow-y-auto bg-cinza px-4 py-4">
         {t.exames.map((ex) => {
           const etapa = ETAPAS.findIndex((e) => e.status === ex.status)
@@ -576,7 +677,7 @@ function ChecagemPlano({ opcoes }: { opcoes: string[] }) {
 
 // ---------------------------------------------------------------- Horários
 
-function Horarios({ t, irPara }: { t: MeuCuidado; irPara: (t: Tela) => void }) {
+function Horarios({ t, irPara }: { t: MeuCuidado; irPara: (d: Destino) => void }) {
   const acoes = useAcoes()
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [turnos, setTurnos] = useState<Turno[]>([])
@@ -605,12 +706,12 @@ function Horarios({ t, irPara }: { t: MeuCuidado; irPara: (t: Tela) => void }) {
   async function confirmar() {
     if (!escolhido) return
     await acoes.agendar(escolhido, escolhido.modalidade === 'no_turno' && nomeLideranca)
-    irPara('chat')
+    irPara('consultas')
   }
 
   return (
     <>
-      <CabecalhoPagina titulo="Escolher horário" voltar={() => irPara('chat')} />
+      <CabecalhoPagina titulo="Escolher horário" voltar={() => irPara('consultas')} />
       <div className="flex-1 overflow-y-auto bg-cinza px-4 py-4">
         <label className="block rounded-2xl bg-white p-3 text-sm shadow-sm">
           <span className="flex items-center gap-1.5 font-semibold text-navy">

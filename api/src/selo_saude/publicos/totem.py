@@ -56,12 +56,15 @@ class RetornoNoTotem(Esquema):
     data: Instante
     local: str
     modalidade: Modalidade
-    status: Literal["agendada", "confirmada", "remarcar"]
+    status: Literal["agendada", "confirmada", "remarcar", "faltou"]
+    """"faltou": a consulta já passou e a pessoa não compareceu. Só data, hora e local: nada de tipo, motivo ou exame."""
 
 
 class CuidadoNoTotem(Esquema):
     primeiro_nome: str
     retorno: RetornoNoTotem | None
+    faltas_no_ano: int
+    """Quantas consultas a pessoa perdeu nos últimos 12 meses. Para a tela "Minhas consultas"."""
     passos_feitos: int
     passos_no_plano: int
     semanas_seguidas: int
@@ -104,7 +107,8 @@ async def identificar(unidade: str, corpo: Identificacao, sessao: Sessao) -> Cui
     meu_plano = await plano.obter(sessao, trabalhador.id)
     return CuidadoNoTotem(
         primeiro_nome=trabalhador.primeiro_nome,
-        retorno=RetornoNoTotem.model_validate(consulta) if consulta and consulta.em_aberto else None,
+        retorno=RetornoNoTotem.model_validate(consulta) if consulta else None,
+        faltas_no_ano=trabalhador.faltas_ultimo_ano,
         passos_feitos=sum(1 for p in meu_plano.passos if p.feito),
         passos_no_plano=len(meu_plano.passos),
         semanas_seguidas=meu_plano.semanas_seguidas,

@@ -143,6 +143,37 @@ export interface MeuCuidado {
   /** Há resultado novo que a pessoa ainda não abriu. */
   resultadoNaoVisto: boolean
   mensagens: Mensagem[]
+  beneficios: MeusBeneficios
+  /** WhatsApp da equipe de saúde (só dígitos), quando configurado. */
+  contatoEquipe: string | null
+}
+
+export interface ItemDoCatalogo {
+  id: string
+  titulo: string
+  descricao: string
+  pontos: number
+  /** academia, marketplace, curso ou saude. */
+  icone: string
+  podeResgatar: boolean
+}
+
+export interface MeuResgate {
+  id: string
+  beneficioId: string
+  titulo: string
+  codigo: string
+  pontos: number
+  criadoEm: string
+}
+
+/** Pontos de participação (passos feitos e semanas de cuidado) e os benefícios que dá para resgatar com eles. */
+export interface MeusBeneficios {
+  pontos: number
+  saldo: number
+  comoGanhar: string[]
+  catalogo: ItemDoCatalogo[]
+  resgates: MeuResgate[]
 }
 
 export interface Horario {
@@ -175,7 +206,10 @@ export interface TelaInicialDoTotem {
 /** O que aparece na tela pública depois do CPF: data e hora, nunca o que é o atendimento. */
 export interface CuidadoNoTotem {
   primeiroNome: string
-  retorno: { data: string; local: string; modalidade: Modalidade; status: Exclude<StatusConsulta, 'faltou'> } | null
+  /** "faltou": a consulta já passou e a pessoa não compareceu. */
+  retorno: { data: string; local: string; modalidade: Modalidade; status: StatusConsulta } | null
+  /** Consultas perdidas nos últimos 12 meses. */
+  faltasNoAno: number
   passosFeitos: number
   passosNoPlano: number
   semanasSeguidas: number

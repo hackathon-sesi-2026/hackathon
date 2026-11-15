@@ -118,6 +118,11 @@ Nova oferta de saúde ou serviço paralelo à APS; prontuário ou ficha clínica
 
 A arquitetura e as convenções de código estão no `CLAUDE.md` da raiz.
 
+- **15/11:** a raiz do endereço (`/`) é uma **página do avaliador**: explica o Selo Saúde e leva a três caminhos (Totem, App do Trabalhador e Painel + CRM), para celular e computador. Front na Vercel (`selosaude.vercel.app`) repassando `/api` para a API e o Postgres numa VPS (`docs/deploy.md`).
+- **15/11:** o totem tem um menu depois do CPF: **"+ Novo registro"** (o fluxo de dor e bem-estar, anônimo) e **"Minhas consultas"**. Esta última volta a mostrar compromissos numa tela pública, só com **data, hora e local**, o status e o total de consultas perdidas no ano, sem tipo de atendimento, motivo ou exame, e fecha sozinha em 30 s. Isso substitui a decisão de 15/11 que tirou o "Meu próximo cuidado" do totem.
+- **15/11:** o app do trabalhador tem **quatro abas** na parte de baixo (Início, Plano, Consultas e Benefícios) e o botão **"Falar com a equipe"**, que registra o pedido de contato ("pediu ajuda" na fila da enfermagem) e abre o WhatsApp da equipe quando configurado.
+- **15/11:** **Benefícios** (acesso a rede de academias, voucher em marketplace, curso e atendimento SESI, todos fictícios no protótipo) se resgatam com **pontos de participação**: 10 por passo do plano feito e 20 por semana seguida de cuidado. Os pontos premiam participação, nunca resultado clínico (regras 3 e 4).
+
 ## Decisões em aberto
 
 - **Onde o sistema roda no dia da demonstração.** Para um celular abrir o link, ele precisa alcançar o front e a API: publicados, ou notebook e celular na mesma rede.

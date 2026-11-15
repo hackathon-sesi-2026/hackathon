@@ -1,0 +1,20 @@
+# Serviço da API do Selo Saúde. Instalação (uma vez só), ajustando o caminho e o usuário abaixo:
+#   sudo cp deploy/selo-saude-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now selo-saude-api
+# Logs: journalctl -u selo-saude-api -f
+[Unit]
+Description=Selo Saúde API
+After=network.target postgresql.service
+
+[Service]
+# AJUSTE: o usuário da VPS que clonou o repositório e o caminho do clone.
+User=SEU_USUARIO
+WorkingDirectory=/home/SEU_USUARIO/hackathon/api
+EnvironmentFile=/home/SEU_USUARIO/hackathon/api/.env
+# Uma instância só basta para a demonstração. A porta 8000 precisa estar liberada no firewall da VPS para a Vercel.
+ExecStart=/home/SEU_USUARIO/hackathon/api/.venv/bin/uvicorn selo_saude.main:app --app-dir src --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router'
+import { PaginaInicial } from './superficies/inicio/PaginaInicial'
 import { CascaPainel } from './superficies/painel/CascaPainel'
 import { PainelAps } from './superficies/painel/aps/PainelAps'
 import { PainelLideranca } from './superficies/painel/lideranca/PainelLideranca'
@@ -12,7 +13,8 @@ import { PaginaTrabalhador } from './superficies/trabalhador/PaginaTrabalhador'
 // Cada superfície tem público, aparelho e limite de privacidade próprios (docs/produto.md).
 // Celular e totem são telas inteiras; os três painéis dividem a mesma casca.
 export const rotas = createBrowserRouter([
-  { path: '/', element: <Navigate to="/painel/aps" replace /> },
+  // Porta de entrada para o avaliador: o que é o Selo Saúde e três caminhos (totem, app, painel).
+  { path: '/', element: <PaginaInicial /> },
 
   // Celular do trabalhador: o link pessoal que chega pelo WhatsApp.
   { path: '/t/:token', element: <PaginaTrabalhador /> },
@@ -34,5 +36,5 @@ export const rotas = createBrowserRouter([
     ],
   },
 
-  { path: '*', element: <Navigate to="/painel/aps" replace /> },
+  { path: '*', element: <Navigate to="/" replace /> },
 ])

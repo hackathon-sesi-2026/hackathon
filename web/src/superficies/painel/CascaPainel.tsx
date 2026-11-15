@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, Building2, CalendarClock, Menu, MessageCircle, MonitorSmartphone, PanelLeftClose, PanelLeftOpen, RotateCcw, Users, X, type LucideIcon } from 'lucide-react'
+import { BarChart3, Building2, CalendarClock, Home, Menu, MessageCircle, MonitorSmartphone, PanelLeftClose, PanelLeftOpen, RotateCcw, Users, X, type LucideIcon } from 'lucide-react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { api } from '../../api/cliente'
+import { FUNDO_DA_MARCA, OndasDaMarca } from '../../componentes/FundoDaMarca'
 import { Logo, LogoMarca } from '../../componentes/Logo'
 
 const PAINEIS: { grupo: string; para: string; rotulo: string; Icone: LucideIcon }[] = [
@@ -14,10 +15,6 @@ const PAINEIS: { grupo: string; para: string; rotulo: string; Icone: LucideIcon 
 
 const reiniciarDemonstracao = () => api.post('/demonstracao/reinicio')
 
-/** O mesmo fundo do totem (superficies/totem/Moldura.tsx): azul profundo com brilhos nos cantos. */
-const FUNDO_DA_MARCA =
-  'radial-gradient(120% 40% at 100% 0%, #1a50c2 0%, rgba(26,80,194,0) 62%), radial-gradient(110% 35% at 0% 100%, #0e50cc 0%, rgba(14,80,204,0) 65%), linear-gradient(170deg, #0a3090 0%, #071f5f 40%, #05154a 72%, #07267a 100%)'
-
 const CHAVE_RECOLHIDA = 'selo:barra-recolhida'
 
 function lerRecolhida(): boolean {
@@ -28,30 +25,13 @@ function lerRecolhida(): boolean {
   }
 }
 
-/** Ondas luminosas do totem, no pé da barra lateral. */
-function Ondas() {
-  return (
-    <svg className="pointer-events-none absolute inset-x-0 bottom-0 h-56 w-full" viewBox="0 0 240 220" preserveAspectRatio="none" aria-hidden>
-      <defs>
-        <linearGradient id="onda-da-barra" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#1c63e6" />
-          <stop offset="1" stopColor="#22a6ff" />
-        </linearGradient>
-      </defs>
-      <path d="M0 120 C60 95 130 150 240 110 L240 220 L0 220 Z" fill="#1a47c2" opacity="0.35" />
-      <path d="M0 160 C70 135 150 185 240 150 L240 220 L0 220 Z" fill="url(#onda-da-barra)" opacity="0.4" />
-      <path d="M0 160 C70 135 150 185 240 150" fill="none" stroke="#8fdcff" strokeOpacity="0.45" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
-    </svg>
-  )
-}
-
 /** O conteúdo da barra lateral. Recolhida, mostra só os ícones (com o nome ao passar o mouse). */
 function Barra({ recolhida, alternar, fechar }: { recolhida: boolean; alternar?: () => void; fechar?: () => void }) {
   const item = 'flex items-center rounded-full text-sm transition'
   const forma = recolhida ? 'size-11 shrink-0 justify-center' : 'w-full gap-3 px-4 py-2.5'
   return (
     <>
-      <Ondas />
+      <OndasDaMarca />
       <div className={`relative flex ${recolhida ? 'flex-col items-center gap-3' : 'items-start justify-between gap-2 px-2'}`}>
         {recolhida ? <LogoMarca className="size-10" /> : <Logo tamanho="md" />}
         {alternar && (
@@ -101,6 +81,9 @@ function Barra({ recolhida, alternar, fechar }: { recolhida: boolean; alternar?:
 
       <div className={`relative mt-auto space-y-1 ${recolhida ? 'flex flex-col items-center' : ''}`}>
         {recolhida && <span className="mb-2 h-px w-6 bg-white/20" aria-hidden />}
+        <Link to="/" title={recolhida ? 'Página inicial' : undefined} aria-label="Página inicial" className={`${item} ${forma} text-blue-50/85 hover:bg-white/10`}>
+          <Home className="size-5 shrink-0" aria-hidden /> {!recolhida && 'Página inicial'}
+        </Link>
         <Link to="/totem" target="_blank" title={recolhida ? 'Abrir um totem' : undefined} aria-label="Abrir um totem" className={`${item} ${forma} text-blue-50/85 hover:bg-white/10`}>
           <MonitorSmartphone className="size-5 shrink-0" aria-hidden /> {!recolhida && 'Abrir um totem'}
         </Link>

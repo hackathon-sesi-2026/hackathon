@@ -1588,7 +1588,9 @@ section.foto > :not(img):not(svg):not(.fonte) {
 /* Jornada: cada etapa com a entrega do sistema */
 .jr-g { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; flex: 1; }
 .jr { background: var(--vidro); border: 2px solid var(--borda); border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; }
-.jr .jr-foto { width: 100%; height: 140px; object-fit: cover; object-position: center; display: block; }
+/* As fotos são feitas para texto na esquerda: os 30% da esquerda são só azul vazio. O recorte tira esse vazio e
+   centraliza a pessoa; a posição vertical de cada foto fica no style da própria imagem. */
+.jr .jr-foto { width: 100%; height: 270px; object-fit: cover; object-position: 50% 15%; object-view-box: inset(0 0 0 30%); display: block; }
 .jr-lista { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
 .jr-item { display: flex; align-items: center; gap: 12px; }
 .jr-item .jr-ic { flex: none; width: 40px; height: 40px; border-radius: 12px; background: rgba(34, 211, 166, 0.15); display: flex; align-items: center; justify-content: center; }

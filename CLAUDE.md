@@ -69,7 +69,7 @@ Tempo real: o SSE só avisa que algo mudou, sem carregar dado. O front busca de 
 
 ```
 web/src/
-  rotas.tsx          /t/:token · /totem/:unidade · /painel/{aps,lideranca,rh}
+  rotas.tsx          / (página do avaliador) · /t/:token · /totem/:unidade · /painel/{aps,whatsapp,totens,lideranca,rh}
   api/               cliente HTTP, hook useRecurso, tipos dos contratos
   superficies/       uma pasta por superfície: trabalhador, totem, painel/{aps,lideranca,rh}
   componentes/       peças visuais comuns

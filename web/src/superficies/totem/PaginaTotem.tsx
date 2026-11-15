@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, Lock, Play } from 'lucide-react'
+import { CalendarDays, Check, Lock, MessageCircle, Play } from 'lucide-react'
 import { useParams } from 'react-router'
 import { api, ErroDaApi } from '../../api/cliente'
-import type { IntensidadeDor, LocalDor, TelaInicialDoTotem } from '../../api/tipos'
+import type { CuidadoNoTotem, IntensidadeDor, LocalDor, TelaInicialDoTotem } from '../../api/tipos'
 import { useRecurso } from '../../api/useRecurso'
+import { dataCurta, diaSemana, hora } from '../../lib/datas'
 import { AvisoDeFalha, TelaCheia } from '../../componentes/TelaCheia'
 import { LogoMarca } from '../../componentes/Logo'
 import { BonecoDaDor } from './BonecoDaDor'
@@ -11,13 +12,15 @@ import { EntradaDeCpf } from './EntradaDeCpf'
 import { BotaoPrincipal, BotaoVoltar, Cabecalho, Palco, Progresso, Titulo } from './Moldura'
 
 // Totem "Ponto de Cuidado" na unidade. A unidade vem do endereço do aparelho (/totem/:unidade), configurada
-// uma vez na instalação. Fluxo: boas-vindas → CPF → sente dor? → (com dor) onde dói → como está → obrigado.
+// uma vez na instalação. Fluxo: boas-vindas → CPF → menu, com dois caminhos:
+//   "+ Novo registro": sente dor? → (com dor) onde dói → como está → obrigado.
+//   "Minhas consultas": próximo compromisso e consultas perdidas, só data, hora e local (tela pública).
 // O CPF diz quem está usando, mas o pulso continua anônimo: a resposta vai para a API sem o CPF.
 //
 // O visual segue o design do totem, uma tela de retrato de 24rem x 38.4rem. Enquanto o totem está aberto, o
 // tamanho do rem acompanha a tela, e tudo escala junto, como no mockup.
 
-type Etapa = 'boas_vindas' | 'cpf' | 'intensidade' | 'dor' | 'bem_estar' | 'obrigado'
+type Etapa = 'boas_vindas' | 'cpf' | 'menu' | 'consultas' | 'intensidade' | 'dor' | 'bem_estar' | 'obrigado'
 type BemEstar = 1 | 2 | 3 | 4
 
 const ETAPAS_COM_PROGRESSO: Etapa[] = ['cpf', 'intensidade', 'dor', 'bem_estar']
@@ -32,6 +35,8 @@ const OPCOES_DE_DOR: { valor: IntensidadeDor; rotulo: string; cor: string }[] = 
 /** Sem toque por este tempo, o totem volta ao começo, para ninguém continuar o que outra pessoa deixou aberto. */
 const SEGUNDOS_PARADO = 45
 const SEGUNDOS_NO_OBRIGADO = 8
+/** As consultas ficam numa tela pública: fecham sozinhas mais cedo. */
+const SEGUNDOS_NAS_CONSULTAS = 30
 
 const OPCOES_DE_BEM_ESTAR: { valor: BemEstar; rotulo: string }[] = [
   { valor: 4, rotulo: 'Muito bem' },
@@ -50,8 +55,13 @@ export function PaginaTotem() {
   const [bemEstar, setBemEstar] = useState<BemEstar | null>(null)
   const [acessivel, setAcessivel] = useState(false)
   const [restante, setRestante] = useState(SEGUNDOS_PARADO)
+  // Quem está usando o totem agora. Só fica na memória da tela e some ao recomeçar.
+  const [cuidado, setCuidado] = useState<CuidadoNoTotem | null>(null)
+  const [cpf, setCpf] = useState('')
 
   const recomecar = useCallback(() => {
+    setCuidado(null)
+    setCpf('')
     setEtapa('boas_vindas')
     setIntensidade(null)
     setLocalDor(null)
@@ -59,7 +69,7 @@ export function PaginaTotem() {
   }, [])
 
   // Volta ao começo depois de um tempo parado (no "Obrigado!", depois de poucos segundos).
-  const limite = etapa === 'obrigado' ? SEGUNDOS_NO_OBRIGADO : SEGUNDOS_PARADO
+  const limite = etapa === 'obrigado' ? SEGUNDOS_NO_OBRIGADO : etapa === 'consultas' ? SEGUNDOS_NAS_CONSULTAS : SEGUNDOS_PARADO
   useEffect(() => {
     if (etapa === 'boas_vindas') return
     setRestante(limite)
@@ -90,13 +100,15 @@ export function PaginaTotem() {
   if (!totem) return <TelaCheia>{erro ? 'Totem não encontrado. Confira o endereço da unidade.' : 'Preparando o totem…'}</TelaCheia>
 
   /** Confere o CPF nesta unidade. Devolve a mensagem de erro para a tela, ou null quando deu certo. */
-  async function identificar(cpf: string): Promise<string | null> {
+  async function identificar(numero: string): Promise<string | null> {
     try {
-      await api.post(`${base}/identificacao`, { cpf })
+      const dados = await api.post<CuidadoNoTotem>(`${base}/identificacao`, { cpf: numero })
+      setCuidado(dados)
+      setCpf(numero)
     } catch (e) {
       return e instanceof ErroDaApi && e.status === 404 ? 'CPF não encontrado nesta unidade. Confira os números.' : 'Não foi possível entrar. Tente de novo.'
     }
-    setEtapa('intensidade')
+    setEtapa('menu')
     return null
   }
 
@@ -116,7 +128,7 @@ export function PaginaTotem() {
 
   return (
     <Palco ondas={passo ? 'baixas' : 'altas'}>
-      <Cabecalho acessivel={acessivel} aoAlternarAcessibilidade={passo ? () => setAcessivel((a) => !a) : undefined} />
+      <Cabecalho acessivel={acessivel} aoAlternarAcessibilidade={passo || etapa === 'menu' || etapa === 'consultas' ? () => setAcessivel((a) => !a) : undefined} />
 
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-[1.75rem] pb-[1.4rem]">
         {passo > 0 && <Progresso passo={passo} total={ETAPAS_COM_PROGRESSO.length} />}
@@ -125,7 +137,22 @@ export function PaginaTotem() {
 
         {etapa === 'cpf' && <EntradaDeCpf aoEntrar={identificar} />}
 
-        {etapa === 'intensidade' && <PerguntaDaDor escolhida={intensidade} aoResponder={responderIntensidade} aoVoltar={() => setEtapa('cpf')} />}
+        {etapa === 'menu' && cuidado && (
+          <MenuDoTotem nome={cuidado.primeiroNome} aoNovoRegistro={() => setEtapa('intensidade')} aoConsultas={() => setEtapa('consultas')} aoSair={recomecar} />
+        )}
+
+        {etapa === 'consultas' && cuidado && (
+          <MinhasConsultas
+            cuidado={cuidado}
+            aoConfirmar={async () => {
+              if (await enviar('post', `${base}/identificacao/confirmacao`, { cpf })) setCuidado((c) => (c?.retorno ? { ...c, retorno: { ...c.retorno, status: 'confirmada' } } : c))
+            }}
+            aoMandarLink={() => enviar('post', `${base}/identificacao/link`, { cpf })}
+            aoVoltar={() => setEtapa('menu')}
+          />
+        )}
+
+        {etapa === 'intensidade' && <PerguntaDaDor escolhida={intensidade} aoResponder={responderIntensidade} aoVoltar={() => setEtapa('menu')} />}
 
         {etapa === 'dor' && (
           <BonecoDaDor
@@ -192,6 +219,132 @@ function BoasVindas({ aoComecar }: { aoComecar: () => void }) {
       <p className="mt-[1.9rem] flex items-center justify-center gap-[0.45rem] text-[calc(0.72rem*var(--lm))]">
         <Lock className="size-[0.95rem]" /> Seus dados são protegidos
       </p>
+    </div>
+  )
+}
+
+/** Depois do CPF: "+ Novo registro" (o fluxo de dor e bem-estar) ou "Minhas consultas". */
+function MenuDoTotem({ nome, aoNovoRegistro, aoConsultas, aoSair }: { nome: string; aoNovoRegistro: () => void; aoConsultas: () => void; aoSair: () => void }) {
+  return (
+    <div className="flex flex-1 flex-col">
+      <Titulo apoio="O que você quer fazer agora?">Olá, {nome}!</Titulo>
+      <div className="mt-[2.2rem] flex flex-col gap-[1.1rem]">
+        <BotaoPrincipal onClick={aoNovoRegistro} className="h-[5.6rem] w-full flex-col gap-[0.25rem] text-[calc(1.5rem*var(--lm))]">
+          + Novo registro
+          <span className="text-[calc(0.78rem*var(--lm))] font-medium">Conte como você está hoje</span>
+        </BotaoPrincipal>
+        <button
+          type="button"
+          onClick={aoConsultas}
+          className="flex h-[5.6rem] w-full flex-col items-center justify-center gap-[0.25rem] rounded-full bg-white/[0.08] text-[calc(1.5rem*var(--lm))] font-semibold ring-2 ring-white/40 transition active:scale-[0.98] [-webkit-tap-highlight-color:transparent]"
+        >
+          <span className="flex items-center gap-[0.6rem]">
+            <CalendarDays className="size-[1.5rem]" aria-hidden /> Minhas consultas
+          </span>
+          <span className="text-[calc(0.78rem*var(--lm))] font-medium text-white/85">Veja seus próximos compromissos</span>
+        </button>
+      </div>
+      <div className="mt-auto pt-[1.6rem]">
+        <BotaoVoltar onClick={aoSair} />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * "Minhas consultas": o próximo compromisso e a consulta perdida, só com dia, hora e local. Esta tela é pública:
+ * nada de tipo de atendimento, motivo ou exame. O tom é de ajuda, sem culpa.
+ */
+function MinhasConsultas({
+  cuidado,
+  aoConfirmar,
+  aoMandarLink,
+  aoVoltar,
+}: {
+  cuidado: CuidadoNoTotem
+  aoConfirmar: () => Promise<void>
+  aoMandarLink: () => Promise<boolean>
+  aoVoltar: () => void
+}) {
+  const [linkEnviado, setLinkEnviado] = useState(false)
+  const { retorno, faltasNoAno } = cuidado
+  const perdeu = retorno?.status === 'faltou'
+  const proxima = retorno && !perdeu ? retorno : null
+
+  async function mandarLink() {
+    if (await aoMandarLink()) setLinkEnviado(true)
+  }
+
+  const cartao = 'rounded-[1.1rem] bg-white/[0.08] p-[1.1rem] ring-1 ring-white/25'
+  const rotulo = 'text-[calc(0.72rem*var(--lm))] font-semibold uppercase tracking-wide text-[#1fe0b0]'
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <Titulo apoio="Seus compromissos de saúde.">Minhas consultas</Titulo>
+
+      <div className="mt-[1.3rem] flex flex-col gap-[0.9rem]">
+        {proxima && (
+          <section className={cartao} aria-label="Próxima consulta">
+            <p className={rotulo}>Próxima consulta</p>
+            <p className="mt-[0.35rem] text-[calc(1.3rem*var(--lm))] font-semibold leading-tight first-letter:uppercase">{diaSemana(proxima.data)}</p>
+            <p className="text-[calc(1.05rem*var(--lm))] leading-snug">
+              às {hora(proxima.data)} · {proxima.local}
+            </p>
+            {proxima.status === 'confirmada' ? (
+              <p className="mt-[0.6rem] flex items-center gap-[0.4rem] text-[calc(0.95rem*var(--lm))] font-semibold text-[#1fe0b0]">
+                <Check className="size-[1.1rem]" strokeWidth={3} aria-hidden /> Presença confirmada
+              </p>
+            ) : proxima.status === 'remarcar' ? (
+              <p className="mt-[0.6rem] text-[calc(0.9rem*var(--lm))]">Você pediu para remarcar. A equipe vai te procurar.</p>
+            ) : (
+              <BotaoPrincipal onClick={aoConfirmar} className="mt-[0.8rem] h-[2.9rem] w-full text-[calc(1.05rem*var(--lm))]">
+                Confirmar presença
+              </BotaoPrincipal>
+            )}
+          </section>
+        )}
+
+        {perdeu && retorno && (
+          <section className={cartao} aria-label="Consulta perdida">
+            <p className={rotulo}>Consulta que não aconteceu</p>
+            <p className="mt-[0.35rem] text-[calc(1.15rem*var(--lm))] font-semibold leading-tight">
+              Dia {dataCurta(retorno.data)}, {hora(retorno.data)}
+            </p>
+            <p className="mt-[0.3rem] text-[calc(0.9rem*var(--lm))] leading-snug">Acontece. Vamos achar um horário que caiba no seu turno.</p>
+          </section>
+        )}
+
+        {!retorno && (
+          <section className={cartao} aria-label="Sem consulta marcada">
+            <p className={rotulo}>Próxima consulta</p>
+            <p className="mt-[0.35rem] text-[calc(1.05rem*var(--lm))] leading-snug">Nenhuma consulta marcada por enquanto.</p>
+          </section>
+        )}
+
+        {faltasNoAno > 0 && (
+          <p className="px-[0.3rem] text-[calc(0.85rem*var(--lm))] leading-snug text-white/90">
+            Nos últimos 12 meses, {faltasNoAno === 1 ? '1 consulta não aconteceu' : `${faltasNoAno} consultas não aconteceram`}.
+          </p>
+        )}
+      </div>
+
+      {(perdeu || !retorno || proxima?.status === 'remarcar') && (
+        <div className="mt-[1rem]">
+          {linkEnviado ? (
+            <p className="flex items-center justify-center gap-[0.4rem] text-center text-[calc(0.95rem*var(--lm))] font-semibold text-[#1fe0b0]">
+              <Check className="size-[1.1rem]" strokeWidth={3} aria-hidden /> Link enviado para o seu WhatsApp
+            </p>
+          ) : (
+            <BotaoPrincipal onClick={mandarLink} className="h-[3.2rem] w-full text-[calc(1rem*var(--lm))]">
+              <MessageCircle className="size-[1.2rem]" aria-hidden /> {retorno ? 'Receber o link para remarcar' : 'Receber o link para marcar'}
+            </BotaoPrincipal>
+          )}
+        </div>
+      )}
+
+      <div className="mt-auto pt-[1.2rem]">
+        <BotaoVoltar onClick={aoVoltar} />
+      </div>
     </div>
   )
 }

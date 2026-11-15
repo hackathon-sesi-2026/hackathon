@@ -72,6 +72,8 @@ def entrar_no_totem(pagina, cpf: str = "12345678901"):
     for numero in cpf:
         pagina.get_by_role("button", name=numero, exact=True).click()
     pagina.get_by_role("button", name="Entrar").click()
+    ver(pagina, "Olá, Marcos!")  # menu: "+ Novo registro" ou "Minhas consultas"
+    pagina.get_by_role("button", name="Novo registro").click()
     ver(pagina, "Você sente alguma dor hoje?")
 
 
@@ -192,5 +194,24 @@ def test_totem_comeca_pelo_cpf(abrir):
     """O CPF vem antes de tudo; na demonstração qualquer CPF entra (como o Marcos) e "Voltar" retorna ao CPF."""
     pagina = abrir("/totem/planta-camacari").pagina
     entrar_no_totem(pagina, "98765432100")
+    pagina.get_by_role("button", name="Voltar").click()  # volta ao menu
+    ver(pagina, "Olá, Marcos!")
+
+
+def test_totem_minhas_consultas(abrir):
+    """Depois do CPF, "Minhas consultas" mostra o próximo compromisso (dia, hora e local) e volta ao menu."""
+    pagina = abrir("/totem/planta-camacari").pagina
+    entrar_no_totem(pagina)
     pagina.get_by_role("button", name="Voltar").click()
-    ver(pagina, "Digite seu CPF")
+    pagina.get_by_role("button", name="Minhas consultas").click()
+    ver(pagina, "Seus compromissos de saúde.")
+    pagina.get_by_role("button", name="Voltar").click()
+    ver(pagina, "Olá, Marcos!")
+
+
+def test_pagina_inicial_leva_as_tres_superficies(abrir):
+    """A raiz é a página do avaliador, com o caminho para o totem, o app do trabalhador e o painel."""
+    pagina = abrir("/").pagina
+    ver(pagina, "Conheça o projeto")
+    for titulo in ("Totem", "App do Trabalhador", "Painel + CRM"):
+        assert pagina.get_by_role("heading", name=titulo).count() == 1, titulo

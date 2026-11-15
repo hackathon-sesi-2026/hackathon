@@ -26,7 +26,10 @@ export function criarAcoes(base: string, enviar: Enviar) {
     responderChecagem: (resposta: string) => enviar('post', `${base}/plano/checagem`, { resposta }),
     /** A pessoa abriu "Meus exames": some o aviso de resultado novo. */
     verResultados: () => enviar('post', `${base}/exames/visualizacao`),
+    /** "Falar com a equipe" (tudoBem = false) pede o contato de uma pessoa: a enfermeira vê "pediu ajuda" na fila. */
     responderCheckin: (tudoBem: boolean) => enviar('post', `${base}/checkin`, { tudoBem }),
+    /** Gasta pontos de participação num benefício. A API recusa (409) se o saldo não cobrir. */
+    resgatarBeneficio: (beneficioId: string) => enviar('post', `${base}/beneficios/${beneficioId}/resgate`),
   }
 }
 
