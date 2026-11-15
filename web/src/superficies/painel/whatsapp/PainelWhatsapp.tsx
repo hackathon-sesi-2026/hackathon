@@ -171,6 +171,7 @@ function TesteNoMeuWhatsapp() {
               value={telefone}
               onChange={(e) => setTelefone(e.target.value)}
               placeholder="(71) 99999-8888"
+              aria-label="Seu número de WhatsApp com DDD"
               className="mt-2 w-full rounded-xl px-3 py-2.5 text-base ring-1 ring-slate-300 outline-none focus:ring-2 focus:ring-[#25d366]"
             />
           </div>
@@ -188,7 +189,7 @@ function TesteNoMeuWhatsapp() {
                   onClick={() => setMensagem(o.valor)}
                   className={`flex gap-2.5 rounded-xl p-3 text-left ring-1 transition ${mensagem === o.valor ? 'bg-[#25d366]/10 ring-2 ring-[#25d366]' : 'ring-slate-200 hover:bg-slate-50'}`}
                 >
-                  <o.Icone className={`mt-0.5 size-4 shrink-0 ${mensagem === o.valor ? 'text-[#128c4a]' : 'text-slate-400'}`} />
+                  <o.Icone className={`mt-0.5 size-4 shrink-0 ${mensagem === o.valor ? 'text-[#128c4a]' : 'text-slate-500'}`} />
                   <span>
                     <span className="block text-sm font-semibold">{o.titulo}</span>
                     <span className="block text-xs leading-snug text-slate-500">{o.descricao}</span>
@@ -264,9 +265,9 @@ function Barras({ valores }: { valores: number[] }) {
     <div className="flex h-40 items-end gap-1 sm:gap-1.5">
       {valores.map((v, i) => (
         <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
-          <span className="text-[10px] font-semibold tabular-nums text-slate-500">{v}</span>
+          <span className="text-xs font-semibold tabular-nums text-slate-500">{v}</span>
           <div className="w-full rounded-t-md bg-gradient-to-t from-[#128c4a] to-[#25d366]" style={{ height: `${Math.max(3, (v / maior) * 80)}%` }} />
-          <span className="text-[9px] text-slate-400">{i === valores.length - 1 ? 'hoje' : `-${valores.length - 1 - i}`}</span>
+          <span className="text-[9px] text-slate-500">{i === valores.length - 1 ? 'hoje' : `-${valores.length - 1 - i}`}</span>
         </div>
       ))}
     </div>

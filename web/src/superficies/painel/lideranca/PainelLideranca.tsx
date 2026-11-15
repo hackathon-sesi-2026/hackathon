@@ -104,7 +104,7 @@ export function PainelLideranca() {
                   className={`rounded-full px-4 py-1.5 text-left leading-tight transition ${periodo === x.valor ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-100'}`}
                 >
                   <span className="block text-sm font-semibold">{x.rotulo}</span>
-                  <span className={`block text-[11px] ${periodo === x.valor ? 'text-blue-100' : 'text-slate-400'}`}>{horario}</span>
+                  <span className={`block text-xs ${periodo === x.valor ? 'text-blue-100' : 'text-slate-500'}`}>{horario}</span>
                 </button>
               )
             })}
@@ -135,7 +135,7 @@ export function PainelLideranca() {
                   <th className="w-14" />
                   {dias.map((d) => (
                     <th key={d.toISOString()} className="pb-1 font-semibold text-navy">
-                      {semanaCurta(d.toISOString())} <span className="font-normal text-slate-400">{dataCurta(d.toISOString())}</span>
+                      {semanaCurta(d.toISOString())} <span className="font-normal text-slate-500">{dataCurta(d.toISOString())}</span>
                     </th>
                   ))}
                 </tr>
@@ -143,7 +143,7 @@ export function PainelLideranca() {
               <tbody>
                 {horas.map((h) => (
                   <tr key={h}>
-                    <td className="pr-1 text-right align-top tabular-nums text-slate-400">{String(h).padStart(2, '0')}h</td>
+                    <td className="pr-1 text-right align-top tabular-nums text-slate-500">{String(h).padStart(2, '0')}h</td>
                     {dias.map((d) => {
                       const ls = naCelula(d, h)
                       const conflito = ls.length >= 2
@@ -153,7 +153,7 @@ export function PainelLideranca() {
                             {ls.map((l) => (
                               <Bloco key={l.id} l={l} mostrarTurno={periodo === 'ambos'} />
                             ))}
-                            {conflito && <p className="text-[10px] font-semibold text-amber-700">2+ no mesmo horário: combine cobertura</p>}
+                            {conflito && <p className="text-xs font-semibold text-amber-700">2+ no mesmo horário: combine cobertura</p>}
                           </div>
                         </td>
                       )

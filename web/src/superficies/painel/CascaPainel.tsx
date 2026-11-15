@@ -47,39 +47,39 @@ function Ondas() {
 
 /** O conteúdo da barra lateral. Recolhida, mostra só os ícones (com o nome ao passar o mouse). */
 function Barra({ recolhida, alternar, fechar }: { recolhida: boolean; alternar?: () => void; fechar?: () => void }) {
-  const item = 'flex w-full items-center rounded-full text-sm transition'
-  const forma = recolhida ? 'size-11 justify-center' : 'gap-3 px-4 py-2.5'
+  const item = 'flex items-center rounded-full text-sm transition'
+  const forma = recolhida ? 'size-11 shrink-0 justify-center' : 'w-full gap-3 px-4 py-2.5'
   return (
     <>
       <Ondas />
-      <div className={`relative flex items-start ${recolhida ? 'flex-col items-center gap-3' : 'justify-between gap-2 px-2'}`}>
+      <div className={`relative flex ${recolhida ? 'flex-col items-center gap-3' : 'items-start justify-between gap-2 px-2'}`}>
         {recolhida ? <LogoMarca className="size-10" /> : <Logo tamanho="md" />}
         {alternar && (
           <button
             onClick={alternar}
             aria-label={recolhida ? 'Abrir a barra lateral' : 'Recolher a barra lateral'}
             title={recolhida ? 'Abrir a barra lateral' : 'Recolher a barra lateral'}
-            className="grid size-8 shrink-0 place-items-center rounded-lg text-blue-100/80 hover:bg-white/10 hover:text-white"
+            className={`grid size-11 shrink-0 place-items-center rounded-full text-blue-100/90 hover:bg-white/10 hover:text-white ${recolhida ? 'ring-1 ring-white/20' : ''}`}
           >
-            {recolhida ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+            {recolhida ? <PanelLeftOpen className="size-5 shrink-0" /> : <PanelLeftClose className="size-5 shrink-0" />}
           </button>
         )}
         {fechar && (
-          <button onClick={fechar} aria-label="Fechar o menu" className="grid size-8 shrink-0 place-items-center rounded-lg text-blue-100/80 hover:bg-white/10">
-            <X className="size-4" />
+          <button onClick={fechar} aria-label="Fechar o menu" className="grid size-11 shrink-0 place-items-center rounded-full text-blue-100/80 hover:bg-white/10">
+            <X className="size-5 shrink-0" />
           </button>
         )}
       </div>
-      {!recolhida && <p className="relative mt-3 px-2 text-[11px] text-blue-100/70">com a APS do SESI Saúde Acolhe</p>}
+      {!recolhida && <p className="relative mt-3 px-2 text-xs text-blue-100/70">com a APS do SESI Saúde Acolhe</p>}
 
       <nav className={`relative mt-6 space-y-1 ${recolhida ? 'flex flex-col items-center' : ''}`}>
         {PAINEIS.map(({ grupo, para, rotulo, Icone }, i) => (
           <div key={para} className={recolhida ? 'flex flex-col items-center' : ''}>
             {(i === 0 || PAINEIS[i - 1].grupo !== grupo) &&
               (recolhida ? (
-                <span className="my-2 h-px w-8 bg-white/15" aria-hidden />
+                i > 0 && <span className="my-2 h-px w-6 bg-white/20" aria-hidden />
               ) : (
-                <p className="mb-1.5 mt-5 px-3 text-[11px] font-semibold uppercase tracking-wider text-blue-100/55">{grupo}</p>
+                <p className="mb-1.5 mt-5 px-3 text-xs font-semibold uppercase tracking-wider text-blue-100/55">{grupo}</p>
               ))}
             <NavLink
               to={para}
@@ -93,20 +93,21 @@ function Barra({ recolhida, alternar, fechar }: { recolhida: boolean; alternar?:
                 }`
               }
             >
-              <Icone className="size-[18px] shrink-0" /> {!recolhida && rotulo}
+              <Icone className="size-5 shrink-0" /> {!recolhida && rotulo}
             </NavLink>
           </div>
         ))}
       </nav>
 
       <div className={`relative mt-auto space-y-1 ${recolhida ? 'flex flex-col items-center' : ''}`}>
-        <Link to="/totem" target="_blank" title={recolhida ? 'Abrir um totem' : undefined} className={`${item} ${forma} text-blue-50/85 hover:bg-white/10`}>
-          <MonitorSmartphone className="size-4 shrink-0" /> {!recolhida && 'Abrir um totem'}
+        {recolhida && <span className="mb-2 h-px w-6 bg-white/20" aria-hidden />}
+        <Link to="/totem" target="_blank" title={recolhida ? 'Abrir um totem' : undefined} aria-label="Abrir um totem" className={`${item} ${forma} text-blue-50/85 hover:bg-white/10`}>
+          <MonitorSmartphone className="size-5 shrink-0" aria-hidden /> {!recolhida && 'Abrir um totem'}
         </Link>
-        <button onClick={reiniciarDemonstracao} title={recolhida ? 'Reiniciar demonstração' : undefined} className={`${item} ${forma} text-blue-50/85 hover:bg-white/10`}>
-          <RotateCcw className="size-4 shrink-0" /> {!recolhida && 'Reiniciar demonstração'}
+        <button onClick={reiniciarDemonstracao} title={recolhida ? 'Reiniciar demonstração' : undefined} aria-label="Reiniciar demonstração" className={`${item} ${forma} text-blue-50/85 hover:bg-white/10`}>
+          <RotateCcw className="size-5 shrink-0" /> {!recolhida && 'Reiniciar demonstração'}
         </button>
-        {!recolhida && <p className="px-4 pt-2 text-[10px] text-blue-100/50">Café com Bugs · Hackathon+ SESI Saúde 2026</p>}
+        {!recolhida && <p className="px-4 pt-2 text-xs text-blue-100/50">Café com Bugs · Hackathon+ SESI Saúde 2026</p>}
       </div>
     </>
   )

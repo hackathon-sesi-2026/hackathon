@@ -368,7 +368,8 @@ export interface MetricasDoTotem {
   /** "0" nenhuma, "1" leve, "2" média, "3" forte. */
   intensidade: Record<'0' | '1' | '2' | '3', number>
   locaisDeDor: Partial<Record<LocalDor, number>>
-  porTurno: { unidade: string; turno: string; respostas: number; oculto: boolean; cansados: number | null; comDor: number | null }[]
+  /** `inicio`/`fim` são as horas do turno (do cadastro); nulas se o turno não estiver mais no cadastro. */
+  porTurno: { unidade: string; turno: string; inicio: number | null; fim: number | null; respostas: number; oculto: boolean; cansados: number | null; comDor: number | null }[]
 }
 
 /** "Testar no meu WhatsApp" (POST /demonstracao/whatsapp/teste). */

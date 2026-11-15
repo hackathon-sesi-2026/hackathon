@@ -8,6 +8,7 @@ from typing import Literal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from selo_saude.modulos.cadastro.servico import TURNOS
 from selo_saude.nucleo import relogio
 from selo_saude.nucleo.esquema import Esquema, novo_id
 from selo_saude.nucleo.eventos import EventoDominio, publicar
@@ -92,6 +93,9 @@ class RespostasDoDia(Esquema):
 class TurnoNoTotem(Esquema):
     unidade: str
     turno: str
+    inicio: int | None = None
+    fim: int | None = None
+    """Horas do turno (do cadastro), para a tela dizer "06h às 14h" e não só "Turno A"."""
     respostas: int
     oculto: bool
     """Menos de 5 respostas: os percentuais não aparecem, para ninguém ser reconhecido."""
@@ -153,13 +157,17 @@ async def metricas(sessao: AsyncSession, unidade: str | None = None, dias: int =
     def pct(parte: int, total: int) -> int:
         return round(parte * 100 / total) if total else 0
 
+    horas = {t.nome: t for t in TURNOS}
     por_turno = []
     for (u, turno), respostas in sorted(turnos.items()):
         oculto = len(respostas) < MINIMO_DO_GRUPO
+        horario = horas.get(turno)
         por_turno.append(
             TurnoNoTotem(
                 unidade=u,
                 turno=turno,
+                inicio=horario.inicio if horario else None,
+                fim=horario.fim if horario else None,
                 respostas=len(respostas),
                 oculto=oculto,
                 cansados=None if oculto else pct(sum(b == 1 for b, _ in respostas), len(respostas)),

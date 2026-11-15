@@ -1,11 +1,14 @@
 import { createContext, useContext } from 'react'
 import type { Desfecho } from '../../../api/tipos'
 import type { Enviar } from '../../../api/useRecurso'
+import type { PedidoDeEnvio } from '../../../componentes/ModalDeEnvio'
 
 /** Tudo o que a enfermagem pode fazer a partir da fila. */
-export function criarAcoes(enviar: Enviar) {
+export function criarAcoes(enviar: Enviar, pedirEnvio: (pedido: PedidoDeEnvio) => void) {
   const de = (trabalhadorId: string) => `/aps/trabalhadores/${trabalhadorId}`
   return {
+    /** Mensagens pelo WhatsApp passam por confirmação (ModalDeEnvio); o envio em si é `executarEnvio`. */
+    pedirEnvio,
     enviarLembrete: (id: string) => enviar('post', `${de(id)}/lembrete`),
     /** Na demonstração a enfermeira dispara à mão; no produto, um agendador envia em D-3 e D-1. */
     dispararLembreteAutomatico: (id: string, qual: 'D-3' | 'D-1') => enviar('post', `${de(id)}/lembretes-automaticos`, { qual }),
@@ -19,6 +22,14 @@ export function criarAcoes(enviar: Enviar) {
     liberarResultado: (id: string, exameId: string) => enviar('post', `${de(id)}/exames/${exameId}/resultado`),
     registrarMonitoramento: (id: string, desfecho: Desfecho) => enviar('post', `${de(id)}/monitoramentos`, desfecho),
   }
+}
+
+/** Caminho de cada envio pelo WhatsApp, para o modal executar depois da confirmação. */
+export const CAMINHO_DO_ENVIO: Record<PedidoDeEnvio['tipo'], (trabalhadorId: string) => string> = {
+  lembrete: (id) => `/aps/trabalhadores/${id}/lembrete`,
+  plano: (id) => `/aps/trabalhadores/${id}/plano/envio`,
+  checkin_habito: (id) => `/aps/trabalhadores/${id}/checkin-habito`,
+  checkin: (id) => `/aps/trabalhadores/${id}/checkin`,
 }
 
 export type AcoesDaAps = ReturnType<typeof criarAcoes>
