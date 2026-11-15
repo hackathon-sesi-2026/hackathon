@@ -4,15 +4,13 @@
   "lists": "css",
   "format": { "v": 1, "shared": ["project/deck.css"] },
   "title": "Selo Saúde · Pitch Hackathon+ SESI Saúde 2026",
-  "order": ["capa", "punch", "metrica", "escala", "efeitos", "virada", "marcos", "pergunta", "oque", "app", "engajar", "crm", "porque", "negocio", "viavel", "fechamento", "automacoes", "jornada", "acesso", "custos", "resultados", "fluxo", "time"],
+  "order": ["capa", "marcos", "punch", "metrica", "efeitos", "engajar", "oque", "jornada", "negocio", "valor", "mercado", "viavel", "resultados", "fluxo", "fechamento", "time", "consulta", "obrigado"],
   "sections": {
-    "abertura": { "description": "Quem somos e a frase do Selo Saúde.", "start": "capa" },
-    "problema": { "description": "O cuidado funciona, metade falta, o que isso causa e quem é o Marcos.", "start": "punch" },
-    "pergunta": { "description": "A pergunta que guia a solução.", "start": "pergunta" },
-    "solucao": { "description": "O que é o Selo Saúde, como engaja e o CRM da equipe.", "start": "oque" },
-    "valor": { "description": "Por que importa para a empresa e para o SESI, e o road map.", "start": "porque" },
-    "fecho": { "description": "Onde queremos chegar.", "start": "fechamento" },
-    "reserva": { "description": "Reserva para as perguntas: automações, dia do Marcos, segurança, custos, objetivos, fluxograma e time.", "start": "automacoes" }
+    "abertura": { "description": "Capa e o que é a APS.", "start": "capa" },
+    "problema": { "description": "O Marcos, o cuidado que funciona, a metade que falta e o que se perde quando o cuidado para.", "start": "marcos" },
+    "solucao": { "description": "A premissa de engajamento com os benefícios, o que é o Selo Saúde, e o dia do Marcos com cada entrega.", "start": "engajar" },
+    "valor": { "description": "O que está em jogo para o SESI, o valor para a empresa parceira, concorrência, road map com custo por cliente, resultados e fluxo.", "start": "negocio" },
+    "fecho": { "description": "Onde queremos chegar, a última frase, a equipe e o obrigado.", "start": "fechamento" }
   },
   "faces": {
     "inter": { "family": "Inter", "href": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" }
