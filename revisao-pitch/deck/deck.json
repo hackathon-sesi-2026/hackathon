@@ -4,14 +4,15 @@
   "lists": "css",
   "format": { "v": 1, "shared": ["project/deck.css"] },
   "title": "Selo Saúde · Pitch Hackathon+ SESI Saúde 2026",
-  "order": ["capa", "punch", "metrica", "escala", "marcos", "oque", "solucao", "demo", "diferenca", "testado", "viavel", "fechamento", "apendice", "porque", "efeitos", "virada", "quebra", "jornada", "ciclo", "fluxo", "automacoes", "resultados", "recompensas", "gatilhos", "empresa", "acesso", "impacto", "negocio", "custos", "totens", "time"],
+  "order": ["capa", "punch", "metrica", "escala", "efeitos", "virada", "marcos", "pergunta", "oque", "engajar", "crm", "porque", "negocio", "viavel", "fechamento", "automacoes", "jornada", "acesso", "custos", "resultados", "fluxo", "time"],
   "sections": {
     "abertura": { "description": "Quem somos e a frase do Selo Saúde.", "start": "capa" },
-    "problema": { "description": "O cuidado funciona, metade falta, e o Marcos é o porquê.", "start": "punch" },
-    "solucao": { "description": "O que é, as três telas reais e a demo.", "start": "oque" },
-    "valor": { "description": "Diferencial, o que testamos, como medimos e a viabilidade.", "start": "diferenca" },
-    "fecho": { "description": "Onde queremos chegar e o pedido do piloto.", "start": "fechamento" },
-    "apendice": { "description": "Slides de apoio para as perguntas da banca.", "start": "apendice" }
+    "problema": { "description": "O cuidado funciona, metade falta, o que isso causa e quem é o Marcos.", "start": "punch" },
+    "pergunta": { "description": "A pergunta que guia a solução.", "start": "pergunta" },
+    "solucao": { "description": "O que é o Selo Saúde, como engaja e o CRM da equipe.", "start": "oque" },
+    "valor": { "description": "Por que importa para a empresa e para o SESI, e o road map.", "start": "porque" },
+    "fecho": { "description": "Onde queremos chegar.", "start": "fechamento" },
+    "reserva": { "description": "Reserva para as perguntas: automações, dia do Marcos, segurança, custos, objetivos, fluxograma e time.", "start": "automacoes" }
   },
   "faces": {
     "inter": { "family": "Inter", "href": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" }

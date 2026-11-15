@@ -3,7 +3,6 @@ import { ArrowLeft, BadgeCheck, CalendarClock, CheckCircle2, ChevronDown, Factor
 import type { Acao, Horario, Mensagem, MeuCuidado, Modalidade, Motivacao, MotivoDificuldade, StatusExame, Turno } from '../../api/tipos'
 import { IconeCategoria } from '../../componentes/IconeCategoria'
 import { LogoMarca } from '../../componentes/Logo'
-import { MetaTurno } from '../../componentes/MetaTurno'
 import { dataCurta, diaSemana, faixaTurno, hora, horaCurta, relativo, semanaCurta } from '../../lib/datas'
 import { MOTIVOS, ROTULO_ACAO, ROTULO_MOTIVO, primeiroNome } from '../../lib/rotulos'
 import { useAcoes } from './acoes'
@@ -377,13 +376,6 @@ function Plano({ t, irPara, pedirMotivo }: { t: MeuCuidado; irPara: (t: Tela) =>
             </ul>
           )}
         </section>
-
-        {t.metaDoTurno && (
-          <section className="space-y-2">
-            <p className="text-sm font-bold text-navy">Seu turno junto</p>
-            <MetaTurno meta={t.metaDoTurno} />
-          </section>
-        )}
 
         <p className="flex gap-2 rounded-2xl bg-navy/5 p-3 text-xs text-navy">
           <ShieldCheck className="size-4 shrink-0 text-saude-700" />

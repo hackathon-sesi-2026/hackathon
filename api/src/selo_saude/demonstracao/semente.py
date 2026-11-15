@@ -28,6 +28,8 @@ from selo_saude.modulos.pulso.modelos import Pulso
 from selo_saude.nucleo import relogio
 from selo_saude.nucleo.relogio import em_dias
 
+from . import populacao
+
 TABELAS = [
     Mensagem,
     Exame,
@@ -51,6 +53,7 @@ ALIMENTOS = "Alimentos Vale Verde Ltda"
 TEXTIL = "Têxtil Horizonte Ltda"
 CERAMICA = "Cerâmica Pedra Azul Ltda"
 QUIMICA = "Química Litoral Norte S.A."
+EMPRESAS = [METAL, PLASTICOS, ALIMENTOS, TEXTIL, CERAMICA, QUIMICA]
 MEDICOS = ["Dra. Beatriz Campos", "Dra. Helena Matos", "Dr. Ricardo Fontes", "Dr. Felipe Andrade"]
 ENFERMEIRAS = ["Ana", "Cláudia", "Rita"]
 MOTIVACOES = ["familia", "energia", "menos_dor", "sono"]
@@ -79,6 +82,8 @@ class Pessoa:
     dificuldade: tuple[str, int, int, str] | None = None
     """Motivo, índice do passo, dias atrás e origem."""
     teach_back: str | None = None
+    contato: int | None = None
+    """Dias atrás em que a enfermagem fez o último contato."""
 
 
 # A primeira é a persona oficial do desafio: Marcos, operador de produção, turno 6h–14h, ônibus fretado.
@@ -260,13 +265,20 @@ async def semear(sessao: AsyncSession, hoje: datetime | None = None) -> None:
     for indice, pessoa in enumerate(PESSOAS):
         sessao.add_all(_registros_da_pessoa(indice, pessoa, hoje))
         await sessao.flush()  # mantém a ordem das mensagens e dos registros de cada pessoa
+    # A carteira em escala: em blocos, para o reinício da demonstração levar segundos, não minutos.
+    geradas = populacao.gerar(populacao.TOTAL_DE_PACIENTES - len(PESSOAS), EMPRESAS)
+    for inicio in range(0, len(geradas), 500):
+        for deslocamento, pessoa in enumerate(geradas[inicio : inicio + 500]):
+            indice = len(PESSOAS) + inicio + deslocamento
+            sessao.add_all(_registros_da_pessoa(indice, pessoa, hoje, com_exames=False))
+        await sessao.flush()
     sessao.add_all(_unidades())
     sessao.add_all(_pulsos(hoje))
     sessao.add_all(_liberacoes(hoje))
     await sessao.flush()
 
 
-def _registros_da_pessoa(i: int, p: Pessoa, hoje: datetime) -> list:
+def _registros_da_pessoa(i: int, p: Pessoa, hoje: datetime, com_exames: bool = True) -> list:
     tid = f"t{i + 1}"
     trabalhador = Trabalhador(
         id=tid,
@@ -446,11 +458,11 @@ def _registros_da_pessoa(i: int, p: Pessoa, hoje: datetime) -> list:
 
     acompanhamento = Acompanhamento(
         trabalhador_id=tid,
-        ultimo_contato_enfermagem=None,
+        ultimo_contato_enfermagem=None if p.contato is None else em_dias(hoje, -p.contato, 10),
         proximo_monitoramento=em_dias(hoje, PRAZO_EM_DIAS[p.risco] - p.ultimo),
         pediu_contato=p.pediu_contato,
     )
-    fixos = [trabalhador, plano, acompanhamento, *passos, *exames]
+    fixos = [trabalhador, plano, acompanhamento, *passos, *(exames if com_exames else [])]
     return [*fixos, *([consulta] if consulta else []), *([dificuldade] if dificuldade else []), *mensagens, *registros]
 
 

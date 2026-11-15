@@ -61,7 +61,7 @@ Regras que mantêm isso modular:
 3. **Regra de negócio fica em `regras.py`, em função pura**, com teste em `api/tests/`.
 4. **Cada público tem seu prefixo de rota e recebe só o que pode ver** (`publicos/`). O corte de privacidade é feito no servidor: confira a tabela de superfícies antes de expor um campo.
 5. **Rota que altera dado leva `@transacional`**, que efetiva a transação e dispara os avisos de tempo real.
-6. **A API não guarda estado em memória**, para rodar em várias instâncias. O tempo real passa pelo `NOTIFY` do Postgres.
+6. **A API não guarda estado em memória**, para rodar em várias instâncias. O tempo real passa pelo `NOTIFY` do Postgres. A única exceção é um derivado descartável: a carteira da APS calculada (`monitoramento/servico.py`), que cada instância guarda e recalcula só para quem mudou, a partir dos avisos do `NOTIFY` (`tempo_real.mudancas_desde`).
 
 Tempo real: o SSE só avisa que algo mudou, sem carregar dado. O front busca de novo pela rota do seu público (`web/src/api/useRecurso.ts`), inclusive ao reconectar.
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Accessibility, ChevronLeft } from 'lucide-react'
-import { LogoMarca } from '../../componentes/Logo'
+import { Logo } from '../../componentes/Logo'
 
 // Peças visuais do totem, medidas no design (tela de retrato de 24rem x 38.4rem).
 // A PaginaTotem ajusta o tamanho do rem para a tela inteira escalar junto, como no mockup; por isso todas as
@@ -50,17 +50,11 @@ export function Palco({ ondas, children }: { ondas: 'altas' | 'baixas'; children
   )
 }
 
-/** Logo "Ponto de Cuidado SESI" e, nas etapas, o botão de acessibilidade (letras maiores). */
+/** Logo do Selo Saúde e, nas etapas, o botão de acessibilidade (letras maiores). */
 export function Cabecalho({ acessivel, aoAlternarAcessibilidade }: { acessivel?: boolean; aoAlternarAcessibilidade?: () => void }) {
   return (
     <header className="flex shrink-0 items-center justify-between px-[1.5rem] pt-[1.6rem]">
-      <span className="flex items-center gap-[0.7rem]">
-        <LogoMarca className="size-[2.6rem]" />
-        <span className="text-[0.76rem] font-semibold leading-[1.25]">
-          Ponto de Cuidado
-          <span className="block text-[0.9rem] font-bold text-[#19d3a2]">SESI</span>
-        </span>
-      </span>
+      <Logo className="h-[2.5rem]" />
       {aoAlternarAcessibilidade && (
         <button
           type="button"

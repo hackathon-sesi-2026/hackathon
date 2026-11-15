@@ -18,8 +18,6 @@ from selo_saude.modulos.comunicacao import servico as comunicacao
 from selo_saude.modulos.comunicacao.servico import DadosMensagem
 from selo_saude.modulos.exames import servico as exames
 from selo_saude.modulos.exames.servico import DadosExame
-from selo_saude.modulos.indicadores import servico as indicadores
-from selo_saude.modulos.indicadores.servico import MetaDoTurno
 from selo_saude.modulos.monitoramento import servico as monitoramento
 from selo_saude.modulos.plano import servico as plano
 from selo_saude.modulos.plano.regras import Motivo, Selo
@@ -68,7 +66,6 @@ class MeuCuidado(Esquema):
     resultado_nao_visto: bool
     """Há resultado novo que a pessoa ainda não abriu."""
     mensagens: list[DadosMensagem]
-    meta_do_turno: MetaDoTurno | None
 
 
 class HorariosDisponiveis(Esquema):
@@ -137,7 +134,6 @@ async def meu_cuidado(eu: Eu, sessao: Sessao) -> MeuCuidado:
         exames=meus_exames,
         resultado_nao_visto=any(not e.resultado_visto for e in meus_exames),
         mensagens=await comunicacao.listar(sessao, eu.id),
-        meta_do_turno=await indicadores.meta_do_turno(sessao, eu.unidade, eu.turno.nome),
     )
 
 

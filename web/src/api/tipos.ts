@@ -55,13 +55,6 @@ export interface Selo {
   emoji: string
 }
 
-/** Meta coletiva do turno: reconhece o grupo, nunca a pessoa. */
-export interface MetaDoTurno {
-  turno: string
-  valor: number
-  meta: number
-}
-
 // ---------------------------------------------------------------- exames
 
 export type StatusExame = 'pedido' | 'coletado' | 'resultado'
@@ -150,7 +143,6 @@ export interface MeuCuidado {
   /** Há resultado novo que a pessoa ainda não abriu. */
   resultadoNaoVisto: boolean
   mensagens: Mensagem[]
-  metaDoTurno: MetaDoTurno | null
 }
 
 export interface Horario {
@@ -178,7 +170,6 @@ export interface TelaInicialDoTotem {
   unidade: string
   turno: string
   respostasHoje: number
-  metaDoTurno: MetaDoTurno | null
 }
 
 /** O que aparece na tela pública depois do CPF: data e hora, nunca o que é o atendimento. */
@@ -326,7 +317,46 @@ export interface Engajamento {
   itens: { rotulo: string; comoEsta: string; pontos: number; maximo: number }[]
 }
 
-export type MensagemDaCadencia = 'lembrete_d1' | 'lembrete_d3' | 'convite_retorno' | 'como_voce_esta' | 'pergunta_da_semana'
+/** Números do topo do painel da APS, já com os filtros (menos o de situação). */
+export interface ResumoDaFila {
+  total: number
+  precisamAcao: number
+  porSituacao: Record<CodigoSituacao, number>
+  porRiscoFalta: Record<NivelRiscoFalta, number>
+  /** Dificuldades em aberto, por motivo do "não consegui". */
+  motivos: Partial<Record<MotivoDificuldade, number>>
+  empresas: string[]
+  enfermeiras: string[]
+}
+
+/** O que a lista e o pipeline mostram de cada pessoa. A ficha completa vem de GET /aps/trabalhadores/{id}. */
+export interface PessoaNaCarteira {
+  trabalhador: Trabalhador
+  consulta: Consulta | null
+  statusPlano: StatusPlano
+  prazoRetorno: string
+  situacao: Situacao
+  riscoFalta: RiscoFalta
+}
+
+/** Visão em lista: uma página da carteira filtrada (GET /aps/lista). */
+export interface PaginaDaFila {
+  total: number
+  pagina: number
+  porPagina: number
+  linhas: PessoaNaCarteira[]
+  resumo: ResumoDaFila
+}
+
+/** Visão em pipeline: uma coluna por situação, com o total e as primeiras pessoas (GET /aps/pipeline). */
+export interface PipelineDaFila {
+  colunas: { situacao: CodigoSituacao; total: number; linhas: PessoaNaCarteira[] }[]
+  resumo: ResumoDaFila
+}
+
+export type OrdemDaFila = 'prioridade' | 'risco_falta' | 'prazo' | 'nome'
+
+export type MensagemDaCadencia ='lembrete_d1' | 'lembrete_d3' | 'convite_retorno' | 'como_voce_esta' | 'pergunta_da_semana'
 
 /** Uma mensagem que o agendador mandou ao rodar a cadência do dia. */
 export interface EnvioDaCadencia {
@@ -359,7 +389,6 @@ export interface Liberacao {
 }
 
 export interface AgendaDoTurno {
-  meta: number
   unidades: { unidade: string; turnos: { turno: Turno; emDia: number }[] }[]
   liberacoes: Liberacao[]
 }
@@ -418,4 +447,7 @@ export interface ItemContado {
 }
 
 /** Região do corpo tocada no boneco do totem. */
-export type LocalDor = 'cabeca' | 'pescoco' | 'ombros' | 'peito' | 'barriga' | 'bracos' | 'maos_punhos' | 'costas' | 'lombar' | 'quadril' | 'joelhos' | 'pernas_pes'
+/** "Você sente alguma dor hoje?": 0 nenhuma, 1 leve, 2 média, 3 forte. */
+export type IntensidadeDor = 0 | 1 | 2 | 3
+
+export type LocalDor ='cabeca' | 'pescoco' | 'ombros' | 'peito' | 'barriga' | 'bracos' | 'maos_punhos' | 'costas' | 'lombar' | 'quadril' | 'joelhos' | 'pernas_pes'

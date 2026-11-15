@@ -89,9 +89,11 @@ async def obter(sessao: AsyncSession, trabalhador_id: str) -> DadosPlano:
 
 
 async def por_trabalhador(sessao: AsyncSession) -> dict[str, DadosPlano]:
-    passos: dict[str, list[Passo]] = defaultdict(list)
-    for passo in await sessao.scalars(select(Passo).order_by(Passo.ordem)):
-        passos[passo.trabalhador_id].append(passo)
+    # A carteira inteira tem dezenas de milhares de passos: lidos como linhas simples, sem montar objetos do ORM.
+    # Validados a partir do dicionário da linha: bem mais rápido que ler atributo por atributo.
+    passos: dict[str, list] = defaultdict(list)
+    for p in await sessao.execute(select(Passo.__table__).order_by(Passo.ordem)):
+        passos[p.trabalhador_id].append(DadosPasso.model_validate(p._mapping))
     dificuldades: dict[str, list[Dificuldade]] = defaultdict(list)
     for dificuldade in await sessao.scalars(select(Dificuldade).order_by(Dificuldade.data)):
         dificuldades[dificuldade.trabalhador_id].append(dificuldade)
@@ -99,14 +101,14 @@ async def por_trabalhador(sessao: AsyncSession) -> dict[str, DadosPlano]:
     return {p.trabalhador_id: _dados(p, passos[p.trabalhador_id], dificuldades[p.trabalhador_id]) for p in planos}
 
 
-def _dados(plano: PlanoCuidado, passos: list[Passo], dificuldades: list[Dificuldade]) -> DadosPlano:
+def _dados(plano: PlanoCuidado, passos: list, dificuldades: list[Dificuldade]) -> DadosPlano:
     return DadosPlano(
         status=plano.status,  # type: ignore[arg-type]
         data_envio=plano.data_envio,
         teach_back=plano.teach_back,  # type: ignore[arg-type]
         semanas_seguidas=plano.semanas_seguidas,
         selos=selos_de(plano.semanas_seguidas),
-        passos=[DadosPasso.model_validate(p) for p in passos],
+        passos=[p if isinstance(p, DadosPasso) else DadosPasso.model_validate(p) for p in passos],
         dificuldades=[
             DadosDificuldade(
                 id=d.id,

@@ -20,6 +20,8 @@ class Pulso(Base):
     data: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     # "Como você está hoje?": 1 cansado(a), 2 mais ou menos, 3 bem, 4 muito bem.
     bem_estar: Mapped[int | None] = mapped_column(SmallInteger)
+    # "Você sente alguma dor hoje?": 0 nenhuma, 1 leve, 2 média, 3 forte.
+    intensidade_dor: Mapped[int | None] = mapped_column(SmallInteger)
     # Onde dói mais, tocado no boneco. Vazio quando a pessoa não sente dor. Só a região do corpo.
     local_dor: Mapped[str | None] = mapped_column(String(20))
     # Formato antigo do pulso (energia, dor e sono, de 1 a 3). Fica para as respostas já gravadas.

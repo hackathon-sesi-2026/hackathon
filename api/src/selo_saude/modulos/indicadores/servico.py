@@ -22,15 +22,7 @@ from .modelos import EmDiaPorTurno, ResumoUnidade
 from .regras import ESPECIALIDADES, mais_frequentes
 
 MINIMO_DO_GRUPO = 5
-META_DO_TURNO = 80
 DIAS_DO_PULSO = 28
-
-
-class MetaDoTurno(Esquema):
-    turno: str
-    valor: int
-    """Percentual do turno em dia com o cuidado."""
-    meta: int
 
 
 class UnidadeComTotem(Esquema):
@@ -110,12 +102,7 @@ class UnidadeDaLideranca(Esquema):
     turnos: list[TurnoDaLideranca]
 
 
-# ---------------------------------------------------------------- meta coletiva e totem
-
-
-async def meta_do_turno(sessao: AsyncSession, unidade: str, turno: str) -> MetaDoTurno | None:
-    linha = await sessao.get(EmDiaPorTurno, (unidade, turno))
-    return MetaDoTurno(turno=turno, valor=linha.percentual, meta=META_DO_TURNO) if linha else None
+# ---------------------------------------------------------------- totem
 
 
 async def unidades_com_totem(sessao: AsyncSession) -> list[UnidadeComTotem]:

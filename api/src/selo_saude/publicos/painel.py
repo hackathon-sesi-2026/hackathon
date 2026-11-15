@@ -4,9 +4,9 @@ Cada público tem o seu prefixo e recebe só o que pode ver. A liderança nunca 
 liberação, e o RH só recebe agregados já calculados. O corte é feito aqui, no servidor.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
 from selo_saude.modulos.agenda import servico as agenda
@@ -14,9 +14,18 @@ from selo_saude.modulos.agenda.servico import DadosLiberacao
 from selo_saude.modulos.comunicacao import servico as comunicacao
 from selo_saude.modulos.exames import servico as exames
 from selo_saude.modulos.indicadores import servico as indicadores
-from selo_saude.modulos.indicadores.servico import META_DO_TURNO, PainelDaEmpresa, UnidadeDaLideranca
+from selo_saude.modulos.indicadores.servico import PainelDaEmpresa, UnidadeDaLideranca
 from selo_saude.modulos.monitoramento import servico as monitoramento
-from selo_saude.modulos.monitoramento.servico import Desfecho, EnvioDaCadencia, LinhaDaFila
+from selo_saude.modulos.monitoramento.servico import (
+    Desfecho,
+    EnvioDaCadencia,
+    FiltrosDaFila,
+    LinhaDaFila,
+    Ordem,
+    PaginaDaFila,
+    PipelineDaFila,
+    ResumoDaFila,
+)
 from selo_saude.modulos.plano import servico as plano
 from selo_saude.nucleo.banco import Sessao
 from selo_saude.nucleo.esquema import Esquema
@@ -42,7 +51,67 @@ class Resolucao(Esquema):
 
 @aps.get("/fila")
 async def fila(sessao: Sessao) -> list[LinhaDaFila]:
+    """A carteira inteira, sem filtro. A tela usa /lista, /pipeline e /resumo, que filtram no servidor."""
     return await monitoramento.fila(sessao)
+
+
+def _filtros(
+    busca: str = "",
+    situacao: str = "",
+    precisa_acao: bool | None = Query(None, alias="precisaAcao"),
+    risco_falta: str = Query("", alias="riscoFalta"),
+    risco: str = "",
+    empresa: str | None = None,
+    enfermeira: str | None = None,
+) -> FiltrosDaFila:
+    """Filtros da carteira, pela URL. Listas separadas por vírgula: ?situacao=faltou,remarcar&risco=3,4."""
+
+    def lista(texto: str) -> list[str]:
+        return [x for x in texto.split(",") if x]
+
+    return FiltrosDaFila.model_validate(
+        {
+            "busca": busca,
+            "situacoes": lista(situacao),
+            "precisa_acao": precisa_acao,
+            "risco_falta": lista(risco_falta),
+            "risco": [int(x) for x in lista(risco)],
+            "empresa": empresa or None,
+            "enfermeira": enfermeira or None,
+        }
+    )
+
+
+Filtros = Annotated[FiltrosDaFila, Depends(_filtros)]
+
+
+@aps.get("/lista")
+async def lista_da_carteira(
+    sessao: Sessao,
+    filtros: Filtros,
+    ordem: Ordem = "prioridade",
+    pagina: int = 1,
+    por_pagina: int = Query(50, alias="porPagina", le=200),
+) -> PaginaDaFila:
+    return await monitoramento.pagina(sessao, filtros, ordem, pagina, por_pagina)
+
+
+@aps.get("/pipeline")
+async def pipeline_da_carteira(
+    sessao: Sessao, filtros: Filtros, ordem: Ordem = "prioridade", por_coluna: int = Query(12, alias="porColuna", le=50)
+) -> PipelineDaFila:
+    return await monitoramento.pipeline(sessao, filtros, ordem, por_coluna)
+
+
+@aps.get("/trabalhadores/{trabalhador_id}")
+async def ficha_da_pessoa(trabalhador_id: str, sessao: Sessao) -> LinhaDaFila:
+    """A pessoa completa (histórico, plano, exames), para a ficha aberta. A lista e o pipeline trazem só o resumo."""
+    return await monitoramento.ficha(sessao, trabalhador_id)
+
+
+@aps.get("/resumo")
+async def resumo_da_carteira(sessao: Sessao, filtros: Filtros) -> ResumoDaFila:
+    return await monitoramento.resumo(sessao, filtros)
 
 
 @aps.get("/eventos")
@@ -136,7 +205,6 @@ async def registrar_monitoramento(trabalhador_id: str, corpo: Desfecho, sessao: 
 
 
 class AgendaDoTurno(Esquema):
-    meta: int
     unidades: list[UnidadeDaLideranca]
     liberacoes: list[DadosLiberacao]
 
@@ -144,7 +212,6 @@ class AgendaDoTurno(Esquema):
 @lideranca.get("/agenda")
 async def agenda_do_turno(sessao: Sessao) -> AgendaDoTurno:
     return AgendaDoTurno(
-        meta=META_DO_TURNO,
         unidades=await indicadores.unidades_da_lideranca(sessao),
         liberacoes=await agenda.listar_liberacoes(sessao),
     )

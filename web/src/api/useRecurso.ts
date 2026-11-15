@@ -13,10 +13,12 @@ export function useRecurso<T>(caminho: string, caminhoDeEventos?: string) {
   const [dados, setDados] = useState<T | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [falha, setFalha] = useState<string | null>(null)
+  const [carregando, setCarregando] = useState(false)
   const pedido = useRef(0)
 
   const recarregar = useCallback(async () => {
     const meu = ++pedido.current
+    setCarregando(true)
     try {
       const resposta = await api.get<T>(caminho)
       // Só a resposta do pedido mais recente vale: evita uma resposta lenta sobrescrever uma nova.
@@ -26,6 +28,8 @@ export function useRecurso<T>(caminho: string, caminhoDeEventos?: string) {
       }
     } catch (e) {
       if (meu === pedido.current) setErro(e instanceof Error ? e.message : 'Sem conexão')
+    } finally {
+      if (meu === pedido.current) setCarregando(false)
     }
   }, [caminho])
 
@@ -62,5 +66,5 @@ export function useRecurso<T>(caminho: string, caminhoDeEventos?: string) {
     [recarregar],
   )
 
-  return { dados, erro, falha, recarregar, enviar }
+  return { dados, erro, falha, carregando, recarregar, enviar }
 }

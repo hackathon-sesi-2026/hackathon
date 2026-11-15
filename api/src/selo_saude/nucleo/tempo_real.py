@@ -26,15 +26,47 @@ INTERVALO_DE_PULSO = 20  # segundos entre comentários que mantêm a conexão SS
 registro = logging.getLogger(__name__)
 
 
+TUDO = "*"
+"""Destino que diz "mudou tudo" (reinício dos dados, aviso perdido): quem guarda derivados recalcula do zero."""
+
+# Registro das mudanças vistas por esta instância: (versão, destino). Serve para cálculos derivados saberem
+# o que ficou velho. Cada gravação efetivada aqui e cada aviso do Postgres (gravação em qualquer instância) entram.
+_mudancas: list[tuple[int, str]] = []
+_versao_dos_dados = 0
+_GUARDAR_MUDANCAS = 5000
+
+
+def versao_dos_dados() -> int:
+    return _versao_dos_dados
+
+
+def mudancas_desde(versao: int) -> set[str] | None:
+    """Destinos avisados depois de `versao`. None quando o registro não alcança tão longe (recalcule tudo)."""
+    if versao == _versao_dos_dados:
+        return set()
+    if not _mudancas or _mudancas[0][0] > versao + 1:
+        return None
+    return {destino for v, destino in _mudancas if v > versao}
+
+
+def _dados_mudaram(*destinos: str) -> None:
+    global _versao_dos_dados
+    _versao_dos_dados += 1
+    _mudancas.extend((_versao_dos_dados, d) for d in (destinos or (TUDO,)))
+    del _mudancas[: max(0, len(_mudancas) - _GUARDAR_MUDANCAS)]
+
+
 def avisar(sessao: AsyncSession, *canais: str) -> None:
     """Marca canais para avisar quando a transação desta sessão for efetivada."""
     sessao.info.setdefault("canais", set()).update(canais)
 
 
 async def efetivar(sessao: AsyncSession) -> None:
-    for canal in sessao.info.pop("canais", ()):
+    canais = sessao.info.pop("canais", set())
+    for canal in canais:
         await sessao.execute(text("select pg_notify(:canal, :destino)"), {"canal": CANAL_POSTGRES, "destino": canal})
     await sessao.commit()
+    _dados_mudaram(*canais)
 
 
 def transacional[**P, R](rota: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
@@ -76,10 +108,12 @@ class Central:
             await asyncio.sleep(2)
 
     def _entregar(self, _conexao: Any, _pid: int, _canal: str, destino: str) -> None:
+        _dados_mudaram(destino)
         for fila in self._filas.get(destino, ()):
             _acordar(fila)
 
     def _acordar_todos(self) -> None:
+        _dados_mudaram()
         for filas in self._filas.values():
             for fila in filas:
                 _acordar(fila)

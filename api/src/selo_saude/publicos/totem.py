@@ -15,10 +15,10 @@ from selo_saude.modulos.agenda.regras import Modalidade
 from selo_saude.modulos.cadastro import servico as cadastro
 from selo_saude.modulos.comunicacao import servico as comunicacao
 from selo_saude.modulos.indicadores import servico as indicadores
-from selo_saude.modulos.indicadores.servico import MetaDoTurno, UnidadeComTotem
+from selo_saude.modulos.indicadores.servico import UnidadeComTotem
 from selo_saude.modulos.plano import servico as plano
 from selo_saude.modulos.pulso import servico as pulso
-from selo_saude.modulos.pulso.regras import BemEstar, LocalDor
+from selo_saude.modulos.pulso.regras import BemEstar, IntensidadeDor, LocalDor
 from selo_saude.nucleo.banco import Sessao
 from selo_saude.nucleo.erros import NaoEncontrado
 from selo_saude.nucleo.esquema import Esquema, Instante
@@ -36,12 +36,13 @@ class TelaInicial(Esquema):
     unidade: str
     turno: str
     respostas_hoje: int
-    meta_do_turno: MetaDoTurno | None
 
 
 class RespostaDoPulso(Esquema):
     bem_estar: BemEstar
     """Como você está hoje: 1 cansado(a), 2 mais ou menos, 3 bem, 4 muito bem."""
+    intensidade_dor: IntensidadeDor | None = None
+    """Você sente alguma dor hoje: 0 nenhuma, 1 leve, 2 média, 3 forte."""
     local_dor: LocalDor | None = None
     """Onde dói mais, tocado no boneco. Vazio quando a pessoa não sente dor."""
 
@@ -81,7 +82,6 @@ async def tela_inicial(unidade: str, sessao: Sessao) -> TelaInicial:
         unidade=nome,
         turno=turno,
         respostas_hoje=await pulso.respostas_de_hoje(sessao, nome, turno),
-        meta_do_turno=await indicadores.meta_do_turno(sessao, nome, turno),
     )
 
 
@@ -94,7 +94,7 @@ async def eventos(unidade: str, sessao: Sessao) -> StreamingResponse:
 @transacional
 async def responder_pulso(unidade: str, corpo: RespostaDoPulso, sessao: Sessao) -> None:
     nome = await indicadores.unidade_do_totem(sessao, unidade)
-    await pulso.registrar(sessao, nome, corpo.bem_estar, corpo.local_dor)
+    await pulso.registrar(sessao, nome, corpo.bem_estar, corpo.local_dor, corpo.intensidade_dor)
 
 
 @rota.post("/{unidade}/identificacao")

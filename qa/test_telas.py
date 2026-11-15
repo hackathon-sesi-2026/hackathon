@@ -74,7 +74,7 @@ def entrar_no_totem(pagina, cpf: str | None = "12345678901"):
         for numero in cpf:
             pagina.get_by_role("button", name=numero, exact=True).click()
         pagina.get_by_role("button", name="Entrar").click()
-    ver(pagina, "Onde dói mais?")
+    ver(pagina, "Você sente alguma dor hoje?")
 
 
 # ---------------------------------------------------------------- cada superfície abre
@@ -166,10 +166,10 @@ def test_telas_sem_erros_no_console(abrir, api):
 
 @pytest.mark.critico
 def test_pulso_no_totem_sem_cpf_e_sem_dor(abrir):
-    """Sem CPF e sem dor: Começar, "Prefiro não informar", "Não sinto dor", um rosto e o agradecimento."""
+    """Sem CPF e sem dor: Começar, "Prefiro não informar", dor "Nenhuma" (pula o boneco), um rosto e o agradecimento."""
     pagina = abrir("/totem/planta-camacari").pagina
     entrar_no_totem(pagina, None)
-    pagina.get_by_role("button", name="Não sinto dor").click()
+    pagina.get_by_role("button", name="Nenhuma").click()
     ver(pagina, "Como você está hoje?")
     pagina.get_by_role("button", name="Bem", exact=True).click()
     pagina.get_by_role("button", name="Continuar").click()
@@ -177,9 +177,11 @@ def test_pulso_no_totem_sem_cpf_e_sem_dor(abrir):
 
 
 def test_boneco_da_dor_no_totem(abrir):
-    """Com CPF: tocar a lombar no boneco, confirmar, escolher "Cansado(a)" e chegar ao agradecimento."""
+    """Com CPF: dor "Forte", tocar a lombar no boneco, confirmar, escolher "Cansado(a)" e chegar ao agradecimento."""
     pagina = abrir("/totem/planta-camacari").pagina
     entrar_no_totem(pagina)
+    pagina.get_by_role("button", name="Forte").click()
+    ver(pagina, "Onde dói mais?")
     pagina.get_by_role("button", name="Lombar (parte de baixo das costas)").click()
     pagina.get_by_role("button", name="Confirmar").click()
     pagina.get_by_role("button", name="Cansado(a)").click()

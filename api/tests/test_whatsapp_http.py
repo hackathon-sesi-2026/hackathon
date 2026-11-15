@@ -16,7 +16,8 @@ TERMOS_CLINICOS = ("exame", "glicem", "colesterol", "pressão", "remédio", "dia
 
 @pytest.fixture(scope="module")
 def api():
-    with httpx.Client(base_url=f"{URL}/api", timeout=30) as cliente:
+    # A carteira de demonstração tem 10 mil pessoas: reiniciar e ler a fila inteira levam alguns segundos.
+    with httpx.Client(base_url=f"{URL}/api", timeout=120) as cliente:
         assert cliente.post("/demonstracao/reinicio").status_code == 204
         yield cliente
 
@@ -58,7 +59,10 @@ def test_cadencia_manda_no_maximo_uma_mensagem_por_pessoa_e_nao_repete_no_dia(ap
         assert msg["de"] == "sesi"
         assert not any(t in msg["texto"].lower() for t in TERMOS_CLINICOS), msg["texto"]
 
-    assert api.post("/aps/cadencia").json() == []
+    # Em lotes: no máximo 50 por rodada, e a próxima rodada não repete quem já recebeu hoje.
+    assert len(envios) <= 50
+    seguinte = {e["trabalhadorId"] for e in api.post("/aps/cadencia").json()}
+    assert not seguinte & set(ids)
 
 
 def test_cadencia_registra_o_lembrete_automatico_na_consulta(api):

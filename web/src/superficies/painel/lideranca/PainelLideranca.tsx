@@ -4,7 +4,6 @@ import type { AgendaDoTurno, Liberacao } from '../../../api/tipos'
 import { useRecurso } from '../../../api/useRecurso'
 import { Cartao } from '../../../componentes/Cartao'
 import { Escolha } from '../../../componentes/Escolha'
-import { MetaTurno } from '../../../componentes/MetaTurno'
 import { addDias, dataCurta, horaCurta, inicioDoDia, semanaCurta } from '../../../lib/datas'
 
 // Visão da Liderança: organizar a cobertura do turno para as liberações de saúde.
@@ -14,7 +13,7 @@ type Periodo = 'matutino' | 'noturno' | 'ambos'
 
 // Janelas da agenda. São só de visualização: os turnos de verdade (Turno A 6h–14h, Turno B 14h–22h) vêm do
 // cadastro da API. A liberação aparece pela hora em que acontece; das 13h às 16h ela está nas duas janelas.
-// `serve` diz de qual turno vem a meta coletiva mostrada ao lado.
+// `serve` diz quais turnos entram no percentual em dia mostrado no topo.
 const PERIODOS: { valor: Periodo; rotulo: string; inicio: number; fim: number; serve: (inicioDoTurno: number) => boolean }[] = [
   { valor: 'matutino', rotulo: 'Matutino', inicio: 7, fim: 16, serve: (i) => i < 12 },
   { valor: 'noturno', rotulo: 'Noturno', inicio: 13, fim: 22, serve: (i) => i >= 12 },
@@ -46,7 +45,6 @@ export function PainelLideranca() {
   const selecionados = escolhidos.length ? escolhidos : daUnidade.turnos
   const unidade = daUnidade.unidade
   const { inicio, fim } = regra
-  const turno = selecionados.length === 1 ? selecionados[0].turno.nome : selecionados.map((t) => t.turno.nome).join(' e ').replace(' e Turno ', ' e ')
   const emDia = Math.round(selecionados.reduce((s, t) => s + t.emDia, 0) / selecionados.length)
 
   const dias = proximosDiasUteis(5)
@@ -169,7 +167,6 @@ export function PainelLideranca() {
 
         {/* Coluna da direita com a mesma altura do calendário: o cartão de dicas estica até alinhar embaixo. */}
         <div className="flex flex-col gap-4 xl:h-0 xl:min-h-full">
-          <MetaTurno meta={{ turno, valor: emDia, meta: agenda.meta }} grande />
           <div className="min-h-0 flex-1 [&>section]:flex [&>section]:h-full [&>section]:flex-col [&>section]:overflow-y-auto">
             <Cartao titulo="Como apoiar sem invadir" acao={<HeartHandshake className="size-5 text-saude-700" />}>
               <ul className="space-y-2.5 text-[13px] leading-snug text-slate-600">

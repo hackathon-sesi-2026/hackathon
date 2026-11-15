@@ -1,25 +1,33 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, Lock, Play } from 'lucide-react'
 import { useParams } from 'react-router'
 import { api, ErroDaApi } from '../../api/cliente'
-import type { LocalDor, TelaInicialDoTotem } from '../../api/tipos'
+import type { IntensidadeDor, LocalDor, TelaInicialDoTotem } from '../../api/tipos'
 import { useRecurso } from '../../api/useRecurso'
 import { AvisoDeFalha, TelaCheia } from '../../componentes/TelaCheia'
+import { LogoMarca } from '../../componentes/Logo'
 import { BonecoDaDor } from './BonecoDaDor'
 import { EntradaDeCpf } from './EntradaDeCpf'
 import { BotaoPrincipal, BotaoVoltar, Cabecalho, Palco, Progresso, Titulo } from './Moldura'
 
 // Totem "Ponto de Cuidado" na unidade. A unidade vem do endereço do aparelho (/totem/:unidade), configurada
-// uma vez na instalação. Fluxo: boas-vindas → CPF → onde dói → como está → obrigado.
+// uma vez na instalação. Fluxo: boas-vindas → CPF → sente dor? → (com dor) onde dói → como está → obrigado.
 // O CPF diz quem está usando, mas o pulso continua anônimo: a resposta vai para a API sem o CPF.
 //
 // O visual segue o design do totem, uma tela de retrato de 24rem x 38.4rem. Enquanto o totem está aberto, o
 // tamanho do rem acompanha a tela, e tudo escala junto, como no mockup.
 
-type Etapa = 'boas_vindas' | 'cpf' | 'dor' | 'bem_estar' | 'obrigado'
+type Etapa = 'boas_vindas' | 'cpf' | 'intensidade' | 'dor' | 'bem_estar' | 'obrigado'
 type BemEstar = 1 | 2 | 3 | 4
 
-const ETAPAS_COM_PROGRESSO: Etapa[] = ['cpf', 'dor', 'bem_estar']
+const ETAPAS_COM_PROGRESSO: Etapa[] = ['cpf', 'intensidade', 'dor', 'bem_estar']
+
+const OPCOES_DE_DOR: { valor: IntensidadeDor; rotulo: string; cor: string }[] = [
+  { valor: 0, rotulo: 'Nenhuma', cor: '#1fe0b0' },
+  { valor: 1, rotulo: 'Leve', cor: '#9be15d' },
+  { valor: 2, rotulo: 'Média', cor: '#f5c451' },
+  { valor: 3, rotulo: 'Forte', cor: '#f59a6b' },
+]
 
 /** Sem toque por este tempo, o totem volta ao começo, para ninguém continuar o que outra pessoa deixou aberto. */
 const SEGUNDOS_PARADO = 45
@@ -37,6 +45,7 @@ export function PaginaTotem() {
   const base = `/totem/${slug}`
   const { dados: totem, erro, falha, enviar } = useRecurso<TelaInicialDoTotem>(base, `${base}/eventos`)
   const [etapa, setEtapa] = useState<Etapa>('boas_vindas')
+  const [intensidade, setIntensidade] = useState<IntensidadeDor | null>(null)
   const [localDor, setLocalDor] = useState<LocalDor | null>(null)
   const [bemEstar, setBemEstar] = useState<BemEstar | null>(null)
   const [acessivel, setAcessivel] = useState(false)
@@ -44,6 +53,7 @@ export function PaginaTotem() {
 
   const recomecar = useCallback(() => {
     setEtapa('boas_vindas')
+    setIntensidade(null)
     setLocalDor(null)
     setBemEstar(null)
   }, [])
@@ -84,13 +94,20 @@ export function PaginaTotem() {
     } catch (e) {
       return e instanceof ErroDaApi && e.status === 404 ? 'CPF não encontrado nesta unidade. Confira os números.' : 'Não foi possível entrar. Tente de novo.'
     }
-    setEtapa('dor')
+    setEtapa('intensidade')
     return null
   }
 
   async function enviarPulso() {
     if (!bemEstar) return
-    if (await enviar('post', `${base}/pulsos`, { bemEstar, localDor })) setEtapa('obrigado')
+    const corpo = { bemEstar, intensidadeDor: intensidade, localDor: intensidade === 0 ? null : localDor }
+    if (await enviar('post', `${base}/pulsos`, corpo)) setEtapa('obrigado')
+  }
+
+  function responderIntensidade(valor: IntensidadeDor) {
+    setIntensidade(valor)
+    if (valor === 0) setLocalDor(null)
+    setEtapa(valor === 0 ? 'bem_estar' : 'dor')
   }
 
   const passo = ETAPAS_COM_PROGRESSO.indexOf(etapa) + 1
@@ -104,15 +121,18 @@ export function PaginaTotem() {
 
         {etapa === 'boas_vindas' && <BoasVindas aoComecar={() => setEtapa('cpf')} />}
 
-        {etapa === 'cpf' && <EntradaDeCpf aoEntrar={identificar} aoPular={() => setEtapa('dor')} />}
+        {etapa === 'cpf' && <EntradaDeCpf aoEntrar={identificar} aoPular={() => setEtapa('intensidade')} />}
+
+        {etapa === 'intensidade' && <PerguntaDaDor escolhida={intensidade} aoResponder={responderIntensidade} aoVoltar={() => setEtapa('cpf')} />}
 
         {etapa === 'dor' && (
           <BonecoDaDor
+            inicial={localDor}
             aoResponder={(local) => {
               setLocalDor(local)
               setEtapa('bem_estar')
             }}
-            aoVoltar={() => setEtapa('cpf')}
+            aoVoltar={() => setEtapa('intensidade')}
           />
         )}
 
@@ -141,7 +161,7 @@ export function PaginaTotem() {
             <BotaoPrincipal onClick={enviarPulso} disabled={!bemEstar} className="mx-auto mt-[5.3rem] h-[3.5rem] w-[18.4rem] max-w-full text-[1.25rem]">
               Continuar
             </BotaoPrincipal>
-            <BotaoVoltar onClick={() => setEtapa('dor')} className="mt-[2.4rem]" />
+            <BotaoVoltar onClick={() => setEtapa(intensidade === 0 ? 'intensidade' : 'dor')} className="mt-[2.4rem]" />
           </div>
         )}
 
@@ -156,7 +176,7 @@ export function PaginaTotem() {
 function BoasVindas({ aoComecar }: { aoComecar: () => void }) {
   return (
     <div className="relative flex flex-1 flex-col">
-      <CoracaoComPessoa className="pointer-events-none absolute -right-[1.5rem] top-[4.3rem] w-[9.7rem]" />
+      <LogoMarca className="pointer-events-none absolute -right-[0.4rem] top-[2.4rem] w-[7.2rem] drop-shadow-[0_0_1.6rem_rgba(31,224,176,0.45)]" />
       <h1 className="relative mt-[4.3rem] text-[4.1rem] font-bold leading-none tracking-tight">Olá!</h1>
       <p className="relative mt-[1.3rem] text-[1.32rem] leading-[1.35]">
         Este é um momento
@@ -170,6 +190,66 @@ function BoasVindas({ aoComecar }: { aoComecar: () => void }) {
       <p className="mt-[1.9rem] flex items-center justify-center gap-[0.45rem] text-[0.72rem]">
         <Lock className="size-[0.95rem]" /> Seus dados são protegidos
       </p>
+    </div>
+  )
+}
+
+/**
+ * "Você sente alguma dor hoje?": quatro botões largos, um embaixo do outro, fáceis de acertar com o dedo.
+ * Um toque já responde e avança: "Nenhuma" pula o boneco; leve, média ou forte abre o "Onde dói mais?".
+ */
+function PerguntaDaDor({
+  escolhida,
+  aoResponder,
+  aoVoltar,
+}: {
+  escolhida: IntensidadeDor | null
+  aoResponder: (valor: IntensidadeDor) => void
+  aoVoltar: () => void
+}) {
+  const [tocada, setTocada] = useState<IntensidadeDor | null>(escolhida)
+  const respondendo = useRef(false)
+  const tocar = (valor: IntensidadeDor) => {
+    if (respondendo.current) return // um segundo toque no meio da transição não responde de novo
+    respondendo.current = true
+    setTocada(valor)
+    // Um instante com o botão aceso, para a pessoa ver o que tocou antes de a tela mudar.
+    setTimeout(() => aoResponder(valor), 260)
+  }
+  return (
+    <div className="flex flex-1 flex-col">
+      <Titulo apoio="Toque em uma opção.">Você sente alguma dor hoje?</Titulo>
+      <div role="group" aria-label="Você sente alguma dor hoje" className="mt-[1.6rem] flex shrink-0 flex-col gap-[0.75rem]">
+        {OPCOES_DE_DOR.map(({ valor, rotulo, cor }) => {
+          const acesa = tocada === valor
+          return (
+            <button
+              key={valor}
+              type="button"
+              onClick={() => tocar(valor)}
+              aria-pressed={acesa}
+              className={`flex h-[3.6rem] items-center gap-[1rem] rounded-[1.1rem] px-[1.2rem] text-left text-[1.25rem] font-semibold ring-2 transition-all [-webkit-tap-highlight-color:transparent] active:scale-[0.98] ${
+                acesa ? 'bg-white/15 ring-[#1fe0b0] shadow-[0_0_1.2rem_rgba(31,224,176,0.45)]' : 'bg-white/[0.06] ring-white/25'
+              }`}
+            >
+              <span className="flex items-end gap-[0.22rem]" aria-hidden>
+                {[0, 1, 2].map((barra) => (
+                  <span
+                    key={barra}
+                    className="w-[0.42rem] rounded-full"
+                    style={{ height: `${0.7 + barra * 0.42}rem`, background: barra < valor ? cor : 'rgba(255,255,255,0.22)' }}
+                  />
+                ))}
+              </span>
+              <span className="flex-1">{rotulo}</span>
+              <span className="size-[0.85rem] rounded-full" style={{ background: cor }} aria-hidden />
+            </button>
+          )
+        })}
+      </div>
+      <div className="mt-auto pt-[1.6rem]">
+        <BotaoVoltar onClick={aoVoltar} />
+      </div>
     </div>
   )
 }
@@ -228,46 +308,5 @@ function Obrigado() {
       </svg>
       <p className="mt-[3.2rem] text-[1.65rem] font-extrabold italic leading-none tracking-tight">SESI</p>
     </div>
-  )
-}
-
-/** Coração em contorno brilhante, com a pessoa de braços abertos dentro (a marca do Selo Saúde, grande). */
-function CoracaoComPessoa({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 200 196" className={className} aria-hidden>
-      <defs>
-        <linearGradient id="contorno-do-coracao" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#1fd6c8" />
-          <stop offset="0.55" stopColor="#1f9ae8" />
-          <stop offset="1" stopColor="#2b62e6" />
-        </linearGradient>
-        <linearGradient id="corpo-da-pessoa" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#6fb4ff" />
-          <stop offset="0.6" stopColor="#3d7cf0" stopOpacity="0.75" />
-          <stop offset="1" stopColor="#2b62e6" stopOpacity="0.05" />
-        </linearGradient>
-        <radialGradient id="cabeca-da-pessoa" cx="0.4" cy="0.35" r="0.7">
-          <stop offset="0" stopColor="#bfe0ff" />
-          <stop offset="1" stopColor="#5a9cf5" />
-        </radialGradient>
-        <filter id="brilho-do-coracao" x="-25%" y="-25%" width="150%" height="150%">
-          <feGaussianBlur stdDeviation="7" result="desfoque" />
-          <feMerge>
-            <feMergeNode in="desfoque" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      <path
-        d="M100 180C44 138 12 104 12 66 12 37 34 16 61 16c17 0 31 9 39 25 8-16 22-25 39-25 27 0 49 21 49 50 0 38-32 72-88 114Z"
-        fill="none"
-        stroke="url(#contorno-do-coracao)"
-        strokeWidth="11"
-        strokeLinejoin="round"
-        filter="url(#brilho-do-coracao)"
-      />
-      <circle cx="100" cy="66" r="15" fill="url(#cabeca-da-pessoa)" />
-      <path d="M52 76C66 92 84 100 100 100S134 92 148 76C143 104 126 122 112 130L106 176Q100 186 94 176L88 130C74 122 57 104 52 76Z" fill="url(#corpo-da-pessoa)" />
-    </svg>
   )
 }

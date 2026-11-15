@@ -27,7 +27,7 @@ class ResumoUnidade(Base):
 
 
 class EmDiaPorTurno(Base):
-    """Percentual do turno em dia com o cuidado. Alimenta a meta coletiva: reconhece o grupo, nunca a pessoa."""
+    """Percentual do turno em dia com o cuidado. Sempre agregado: nunca a pessoa."""
 
     __tablename__ = "indicadores_em_dia_turno"
 
