@@ -5,7 +5,7 @@ from typing import Literal
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from selo_saude.integracoes.whatsapp import whatsapp
+from selo_saude.integracoes.whatsapp import Botao, Destinatario, whatsapp
 from selo_saude.modulos.agenda import servico as agenda
 from selo_saude.modulos.cadastro import servico as cadastro
 from selo_saude.modulos.plano import servico as plano
@@ -15,7 +15,7 @@ from selo_saude.nucleo.esquema import Esquema, Instante, novo_id
 from selo_saude.nucleo.eventos import publicar
 
 from . import textos
-from .eventos import CheckinHabitoEnviado, LembreteEnviado, LinkPessoalEnviado
+from .eventos import CheckinEnviado, CheckinHabitoEnviado, LembreteEnviado, LinkPessoalEnviado
 from .modelos import Mensagem
 from .textos import Texto
 
@@ -65,6 +65,13 @@ async def enviar_checkin_habito(sessao: AsyncSession, trabalhador_id: str) -> No
     await publicar(sessao, CheckinHabitoEnviado(trabalhador_id=trabalhador_id))
 
 
+async def enviar_checkin(sessao: AsyncSession, trabalhador_id: str) -> None:
+    """Pergunta como a pessoa está desde o último atendimento. É o contato do monitoramento pelo WhatsApp."""
+    trabalhador = await cadastro.obter(sessao, trabalhador_id)
+    await do_sesi(sessao, trabalhador_id, textos.checkin(trabalhador))
+    await publicar(sessao, CheckinEnviado(trabalhador_id=trabalhador_id))
+
+
 async def enviar_link_pessoal(sessao: AsyncSession, trabalhador_id: str) -> None:
     """Manda o link pessoal para o WhatsApp da própria pessoa. É o único jeito de o totem levar alguém ao celular:
     quem souber a matrícula de um colega, no máximo, faz o link chegar ao celular do dono."""
@@ -92,7 +99,19 @@ async def do_sesi(sessao: AsyncSession, trabalhador_id: str, texto: Texto, mante
         )
         acoes = (ultima.acoes if ultima else None) or acoes
     await _gravar(sessao, trabalhador_id, "sesi", texto.texto, acoes or None, texto.passo_id)
-    await whatsapp.enviar(trabalhador_id, texto.texto, acoes)
+    t = await cadastro.obter(sessao, trabalhador_id)
+    destinatario = Destinatario(trabalhador_id, t.nome, t.matricula, t.token_acesso)
+    await whatsapp.enviar(destinatario, texto.texto, _botoes(acoes or []))
+
+
+def _botoes(acoes: list[str]) -> list[Botao]:
+    botoes = []
+    for acao in acoes:
+        if acao in textos.BOTAO_DE_RESPOSTA:
+            botoes.append(Botao(acao, textos.BOTAO_DE_RESPOSTA[acao]))
+        elif acao in textos.BOTAO_DE_LINK:
+            botoes.append(Botao(acao, textos.BOTAO_DE_LINK[acao], link=True))
+    return botoes
 
 
 async def do_trabalhador(sessao: AsyncSession, trabalhador_id: str, texto: str) -> None:

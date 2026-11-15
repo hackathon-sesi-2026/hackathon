@@ -16,7 +16,7 @@ from selo_saude.modulos.exames import servico as exames
 from selo_saude.modulos.indicadores import servico as indicadores
 from selo_saude.modulos.indicadores.servico import META_DO_TURNO, PainelDaEmpresa, UnidadeDaLideranca
 from selo_saude.modulos.monitoramento import servico as monitoramento
-from selo_saude.modulos.monitoramento.servico import Desfecho, LinhaDaFila
+from selo_saude.modulos.monitoramento.servico import Desfecho, EnvioDaCadencia, LinhaDaFila
 from selo_saude.modulos.plano import servico as plano
 from selo_saude.nucleo.banco import Sessao
 from selo_saude.nucleo.esquema import Esquema
@@ -73,6 +73,44 @@ async def enviar_plano(trabalhador_id: str, sessao: Sessao) -> None:
 @transacional
 async def enviar_checkin_habito(trabalhador_id: str, sessao: Sessao) -> None:
     await comunicacao.enviar_checkin_habito(sessao, trabalhador_id)
+
+
+@aps.post("/trabalhadores/{trabalhador_id}/checkin", status_code=204)
+@transacional
+async def enviar_checkin(trabalhador_id: str, sessao: Sessao) -> None:
+    """Pergunta "como você está desde o último atendimento?". A resposta volta para a fila da enfermagem."""
+    await comunicacao.enviar_checkin(sessao, trabalhador_id)
+
+
+async def _lembrete_d1(sessao: Sessao, trabalhador_id: str) -> None:
+    await comunicacao.enviar_lembrete_automatico(sessao, trabalhador_id, "D-1")
+
+
+async def _lembrete_d3(sessao: Sessao, trabalhador_id: str) -> None:
+    await comunicacao.enviar_lembrete_automatico(sessao, trabalhador_id, "D-3")
+
+
+_ENVIAR = {
+    "lembrete_d1": _lembrete_d1,
+    "lembrete_d3": _lembrete_d3,
+    "convite_retorno": comunicacao.enviar_lembrete,
+    "como_voce_esta": comunicacao.enviar_checkin,
+    "pergunta_da_semana": comunicacao.enviar_checkin_habito,
+}
+
+
+@aps.post("/cadencia")
+@transacional
+async def rodar_cadencia_de_hoje(sessao: Sessao) -> list[EnvioDaCadencia]:
+    """Roda o agendador uma vez: decide, pessoa por pessoa, a mensagem de hoje e envia.
+
+    No produto, uma tarefa periódica chama isto todo dia, com trava no Postgres para uma instância só.
+    Na demonstração, a enfermeira aperta o botão para ver a cadência acontecer.
+    """
+    envios = await monitoramento.cadencia_do_dia(sessao)
+    for envio in envios:
+        await _ENVIAR[envio.mensagem](sessao, envio.trabalhador_id)
+    return envios
 
 
 @aps.post("/trabalhadores/{trabalhador_id}/dificuldades/{dificuldade_id}/resolucao", status_code=204)

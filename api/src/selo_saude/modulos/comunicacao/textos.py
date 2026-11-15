@@ -41,6 +41,25 @@ RESPOSTA_DO_TRABALHADOR = {
     "se_so_lembrete": "Só me lembre",
 }
 
+# Rótulo de cada botão no WhatsApp: até 20 caracteres, limite do próprio WhatsApp.
+# Os de resposta voltam pelo webhook com o código no id; os de link abrem a página pessoal.
+BOTAO_DE_RESPOSTA = {
+    "confirmar": "Confirmo ✅",
+    "remarcar": "Preciso remarcar",
+    "checkin_ok": "Tudo bem 👍",
+    "checkin_ajuda": "Quero ajuda",
+    "habito_sim": "Consegui ✅",
+    "habito_nao": "Não consegui",
+    "se_turno": "Direto do turno",
+    "se_folga": "No dia de folga",
+    "se_so_lembrete": "Só me lembre",
+}
+BOTAO_DE_LINK = {
+    "escolher_horario": "Escolher horário",
+    "plano": "Ver meu plano",
+    "exames": "Ver meus exames",
+}
+
 # Resposta automática a cada motivo do "não consegui".
 RESPOSTA_AO_MOTIVO = {
     "tempo": "Obrigado por contar! Dá para fazer por vídeo ou num horário fora do seu turno. "

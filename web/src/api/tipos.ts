@@ -252,6 +252,7 @@ export type TipoRegistro =
   | 'faltou'
   | 'turno_atualizado'
   | 'checkin_habito'
+  | 'checkin_enviado'
   | 'dificuldade'
   | 'dificuldade_resolvida'
   | 'teach_back'
@@ -314,6 +315,16 @@ export interface LinhaDaFila {
   prazoRetorno: string
   situacao: Situacao
   riscoFalta: RiscoFalta
+}
+
+export type MensagemDaCadencia = 'lembrete_d1' | 'lembrete_d3' | 'convite_retorno' | 'como_voce_esta' | 'pergunta_da_semana'
+
+/** Uma mensagem que o agendador mandou ao rodar a cadência do dia. */
+export interface EnvioDaCadencia {
+  trabalhadorId: string
+  nome: string
+  mensagem: MensagemDaCadencia
+  rotulo: string
 }
 
 /** Desfecho do monitoramento, com os mesmos campos da ficha Gestão de Retorno. */

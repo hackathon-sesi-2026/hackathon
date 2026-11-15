@@ -8,3 +8,6 @@
 *.docx
 *.xlsx
 *.xlsm
+
+# Protótipo antigo, substituído por web/ — fica só localmente
+prototipo/

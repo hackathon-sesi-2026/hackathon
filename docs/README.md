@@ -7,6 +7,7 @@ Leia nesta ordem e pare assim que tiver o que precisa.
 | `produto.md` | O que é o Selo Saúde, o alvo do hackathon, persona, superfícies, regras, vocabulário, decisões em aberto | Sempre. Já é carregado pelo `CLAUDE.md` |
 | `prd.md` (e `prd-selo-saude.pdf`) | PRD: o que celular, totem e painéis fazem, módulos da API, rotas, regras, privacidade, gatilhos e lacunas | Para explicar o produto a alguém de fora do time ou revisar o escopo de uma superfície |
 | `validacao-prd.md` (e `.pdf`) | O que do PRD está aprovado, com ressalvas ou recusado, com testes e auditoria de arquitetura | Antes de mexer em privacidade, regras ou arquitetura, e para saber o que falta corrigir |
+| `whatsapp.md` | Toda mensagem do WhatsApp: catálogo (ativas e respostas), jornadas, cadência, ida e volta (fila de envio e webhook), consentimento e o que falta | Ao escrever ou disparar mensagem, ou ao plugar o WhatsApp real |
 | `analise-desafio.md` | Como a APS do SESI funciona hoje: fluxo, as três fichas campo a campo, a planilha, os sistemas | Ao mexer no painel da APS, no plano de cuidado ou no modelo de dados |
 | `pesquisa/gatilhos-mentais.md` | Quais gatilhos de engajamento têm evidência, o que evitar, e onde cada um está no protótipo | Ao escrever mensagem, lembrete, recompensa ou qualquer coisa que tente mudar comportamento |
 | `pesquisa/formulario-perfil-usuario.md` | Formulário de 6 perguntas que separa quem se afasta por barreira de quem se afasta por desinteresse | Ao tratar de personalização por perfil ou de validação com usuários |

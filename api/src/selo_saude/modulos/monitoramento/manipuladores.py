@@ -10,7 +10,7 @@ from selo_saude.modulos.agenda.eventos import (
     RemarcacaoPedida,
 )
 from selo_saude.modulos.cadastro.eventos import TurnoAtualizado
-from selo_saude.modulos.comunicacao.eventos import CheckinHabitoEnviado, LembreteEnviado
+from selo_saude.modulos.comunicacao.eventos import CheckinEnviado, CheckinHabitoEnviado, LembreteEnviado
 from selo_saude.modulos.exames.eventos import ExameColetado, ResultadoLiberado, ResultadoVisto
 from selo_saude.modulos.plano.eventos import (
     DificuldadeRelatada,
@@ -27,6 +27,7 @@ from selo_saude.nucleo.eventos import EventoDominio
 from selo_saude.nucleo.relogio import dia_semana, hora_curta
 
 from .eventos import CheckinRespondido
+from .regras import NOTA_CHECKIN_HABITO_ENVIADO
 from .servico import anotar, marcar_contato
 
 
@@ -48,7 +49,9 @@ def _registro(evento: EventoDominio) -> tuple[str, str | None] | None:
         case LembreteEnviado():
             return "lembrete", None
         case CheckinHabitoEnviado():
-            return "checkin_habito", "check-in enviado"
+            return "checkin_habito", NOTA_CHECKIN_HABITO_ENVIADO
+        case CheckinEnviado():
+            return "checkin_enviado", None
         case PlanoEnviado():
             return "plano_enviado", None
         case PlanoRecebido():

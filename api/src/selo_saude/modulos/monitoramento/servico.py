@@ -21,7 +21,18 @@ from selo_saude.nucleo.eventos import publicar
 
 from .eventos import CheckinRespondido, MonitoramentoRegistrado
 from .modelos import Acompanhamento, Registro
-from .regras import RegistroHistorico, Retrato, RiscoFalta, Situacao, prazo_retorno, risco_falta, situacao
+from .regras import (
+    ROTULO_CADENCIA,
+    MensagemDaCadencia,
+    RegistroHistorico,
+    Retrato,
+    RiscoFalta,
+    Situacao,
+    mensagem_do_dia,
+    prazo_retorno,
+    risco_falta,
+    situacao,
+)
 
 
 class Desfecho(Esquema):
@@ -92,6 +103,39 @@ async def fila(sessao: AsyncSession) -> list[LinhaDaFila]:
             )
         )
     return linhas
+
+
+class EnvioDaCadencia(Esquema):
+    trabalhador_id: str
+    nome: str
+    mensagem: MensagemDaCadencia
+    rotulo: str
+
+
+async def cadencia_do_dia(sessao: AsyncSession) -> list[EnvioDaCadencia]:
+    """O que o agendador manda hoje, pessoa por pessoa. Só decide; quem envia é a comunicação."""
+    hoje = relogio.agora()
+    envios = []
+    for linha in await fila(sessao):
+        retrato = Retrato(
+            trabalhador=linha.trabalhador,
+            consulta=linha.consulta,
+            plano=linha.plano,
+            historico=linha.historico,
+            ultimo_contato_enfermagem=linha.ultimo_contato_enfermagem,
+            pediu_contato=linha.pediu_contato,
+        )
+        mensagem = mensagem_do_dia(retrato, linha.proximo_monitoramento, hoje)
+        if mensagem is not None:
+            envios.append(
+                EnvioDaCadencia(
+                    trabalhador_id=linha.trabalhador.id,
+                    nome=linha.trabalhador.nome,
+                    mensagem=mensagem,
+                    rotulo=ROTULO_CADENCIA[mensagem],
+                )
+            )
+    return envios
 
 
 async def registrar(sessao: AsyncSession, trabalhador_id: str, desfecho: Desfecho) -> None:

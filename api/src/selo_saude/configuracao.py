@@ -11,6 +11,18 @@ class Configuracao(BaseSettings):
     origens_permitidas: list[str] = ["http://localhost:5173"]
     modo_demonstracao: bool = True
     fuso: str = "America/Bahia"
+    # Endereço do front que o celular abre: vai no link das mensagens enviadas de verdade.
+    url_publica: str = "http://localhost:5173"
+
+    # WhatsApp: "simulado" ou "megaapi" (envio real para um número de teste; ver integracoes/whatsapp.py).
+    whatsapp: str = "simulado"
+    megaapi_url: str = "https://apistart01.megaapi.com.br"
+    megaapi_instancia: str = ""
+    megaapi_token: str = ""
+    # Os trabalhadores são fictícios: toda mensagem real vai para este número (DDI + DDD + número, só dígitos).
+    megaapi_numero_teste: str = ""
+    # Se preenchido, só estas matrículas geram envio real (ex.: ["10234"]). Vazio = todas.
+    megaapi_apenas: list[str] = []
 
     @property
     def url_sqlalchemy(self) -> str:

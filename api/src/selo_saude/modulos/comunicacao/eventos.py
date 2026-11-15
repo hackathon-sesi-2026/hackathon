@@ -14,6 +14,13 @@ class CheckinHabitoEnviado(EventoDominio):
 
 
 @dataclass(frozen=True, kw_only=True)
+class CheckinEnviado(EventoDominio):
+    """A pergunta "como você está desde o último atendimento?" foi enviada."""
+
+    trabalhador_id: str
+
+
+@dataclass(frozen=True, kw_only=True)
 class LinkPessoalEnviado(EventoDominio):
     """A pessoa pediu no totem e o link pessoal foi enviado ao WhatsApp dela."""
 

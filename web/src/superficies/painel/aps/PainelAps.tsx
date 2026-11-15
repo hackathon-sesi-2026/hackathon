@@ -5,7 +5,9 @@ import {
   CheckCircle2,
   Clock,
   Eye,
+  CalendarClock,
   FileWarning,
+  HeartHandshake,
   MessageCircleQuestion,
   MessageCircleWarning,
   Radar,
@@ -15,7 +17,8 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react'
-import type { CodigoSituacao, LinhaDaFila, NivelRiscoFalta, RiscoFalta, Situacao, TipoRegistro } from '../../../api/tipos'
+import { api } from '../../../api/cliente'
+import type { CodigoSituacao, EnvioDaCadencia, LinhaDaFila, NivelRiscoFalta, RiscoFalta, Situacao, TipoRegistro } from '../../../api/tipos'
 import { useRecurso } from '../../../api/useRecurso'
 import { IconeCategoria } from '../../../componentes/IconeCategoria'
 import { linkDoCelular, QrDoCelular } from '../../../componentes/QrDoCelular'
@@ -66,6 +69,7 @@ const ROTULO_REGISTRO: Record<TipoRegistro, string> = {
   faltou: 'Faltou ao retorno',
   turno_atualizado: 'Atualizou o turno',
   checkin_habito: 'Check-in do plano',
+  checkin_enviado: 'Perguntou como está',
   dificuldade: 'Relatou dificuldade',
   dificuldade_resolvida: 'Dificuldade resolvida',
   teach_back: 'Pergunta de checagem do plano',
@@ -82,7 +86,7 @@ type Ordem = 'prioridade' | 'risco'
 
 /** Fila da enfermagem: quem saiu do ritmo do cuidado e o que fazer por cada pessoa. Substitui a planilha. */
 export function PainelAps() {
-  const { dados, erro, falha, enviar } = useRecurso<LinhaDaFila[]>('/aps/fila', '/aps/eventos')
+  const { dados, erro, falha, enviar, recarregar } = useRecurso<LinhaDaFila[]>('/aps/fila', '/aps/eventos')
   const acoes = useMemo(() => criarAcoes(enviar), [enviar])
   const [filtro, setFiltro] = useState<Filtro>('acao')
   const [busca, setBusca] = useState('')
@@ -144,7 +148,10 @@ export function PainelAps() {
           <h2 className="text-2xl font-bold tracking-tight text-navy">Acompanhamento do cuidado</h2>
           <p className="text-sm text-slate-500">Quem saiu do ritmo do cuidado, pelo prazo do risco. Substitui a planilha de contatos mês a mês; o prontuário continua no S+.</p>
         </div>
-        <span className="rounded-full bg-white px-3 py-1 text-xs text-slate-500 shadow-sm ring-1 ring-slate-200">Dados fictícios · S+ simulado</span>
+        <div className="flex items-center gap-2">
+          <CadenciaDoDia aoEnviar={recarregar} />
+          <span className="rounded-full bg-white px-3 py-1 text-xs text-slate-500 shadow-sm ring-1 ring-slate-200">Dados fictícios · S+ simulado</span>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-6">
@@ -305,6 +312,70 @@ export function PainelAps() {
 }
 
 /** O link pessoal que o SESI envia pelo WhatsApp. Na demonstração, o QR code abre no celular de quem apresenta. */
+/**
+ * Roda o agendador do WhatsApp uma vez. No produto ele roda sozinho todo dia; aqui a enfermeira aperta
+ * para ver a cadência: quem recebe o quê hoje, no máximo uma mensagem por pessoa (docs/whatsapp.md).
+ */
+function CadenciaDoDia({ aoEnviar }: { aoEnviar: () => Promise<void> }) {
+  const [envios, setEnvios] = useState<EnvioDaCadencia[] | null>(null)
+  const [rodando, setRodando] = useState(false)
+  const [falhou, setFalhou] = useState<string | null>(null)
+
+  async function rodar() {
+    setRodando(true)
+    setFalhou(null)
+    try {
+      setEnvios(await api.post<EnvioDaCadencia[]>('/aps/cadencia'))
+      await aoEnviar()
+    } catch (e) {
+      setFalhou(e instanceof Error ? e.message : 'Não foi possível rodar a cadência.')
+    } finally {
+      setRodando(false)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={rodar}
+        disabled={rodando}
+        className="flex items-center gap-1.5 rounded-full bg-navy px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-navy-700 disabled:opacity-60"
+        title="No produto, o agendador roda sozinho todo dia"
+      >
+        <CalendarClock className="size-3.5" /> {rodando ? 'Enviando…' : 'Rodar as mensagens de hoje'}
+      </button>
+      {(envios || falhou) && (
+        <div className="absolute left-0 top-full z-30 mt-2 w-80 rounded-2xl bg-white p-3 text-xs shadow-lg ring-1 ring-slate-200">
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <p className="font-semibold text-navy">
+              {falhou ? 'Não deu certo' : envios!.length === 0 ? 'Nenhuma mensagem para hoje' : `${envios!.length} mensagem(ns) enviada(s) hoje`}
+            </p>
+            <button onClick={() => (setEnvios(null), setFalhou(null))} aria-label="Fechar" className="text-slate-400 hover:text-slate-600">
+              <X className="size-4" />
+            </button>
+          </div>
+          {falhou && <p className="text-alerta">{falhou}</p>}
+          {envios && envios.length > 0 && (
+            <ul className="max-h-64 space-y-1.5 overflow-auto">
+              {envios.map((e) => (
+                <li key={e.trabalhadorId} className="flex justify-between gap-2">
+                  <span className="truncate text-slate-700">{e.nome}</span>
+                  <span className="shrink-0 text-slate-500">{e.rotulo}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {envios && (
+            <p className="mt-2 border-t border-slate-100 pt-2 leading-snug text-slate-400">
+              No máximo uma por pessoa por dia. Quem está com a enfermagem (dificuldade, pediu contato, faltou) não recebe nada automático.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function LinkDoCelular({ t, fechar }: { t: LinhaDaFila; fechar: () => void }) {
   return (
     <div className="fixed inset-0 z-40 grid place-items-center bg-navy/50 p-4" onClick={fechar}>
@@ -458,6 +529,9 @@ function Gaveta({
               </button>
               <button onClick={() => acoes.enviarCheckinHabito(t.trabalhador.id)} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
                 <MessageCircleWarning className="size-3.5" /> Check-in do plano
+              </button>
+              <button onClick={() => acoes.enviarCheckin(t.trabalhador.id)} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
+                <HeartHandshake className="size-3.5" /> Perguntar como está
               </button>
               <button onClick={verCelular} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-navy hover:bg-slate-50">
                 <Smartphone className="size-3.5" /> Ver celular

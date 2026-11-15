@@ -197,3 +197,73 @@ def situacao(r: Retrato, hoje: datetime) -> Situacao:
     else:
         detalhe = f"Próximo retorno em até {dias_para_o_prazo} dia(s)"
     return s("em_dia", 6, detalhe, "Nenhuma ação agora", False)
+
+
+# ---------------------------------------------------------------- cadência das mensagens (o agendador)
+
+NOTA_CHECKIN_HABITO_ENVIADO = "check-in enviado"
+
+MensagemDaCadencia = Literal["lembrete_d1", "lembrete_d3", "convite_retorno", "como_voce_esta", "pergunta_da_semana"]
+
+ROTULO_CADENCIA: dict[str, str] = {
+    "lembrete_d1": "Lembrete 1 dia antes do retorno",
+    "lembrete_d3": "Lembrete 3 dias antes do retorno",
+    "convite_retorno": "Convite para marcar o retorno",
+    "como_voce_esta": "Como você está",
+    "pergunta_da_semana": "Pergunta da semana sobre o plano",
+}
+
+DIAS_DE_ANTECEDENCIA_DO_CONVITE = 30
+"""O convite para marcar o retorno sai quando faltam 30 dias ou menos para o prazo do risco."""
+
+
+def _envio_ativo(r: RegistroHistorico) -> bool:
+    """Mensagem que o SESI enviou por iniciativa própria (não uma resposta a um toque da pessoa)."""
+    if r.tipo == "checkin_habito":
+        return r.nota == NOTA_CHECKIN_HABITO_ENVIADO
+    return r.tipo in {"lembrete", "lembrete_auto", "checkin_enviado", "plano_enviado", "resultado_liberado"}
+
+
+def _enviado_ha_menos_de(historico: list[RegistroHistorico], hoje: datetime, dias: int, tipo: str) -> bool:
+    return any(_envio_ativo(r) and r.tipo == tipo and 0 <= dias_entre(r.data, hoje) < dias for r in historico)
+
+
+def mensagem_do_dia(r: Retrato, proximo_monitoramento: datetime, hoje: datetime) -> MensagemDaCadencia | None:
+    """Qual mensagem o agendador manda hoje para a pessoa, ou nenhuma. No máximo uma por dia.
+
+    Limites, para não virar cobrança (docs/whatsapp.md, seção 4):
+    - se a enfermagem está tratando (dificuldade aberta, pediu contato, faltou), o agendador não fala: é a vez dela;
+    - se o SESI já mandou alguma mensagem hoje, espera o dia seguinte;
+    - o convite para marcar o retorno não se repete em 30 dias. Sem resposta, a pessoa entra na fila da APS.
+    A ordem abaixo é a prioridade: o retorno marcado vem primeiro.
+    """
+    c = r.consulta
+    if r.plano.dificuldades_abertas or r.pediu_contato or (c is not None and c.status == "faltou"):
+        return None
+    if any(_envio_ativo(h) and dias_entre(h.data, hoje) == 0 for h in r.historico):
+        return None
+
+    marcada = c is not None and c.status in ("agendada", "confirmada") and dias_entre(hoje, c.data) >= 1
+    if marcada and c is not None:
+        dias = dias_entre(hoje, c.data)
+        if dias == 1 and "D-1" not in c.lembretes_automaticos:
+            return "lembrete_d1"
+        if 2 <= dias <= 3 and not {"D-3", "D-1"} & set(c.lembretes_automaticos):
+            return "lembrete_d3"
+    elif c is None or c.status != "remarcar":
+        perto_do_prazo = dias_entre(hoje, prazo_retorno(r.trabalhador)) <= DIAS_DE_ANTECEDENCIA_DO_CONVITE
+        if perto_do_prazo and not _enviado_ha_menos_de(r.historico, hoje, 30, "lembrete"):
+            return "convite_retorno"
+
+    if dias_entre(proximo_monitoramento, hoje) >= 0 and not _enviado_ha_menos_de(
+        r.historico, hoje, 7, "checkin_enviado"
+    ):
+        return "como_voce_esta"
+
+    if (
+        r.plano.status == "recebido"
+        and r.plano.proximo_passo is not None
+        and not _enviado_ha_menos_de(r.historico, hoje, 7, "checkin_habito")
+    ):
+        return "pergunta_da_semana"
+    return None

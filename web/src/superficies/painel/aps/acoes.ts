@@ -11,6 +11,8 @@ export function criarAcoes(enviar: Enviar) {
     dispararLembreteAutomatico: (id: string, qual: 'D-3' | 'D-1') => enviar('post', `${de(id)}/lembretes-automaticos`, { qual }),
     enviarPlano: (id: string) => enviar('post', `${de(id)}/plano/envio`),
     enviarCheckinHabito: (id: string) => enviar('post', `${de(id)}/checkin-habito`),
+    /** "Como você está desde o último atendimento?" */
+    enviarCheckin: (id: string) => enviar('post', `${de(id)}/checkin`),
     resolverDificuldade: (id: string, dificuldadeId: string, nota: string) =>
       enviar('post', `${de(id)}/dificuldades/${dificuldadeId}/resolucao`, { nota }),
     /** Na demonstração a enfermeira simula; no produto, o resultado chega do laboratório pelo S+. */
