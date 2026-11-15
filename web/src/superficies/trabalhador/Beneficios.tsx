@@ -19,7 +19,7 @@ export function AbaBeneficios({ t }: { t: MeuCuidado }) {
 
   return (
     <>
-      <CabecalhoDaAba t={t} titulo="Benefícios" subtitulo="Cuidar de você tem recompensa." />
+      <CabecalhoDaAba t={t} titulo="Benefícios" subtitulo="Cuidar rende pontos" />
       <div className="flex-1 space-y-5 overflow-y-auto bg-cinza px-4 py-4">
         <section className="rounded-2xl bg-gradient-to-br from-navy-700 to-navy p-4 text-white shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-blue-100/80">Seus pontos</p>

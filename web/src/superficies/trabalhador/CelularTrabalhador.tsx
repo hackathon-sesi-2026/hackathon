@@ -84,7 +84,7 @@ function Inicio({ t, irPara }: { t: MeuCuidado; irPara: (d: Destino) => void }) 
 
   return (
     <>
-      <CabecalhoDaAba t={t} titulo={`Olá, ${primeiroNome(t.nome)}! 👋`} subtitulo="Vamos continuar cuidando da sua saúde?" />
+      <CabecalhoDaAba t={t} titulo={`Olá, ${primeiroNome(t.nome)}! 👋`} subtitulo="Vamos se cuidar?" />
       <div className="flex-1 space-y-4 overflow-y-auto bg-cinza px-4 py-4">
         <div className="flex flex-wrap gap-1.5">
           <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${status.cor}`}>
@@ -473,7 +473,7 @@ function Plano({ t, pedirMotivo }: { t: MeuCuidado; pedirMotivo: (p: PedidoMotiv
 function Consultas({ t, irPara }: { t: MeuCuidado; irPara: (d: Destino) => void }) {
   return (
     <>
-      <CabecalhoDaAba t={t} titulo="Minhas consultas" subtitulo="Seus compromissos de saúde." />
+      <CabecalhoDaAba t={t} titulo="Consultas" subtitulo="Seus compromissos" />
       <div className="flex-1 space-y-4 overflow-y-auto bg-cinza px-4 py-4">
         <CartaoConsulta t={t} irPara={irPara} />
         <ResumoExames t={t} abrir={() => irPara('exames')} />

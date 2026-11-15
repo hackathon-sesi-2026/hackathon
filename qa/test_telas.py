@@ -204,7 +204,7 @@ def test_totem_minhas_consultas(abrir):
     entrar_no_totem(pagina)
     pagina.get_by_role("button", name="Voltar").click()
     pagina.get_by_role("button", name="Minhas consultas").click()
-    ver(pagina, "Seus compromissos de saúde.")
+    ver(pagina, "Seus compromissos de saúde.")  # subtítulo do totem (a tela do app usa outro texto)
     pagina.get_by_role("button", name="Voltar").click()
     ver(pagina, "Olá, Marcos!")
 
