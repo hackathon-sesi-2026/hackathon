@@ -85,6 +85,10 @@
   .zoom { position: fixed; inset: 0; background: rgba(4,12,28,.92); display: none; align-items: center; justify-content: center; padding: 3vw; z-index: 9; cursor: zoom-out; }
   .zoom.aberto { display: flex; }
   .zoom .palco { max-width: 94vw; }
+  #apres { position: fixed; inset: 0; background: #000; display: none; align-items: center; justify-content: center; z-index: 20; cursor: none; }
+  #apres.aberto { display: flex; }
+  #apres .palco { width: min(100vw, calc(100vh * 16 / 9)); border: 0; border-radius: 0; }
+  #apres .contador { position: fixed; right: 16px; bottom: 12px; font-size: 13px; color: rgba(255,255,255,.35); }
   @media (max-width: 1100px) { main { grid-template-columns: 1fr; } #lista { flex-direction: row; overflow-x: auto; border-right: 0; } .grade { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -104,6 +108,7 @@
     <div class="barra">
       <button class="btn" id="ant" title="Anterior (←)">←</button>
       <p class="titulo" id="titulo"></p>
+      <button class="btn prim" id="apresentar" title="Tela cheia (F5). Esc sai">▶ Apresentar</button>
       <button class="btn" id="maisSlide">+ Slide depois deste</button>
       <button class="btn" id="removerNovo" hidden>Remover slide novo</button>
       <button class="btn" id="prox" title="Próximo (→)">→</button>
@@ -132,6 +137,7 @@
     <button class="btn prim" id="salvarHero" style="align-self:flex-start;">Adicionar comentário</button>
   </div>
 </section>
+<div id="apres"><div class="palco" id="apresPalco"></div><p class="contador" id="apresN"></p></div>
 <div class="zoom" id="zoom"><div class="palco" id="zoomPalco" style="width:94vw;"></div></div>
 
 <script>
@@ -294,8 +300,46 @@ $('#removerNovo').onclick = () => {
   dados.novos = dados.novos.filter((x) => x !== n); delete dados.notas[n.id];
   salvar(); montarSeq(); ir(atual - 1);
 };
+// Modo apresentação: só os slides da deck, em tela cheia
+let apresI = 0;
+const apresSeq = () => seq.filter((s) => s.tipo === 'deck');
+function apresMostrar() {
+  const lista = apresSeq();
+  apresI = Math.max(0, Math.min(lista.length - 1, apresI));
+  let html = slides[lista[apresI].id];
+  if (lista[apresI].id === 'capa' && dados.heroEscolhida) html = html.replaceAll(BLOB_CAPA, HEROS.find((h) => h.id === dados.heroEscolhida).blob);
+  montarPalco($('#apresPalco'), html);
+  $('#apresN').textContent = `${apresI + 1} / ${lista.length}`;
+}
+function apresAbrir() {
+  const lista = apresSeq();
+  apresI = Math.max(0, lista.findIndex((s) => s.id === seq[atual].id));
+  $('#apres').classList.add('aberto');
+  $('#apres').requestFullscreen?.().catch(() => {});
+  apresMostrar();
+}
+function apresFechar() {
+  if (!$('#apres').classList.contains('aberto')) return;
+  $('#apres').classList.remove('aberto');
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  const i = seq.findIndex((s) => s.id === apresSeq()[apresI].id);
+  if (i >= 0) ir(i);
+}
+$('#apresentar').onclick = apresAbrir;
+$('#apres').onclick = () => { apresI++; apresMostrar(); };
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) apresFechar(); });
+
 document.addEventListener('keydown', (e) => {
-  if (e.target.matches('input, textarea')) return;
+  if (e.target.matches?.('input, textarea')) return;
+  if ($('#apres').classList.contains('aberto')) {
+    if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); apresI++; apresMostrar(); }
+    if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); apresI--; apresMostrar(); }
+    if (e.key === 'Home') { apresI = 0; apresMostrar(); }
+    if (e.key === 'End') { apresI = 1e9; apresMostrar(); }
+    if (e.key === 'Escape') apresFechar();
+    return;
+  }
+  if (e.key === 'F5') { e.preventDefault(); apresAbrir(); return; }
   if (e.key === 'ArrowRight') ir(atual + 1);
   if (e.key === 'ArrowLeft') ir(atual - 1);
 });

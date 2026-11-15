@@ -27,7 +27,7 @@
       {
         "tipo": "Ajuste",
         "texto": "Profissional \"Operador Industrial\", e a parte de \"HOJE, SEM O SELO SAÚDE\" precisa que melhore isso do \"perde o fretado.\" ficou ruim, nao é claro os problemas que esse profissional passa, e existem problemas maiores, ele alta as consultas, e NÃO está engajado, e coloca icones tbm  -------- \"Para quem fazemos\" é ruim de falar, e está pequeno e sem identidade (icone);",
-        "feita": false,
+        "feita": true,
         "criadaEm": "2026-11-15T03:19:29.559Z"
       }
     ],
@@ -45,6 +45,12 @@
         "texto": "A copy de \"termina com a cadeira vazia, a equipe a espera e o cuidado interrompido\" melhora pq nem sempre a equipe vai realmente esperar ou a cadeira vai ficar vazia, pq esses 50% nao sobre nao comparecer em atendimentos agendados, checka o MIRO pfv, que eles tem as certeza, e o roteiro tem tbm onde esse dado dos 50% vem",
         "feita": true,
         "criadaEm": "2026-11-15T01:22:38.631Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "Remove essa parte de \"Cada atendimento que não acontece é cuidado adiado: o exame fica para depois, o retorno escorrega\"",
+        "feita": true,
+        "criadaEm": "2026-11-15T04:17:46.368Z"
       }
     ],
     "efeitos": [
@@ -57,8 +63,14 @@
       {
         "tipo": "Ajuste",
         "texto": "Que diacho é presenteismo, troca esse nome",
-        "feita": false,
+        "feita": true,
         "criadaEm": "2026-11-15T03:14:42.229Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "Esse slide precisa ficar mais claro, tipo \"O trabalhador\" ai vai embaixo \"Doenças cronicas...\" tipo assim, deveria ser mais explicativo, ficou muito vago",
+        "feita": true,
+        "criadaEm": "2026-11-15T04:57:39.953Z"
       }
     ],
     "ciclo": [
@@ -67,6 +79,18 @@
         "texto": "Sinto que o ecosistema precisa estar mais real, tipo a etapa 3 nao faz sentido real isso se encaixa por meio aonde? e quero que isso seja conectado aos nossos entregáveis.",
         "feita": true,
         "criadaEm": "2026-11-15T01:29:08.158Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "Essa parte de ativação, antes falava de \"O plano de cuidado ele recebe após a consulta\"",
+        "feita": true,
+        "criadaEm": "2026-11-15T04:22:52.100Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "Preciso que tu corrija o seguinte, o ayout nao ficou bom nao, o texto de escuta ficou muito vago/ sem contexto e nao da para entender o ecosistema de vdd, tipo, o valor que é realmente gerado preciso que aumenta inclusive as etapas do ecosistema, precisa de por exemplo, algo que fale sobre o processo de beneficios e outras coisas",
+        "feita": true,
+        "criadaEm": "2026-11-15T05:02:10.814Z"
       }
     ],
     "solucao": [
@@ -79,8 +103,14 @@
       {
         "tipo": "Ajuste",
         "texto": "A imagem do totem nao fcou muito interessante nao, tipo assim, a estrutura do totem está boa, porém, a imagem que tu botou desses 3 emojis nao ficaram interessanes para visualizar nao, e a imagem ficou em 9:16, ao inves de ser um horizontal 16:9",
-        "feita": false,
+        "feita": true,
         "criadaEm": "2026-11-15T03:29:31.088Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "Preciso que voce va atualizando esse projeto com os prints do sistema real (o totem nao precisa) mas o app do trabalhador pode oclocar no modal do celular e colocar mais celulares, e o desktop uma tela só mesmo (1 desktop com o sistema real)",
+        "feita": true,
+        "criadaEm": "2026-11-15T05:03:39.311Z"
       }
     ],
     "automacoes": [
@@ -125,7 +155,7 @@
       {
         "tipo": "Ajuste",
         "texto": "A imagem dele no cracha NFC, quero que tenha um \"CHECK\" verde na tela para que signifique que foi autorizado e quero ele olhando para a tela, gera novamente com o codex essa 3 imagem",
-        "feita": false,
+        "feita": true,
         "criadaEm": "2026-11-15T03:31:40.241Z"
       }
     ],
@@ -149,16 +179,72 @@
       {
         "tipo": "Ajuste",
         "texto": "Ficou com um degrade na esquerda, poderia ser bem menor esse degrade, deixa uns 15% de degrade, e coloca esse degrade na horizontal, e nao na vertifical, por isso ai vai ficar uma \"transição smooth\" da imagem pro card",
-        "feita": false,
+        "feita": true,
         "criadaEm": "2026-11-15T03:28:35.169Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "Ele nao é atendido o turno, precisa modificar isso\n\n\"Vê o próprio próximo passo.\" precisa deixar mais fácil, ficou difcil \"Proprio proximo passo\" deveria ser mais simplificado.",
+        "feita": true,
+        "criadaEm": "2026-11-15T04:14:35.417Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "Essas imagens ficaram com esse degrade, queria que fosse fullscreen, ao inves de ter esse degrade, corrige",
+        "feita": true,
+        "criadaEm": "2026-11-15T04:58:48.250Z"
       }
     ],
     "diferencial": [
       {
         "tipo": "Ajuste",
         "texto": "Remove",
-        "feita": false,
+        "feita": true,
         "criadaEm": "2026-11-15T03:37:10.081Z"
+      }
+    ],
+    "escala": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Nao sao 10 mil trabalhadores, são 10 mil pessoas",
+        "feita": true,
+        "criadaEm": "2026-11-15T04:17:03.971Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "Esse slide ai falta um gancho com o slide anterior que fala sobre os 50% que faltam e etc (só um conectivo)",
+        "feita": true,
+        "criadaEm": "2026-11-15T04:34:50.444Z"
+      },
+      {
+        "tipo": "Ajuste",
+        "texto": "\"E isso não é pouca gente\" ficou ruim, nao está profissional e nao foi um bom conectivo com o anterior nao, troca \"Industrias\" por \"empresas\"",
+        "feita": true,
+        "criadaEm": "2026-11-15T04:56:01.044Z"
+      }
+    ],
+    "gatilhos": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Eu queria que voce segmentesse para gatilhos mentais que façam o trabalhador se engajar com o sistema e o processo + além dos beneficios e etc",
+        "feita": true,
+        "criadaEm": "2026-11-15T04:19:46.923Z"
+      }
+    ],
+    "fluxo": [
+      {
+        "tipo": "Ajuste",
+        "texto": "Esse fluxograma precisa ficar mais bonito",
+        "feita": true,
+        "criadaEm": "2026-11-15T05:10:48.431Z"
+      }
+    ],
+    "demo": [
+      {
+        "tipo": "Ajuste",
+        "texto": ".",
+        "feita": false,
+        "criadaEm": "2026-11-15T05:32:59.141Z"
       }
     ]
   },
